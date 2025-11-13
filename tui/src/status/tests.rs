@@ -4,16 +4,16 @@ use crate::history_cell::HistoryCell;
 use chrono::Duration as ChronoDuration;
 use chrono::TimeZone;
 use chrono::Utc;
-use codex_core::AuthManager;
-use codex_core::config::Config;
-use codex_core::config::ConfigOverrides;
-use codex_core::config::ConfigToml;
-use codex_core::protocol::RateLimitSnapshot;
-use codex_core::protocol::RateLimitWindow;
-use codex_core::protocol::SandboxPolicy;
-use codex_core::protocol::TokenUsage;
-use codex_protocol::config_types::ReasoningEffort;
-use codex_protocol::config_types::ReasoningSummary;
+use codexist_core::AuthManager;
+use codexist_core::config::Config;
+use codexist_core::config::ConfigOverrides;
+use codexist_core::config::ConfigToml;
+use codexist_core::protocol::RateLimitSnapshot;
+use codexist_core::protocol::RateLimitWindow;
+use codexist_core::protocol::SandboxPolicy;
+use codexist_core::protocol::TokenUsage;
+use codexist_protocol::config_types::ReasoningEffort;
+use codexist_protocol::config_types::ReasoningSummary;
 use insta::assert_snapshot;
 use ratatui::prelude::*;
 use std::path::PathBuf;
@@ -30,7 +30,7 @@ fn test_config(temp_home: &TempDir) -> Config {
 
 fn test_auth_manager(config: &Config) -> AuthManager {
     AuthManager::new(
-        config.codex_home.clone(),
+        config.codexist_home.clone(),
         false,
         config.cli_auth_credentials_store_mode,
     )
@@ -81,7 +81,7 @@ fn reset_at_from(captured_at: &chrono::DateTime<chrono::Local>, seconds: i64) ->
 fn status_snapshot_includes_reasoning_details() {
     let temp_home = TempDir::new().expect("temp home");
     let mut config = test_config(&temp_home);
-    config.model = "gpt-5-codex".to_string();
+    config.model = "gpt-5-codexist".to_string();
     config.model_provider_id = "openai".to_string();
     config.model_reasoning_effort = Some(ReasoningEffort::High);
     config.model_reasoning_summary = ReasoningSummary::Detailed;
@@ -144,7 +144,7 @@ fn status_snapshot_includes_reasoning_details() {
 fn status_snapshot_includes_monthly_limit() {
     let temp_home = TempDir::new().expect("temp home");
     let mut config = test_config(&temp_home);
-    config.model = "gpt-5-codex".to_string();
+    config.model = "gpt-5-codexist".to_string();
     config.model_provider_id = "openai".to_string();
     config.cwd = PathBuf::from("/workspace/tests");
 
@@ -194,7 +194,7 @@ fn status_snapshot_includes_monthly_limit() {
 fn status_card_token_usage_excludes_cached_tokens() {
     let temp_home = TempDir::new().expect("temp home");
     let mut config = test_config(&temp_home);
-    config.model = "gpt-5-codex".to_string();
+    config.model = "gpt-5-codexist".to_string();
     config.cwd = PathBuf::from("/workspace/tests");
 
     let auth_manager = test_auth_manager(&config);
@@ -232,7 +232,7 @@ fn status_card_token_usage_excludes_cached_tokens() {
 fn status_snapshot_truncates_in_narrow_terminal() {
     let temp_home = TempDir::new().expect("temp home");
     let mut config = test_config(&temp_home);
-    config.model = "gpt-5-codex".to_string();
+    config.model = "gpt-5-codexist".to_string();
     config.model_provider_id = "openai".to_string();
     config.model_reasoning_effort = Some(ReasoningEffort::High);
     config.model_reasoning_summary = ReasoningSummary::Detailed;
@@ -285,7 +285,7 @@ fn status_snapshot_truncates_in_narrow_terminal() {
 fn status_snapshot_shows_missing_limits_message() {
     let temp_home = TempDir::new().expect("temp home");
     let mut config = test_config(&temp_home);
-    config.model = "gpt-5-codex".to_string();
+    config.model = "gpt-5-codexist".to_string();
     config.cwd = PathBuf::from("/workspace/tests");
 
     let auth_manager = test_auth_manager(&config);
@@ -325,7 +325,7 @@ fn status_snapshot_shows_missing_limits_message() {
 fn status_snapshot_shows_empty_limits_message() {
     let temp_home = TempDir::new().expect("temp home");
     let mut config = test_config(&temp_home);
-    config.model = "gpt-5-codex".to_string();
+    config.model = "gpt-5-codexist".to_string();
     config.cwd = PathBuf::from("/workspace/tests");
 
     let auth_manager = test_auth_manager(&config);
@@ -370,7 +370,7 @@ fn status_snapshot_shows_empty_limits_message() {
 fn status_snapshot_shows_stale_limits_message() {
     let temp_home = TempDir::new().expect("temp home");
     let mut config = test_config(&temp_home);
-    config.model = "gpt-5-codex".to_string();
+    config.model = "gpt-5-codexist".to_string();
     config.cwd = PathBuf::from("/workspace/tests");
 
     let auth_manager = test_auth_manager(&config);

@@ -3,10 +3,10 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use tokio_util::sync::CancellationToken;
 
-use crate::codex::TurnContext;
+use crate::codexist::TurnContext;
 use crate::compact;
 use crate::state::TaskKind;
-use codex_protocol::user_input::UserInput;
+use codexist_protocol::user_input::UserInput;
 
 use super::SessionTask;
 use super::SessionTaskContext;

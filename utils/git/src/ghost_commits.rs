@@ -20,7 +20,7 @@ use crate::operations::run_git_for_stdout;
 use crate::operations::run_git_for_stdout_all;
 
 /// Default commit message used for ghost commits when none is provided.
-const DEFAULT_COMMIT_MESSAGE: &str = "codex snapshot";
+const DEFAULT_COMMIT_MESSAGE: &str = "codexist snapshot";
 
 /// Options to control ghost commit creation.
 pub struct CreateGhostCommitOptions<'a> {
@@ -83,7 +83,7 @@ pub fn create_ghost_commit(
         .collect::<Result<Vec<_>, _>>()?;
     let force_include =
         apply_repo_prefix_to_force_include(repo_prefix.as_deref(), &normalized_force);
-    let index_tempdir = Builder::new().prefix("codex-git-index-").tempdir()?;
+    let index_tempdir = Builder::new().prefix("codexist-git-index-").tempdir()?;
     let index_path = index_tempdir.path().join("index");
     let base_env = vec![(
         OsString::from("GIT_INDEX_FILE"),
@@ -337,19 +337,19 @@ fn default_commit_identity() -> Vec<(OsString, OsString)> {
     vec![
         (
             OsString::from("GIT_AUTHOR_NAME"),
-            OsString::from("Codex Snapshot"),
+            OsString::from("Codexist Snapshot"),
         ),
         (
             OsString::from("GIT_AUTHOR_EMAIL"),
-            OsString::from("snapshot@codex.local"),
+            OsString::from("snapshot@codexist.local"),
         ),
         (
             OsString::from("GIT_COMMITTER_NAME"),
-            OsString::from("Codex Snapshot"),
+            OsString::from("Codexist Snapshot"),
         ),
         (
             OsString::from("GIT_COMMITTER_EMAIL"),
-            OsString::from("snapshot@codex.local"),
+            OsString::from("snapshot@codexist.local"),
         ),
     ]
 }
@@ -577,7 +577,7 @@ mod tests {
         assert_eq!(root_after, "root after\n");
         let nested_after = std::fs::read_to_string(workspace.join("nested.txt"))?;
         assert_eq!(nested_after, "nested modified\n");
-        assert!(!workspace.join("codex-rs").exists());
+        assert!(!workspace.join("codexist-rs").exists());
 
         Ok(())
     }
@@ -589,7 +589,7 @@ mod tests {
         let repo = temp.path();
         init_test_repo(repo);
 
-        let workspace = repo.join("codex-rs");
+        let workspace = repo.join("codexist-rs");
         std::fs::create_dir_all(&workspace)?;
         std::fs::write(repo.join(".gitignore"), ".vscode/\n")?;
         std::fs::write(workspace.join("tracked.txt"), "snapshot version\n")?;

@@ -1,18 +1,18 @@
-# codex-app-server
+# codexist-app-server
 
-`codex app-server` is the interface Codex uses to power rich interfaces such as the [Codex VS Code extension](https://marketplace.visualstudio.com/items?itemName=openai.chatgpt). The message schema is currently unstable, but those who wish to build experimental UIs on top of Codex may find it valuable.
+`codexist app-server` is the interface Codexist uses to power rich interfaces such as the [Codexist VS Code extension](https://marketplace.visualstudio.com/items?itemName=openai.chatgpt). The message schema is currently unstable, but those who wish to build experimental UIs on top of Codexist may find it valuable.
 
 ## Protocol
 
-Similar to [MCP](https://modelcontextprotocol.io/), `codex app-server` supports bidirectional communication, streaming JSONL over stdio. The protocol is JSON-RPC 2.0, though the `"jsonrpc":"2.0"` header is omitted.
+Similar to [MCP](https://modelcontextprotocol.io/), `codexist app-server` supports bidirectional communication, streaming JSONL over stdio. The protocol is JSON-RPC 2.0, though the `"jsonrpc":"2.0"` header is omitted.
 
 ## Message Schema
 
-Currently, you can dump a TypeScript version of the schema using `codex app-server generate-ts`, or a JSON Schema bundle via `codex app-server generate-json-schema`. Each output is specific to the version of Codex you used to run the command, so the generated artifacts are guaranteed to match that version.
+Currently, you can dump a TypeScript version of the schema using `codexist app-server generate-ts`, or a JSON Schema bundle via `codexist app-server generate-json-schema`. Each output is specific to the version of Codexist you used to run the command, so the generated artifacts are guaranteed to match that version.
 
 ```
-codex app-server generate-ts --out DIR
-codex app-server generate-json-schema --out DIR
+codexist app-server generate-ts --out DIR
+codexist app-server generate-json-schema --out DIR
 ```
 
 ## Initialization
@@ -23,40 +23,40 @@ Example:
 
 ```json
 { "method": "initialize", "id": 0, "params": {
-    "clientInfo": { "name": "codex-vscode", "title": "Codex VS Code Extension", "version": "0.1.0" }
+    "clientInfo": { "name": "codexist-vscode", "title": "Codexist VS Code Extension", "version": "0.1.0" }
 } }
-{ "id": 0, "result": { "userAgent": "codex-app-server/0.1.0 codex-vscode/0.1.0" } }
+{ "id": 0, "result": { "userAgent": "codexist-app-server/0.1.0 codexist-vscode/0.1.0" } }
 { "method": "initialized" }
 ```
 
 ## Core primitives
 
 We have 3 top level primitives:
-- Thread - a conversation between the Codex agent and a user. Each thread contains multiple turns.
+- Thread - a conversation between the Codexist agent and a user. Each thread contains multiple turns.
 - Turn - one turn of the conversation, typically starting with a user message and finishing with an agent message. Each turn contains multiple items.
 - Item - represents user inputs and agent outputs as part of the turn, persisted and used as the context for future conversations.
 
 ## Thread & turn endpoints
 
-The JSON-RPC API exposes dedicated methods for managing Codex conversations. Threads store long-lived conversation metadata, and turns store the per-message exchange (input → Codex output, including streamed items). Use the thread APIs to create, list, or archive sessions, then drive the conversation with turn APIs and notifications.
+The JSON-RPC API exposes dedicated methods for managing Codexist conversations. Threads store long-lived conversation metadata, and turns store the per-message exchange (input → Codexist output, including streamed items). Use the thread APIs to create, list, or archive sessions, then drive the conversation with turn APIs and notifications.
 
 ### Quick reference
 - `thread/start` — create a new thread; emits `thread/started` and auto-subscribes you to turn/item events for that thread.
 - `thread/resume` — reopen an existing thread by id so subsequent `turn/start` calls append to it.
 - `thread/list` — page through stored rollouts; supports cursor-based pagination and optional `modelProviders` filtering.
 - `thread/archive` — move a thread’s rollout file into the archived directory; returns `{}` on success.
-- `turn/start` — add user input to a thread and begin Codex generation; responds with the initial `turn` object and streams `turn/started`, `item/*`, and `turn/completed` notifications.
+- `turn/start` — add user input to a thread and begin Codexist generation; responds with the initial `turn` object and streams `turn/started`, `item/*`, and `turn/completed` notifications.
 - `turn/interrupt` — request cancellation of an in-flight turn by `(thread_id, turn_id)`; success is an empty `{}` response and the turn finishes with `status: "interrupted"`.
 
 ### 1) Start or resume a thread
 
-Start a fresh thread when you need a new Codex conversation.
+Start a fresh thread when you need a new Codexist conversation.
 
 ```json
 { "method": "thread/start", "id": 10, "params": {
     // Optionally set config settings. If not specified, will use the user's
     // current config settings.
-    "model": "gpt-5-codex",
+    "model": "gpt-5-codexist",
     "cwd": "/Users/me/project",
     "approvalPolicy": "never",
     "sandbox": "workspaceWrite",
@@ -117,7 +117,7 @@ An archived thread will not appear in future calls to `thread/list`.
 
 ### 4) Start a turn (send user input)
 
-Turns attach user input (text or images) to a thread and trigger Codex generation. The `input` field is a list of discriminated unions:
+Turns attach user input (text or images) to a thread and trigger Codexist generation. The `input` field is a list of discriminated unions:
 
 - `{"type":"text","text":"Explain this diff"}`
 - `{"type":"image","url":"https://…png"}`
@@ -137,7 +137,7 @@ You can optionally specify config overrides on the new turn. If specified, these
         "writableRoots": ["/Users/me/project"],
         "networkAccess": true
     },
-    "model": "gpt-5-codex",
+    "model": "gpt-5-codexist",
     "effort": "medium",
     "summary": "concise"
 } }
@@ -161,7 +161,7 @@ You can cancel a running Turn with `turn/interrupt`.
 { "id": 31, "result": {} }
 ```
 
-The server requests cancellations for running subprocesses, then emits a `turn/completed` event with `status: "interrupted"`. Rely on the `turn/completed` to know when Codex-side cleanup is done.
+The server requests cancellations for running subprocesses, then emits a `turn/completed` event with `status: "interrupted"`. Rely on the `turn/completed` to know when Codexist-side cleanup is done.
 
 ## Auth endpoints
 
@@ -193,7 +193,7 @@ Response examples:
 
 Field notes:
 - `refreshToken` (bool): set `true` to force a token refresh.
-- `requiresOpenaiAuth` reflects the active provider; when `false`, Codex can run without OpenAI credentials.
+- `requiresOpenaiAuth` reflects the active provider; when `false`, Codexist can run without OpenAI credentials.
 
 ### 2) Log in with an API key
 
@@ -255,6 +255,6 @@ Field notes:
 
 ### Dev notes
 
-- `codex app-server generate-ts --out <dir>` emits v2 types under `v2/`.
-- `codex app-server generate-json-schema --out <dir>` outputs `codex_app_server_protocol.schemas.json`.
+- `codexist app-server generate-ts --out <dir>` emits v2 types under `v2/`.
+- `codexist app-server generate-json-schema --out <dir>` outputs `codexist_app_server_protocol.schemas.json`.
 - See [“Authentication and authorization” in the config docs](../../docs/config.md#authentication-and-authorization) for configuration knobs.

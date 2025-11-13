@@ -1,4 +1,4 @@
-//! Defines the protocol for a Codex session between a client and an agent.
+//! Defines the protocol for a Codexist session between a client and an agent.
 //!
 //! Uses a SQ (Submission Queue) / EQ (Event Queue) pattern to asynchronously communicate
 //! between user and agent.
@@ -45,7 +45,7 @@ pub const USER_INSTRUCTIONS_OPEN_TAG: &str = "<user_instructions>";
 pub const USER_INSTRUCTIONS_CLOSE_TAG: &str = "</user_instructions>";
 pub const ENVIRONMENT_CONTEXT_OPEN_TAG: &str = "<environment_context>";
 pub const ENVIRONMENT_CONTEXT_CLOSE_TAG: &str = "</environment_context>";
-pub const USER_MESSAGE_BEGIN: &str = "## My request for Codex:";
+pub const USER_MESSAGE_BEGIN: &str = "## My request for Codexist:";
 
 /// Submission Queue Entry - requests from user
 #[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]
@@ -73,7 +73,7 @@ pub enum Op {
     },
 
     /// Similar to [`Op::UserInput`], but contains additional context required
-    /// for a turn of a [`crate::codex_conversation::CodexConversation`].
+    /// for a turn of a [`crate::codexist_conversation::CodexistConversation`].
     UserTurn {
         /// User input items, see `InputItem`
         items: Vec<UserInput>,
@@ -177,13 +177,13 @@ pub enum Op {
     /// to generate a summary which will be returned as an AgentMessage event.
     Compact,
 
-    /// Request Codex to undo a turn (turn are stacked so it is the same effect as CMD + Z).
+    /// Request Codexist to undo a turn (turn are stacked so it is the same effect as CMD + Z).
     Undo,
 
     /// Request a code review from the agent.
     Review { review_request: ReviewRequest },
 
-    /// Request to shut down codex instance.
+    /// Request to shut down codexist instance.
     Shutdown,
 
     /// Execute a user-initiated one-off shell command (triggered by "!cmd").
@@ -198,7 +198,7 @@ pub enum Op {
 }
 
 /// Determines the conditions under which the user is consulted to approve
-/// running the command proposed by Codex.
+/// running the command proposed by Codexist.
 #[derive(
     Debug,
     Clone,
@@ -1515,7 +1515,7 @@ mod tests {
             id: "1234".to_string(),
             msg: EventMsg::SessionConfigured(SessionConfiguredEvent {
                 session_id: conversation_id,
-                model: "codex-mini-latest".to_string(),
+                model: "codexist-mini-latest".to_string(),
                 reasoning_effort: Some(ReasoningEffortConfig::default()),
                 history_log_id: 0,
                 history_entry_count: 0,
@@ -1529,7 +1529,7 @@ mod tests {
             "msg": {
                 "type": "session_configured",
                 "session_id": "67e55044-10b1-426f-9247-bb680e5fe0c8",
-                "model": "codex-mini-latest",
+                "model": "codexist-mini-latest",
                 "reasoning_effort": "medium",
                 "history_log_id": 0,
                 "history_entry_count": 0,

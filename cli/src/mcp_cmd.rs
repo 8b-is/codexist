@@ -5,29 +5,29 @@ use anyhow::Result;
 use anyhow::anyhow;
 use anyhow::bail;
 use clap::ArgGroup;
-use codex_common::CliConfigOverrides;
-use codex_common::format_env_display::format_env_display;
-use codex_core::config::Config;
-use codex_core::config::ConfigOverrides;
-use codex_core::config::edit::ConfigEditsBuilder;
-use codex_core::config::find_codex_home;
-use codex_core::config::load_global_mcp_servers;
-use codex_core::config::types::McpServerConfig;
-use codex_core::config::types::McpServerTransportConfig;
-use codex_core::features::Feature;
-use codex_core::mcp::auth::compute_auth_statuses;
-use codex_core::protocol::McpAuthStatus;
-use codex_rmcp_client::delete_oauth_tokens;
-use codex_rmcp_client::perform_oauth_login;
-use codex_rmcp_client::supports_oauth_login;
+use codexist_common::CliConfigOverrides;
+use codexist_common::format_env_display::format_env_display;
+use codexist_core::config::Config;
+use codexist_core::config::ConfigOverrides;
+use codexist_core::config::edit::ConfigEditsBuilder;
+use codexist_core::config::find_codexist_home;
+use codexist_core::config::load_global_mcp_servers;
+use codexist_core::config::types::McpServerConfig;
+use codexist_core::config::types::McpServerTransportConfig;
+use codexist_core::features::Feature;
+use codexist_core::mcp::auth::compute_auth_statuses;
+use codexist_core::protocol::McpAuthStatus;
+use codexist_rmcp_client::delete_oauth_tokens;
+use codexist_rmcp_client::perform_oauth_login;
+use codexist_rmcp_client::supports_oauth_login;
 
-/// [experimental] Launch Codex as an MCP server or manage configured MCP servers.
+/// [experimental] Launch Codexist as an MCP server or manage configured MCP servers.
 ///
 /// Subcommands:
 /// - `serve`  — run the MCP server on stdio
 /// - `list`   — list configured servers (with `--json`)
 /// - `get`    — show a single server (with `--json`)
-/// - `add`    — add a server launcher entry to `~/.codex/config.toml`
+/// - `add`    — add a server launcher entry to `~/.codexist/config.toml`
 /// - `remove` — delete a server entry
 #[derive(Debug, clap::Parser)]
 pub struct McpCli {
@@ -210,10 +210,10 @@ async fn run_add(config_overrides: &CliConfigOverrides, add_args: AddArgs) -> Re
 
     validate_server_name(&name)?;
 
-    let codex_home = find_codex_home().context("failed to resolve CODEX_HOME")?;
-    let mut servers = load_global_mcp_servers(&codex_home)
+    let codexist_home = find_codexist_home().context("failed to resolve CODEXIST_HOME")?;
+    let mut servers = load_global_mcp_servers(&codexist_home)
         .await
-        .with_context(|| format!("failed to load MCP servers from {}", codex_home.display()))?;
+        .with_context(|| format!("failed to load MCP servers from {}", codexist_home.display()))?;
 
     let transport = match transport_args {
         AddMcpTransportArgs {
@@ -265,11 +265,11 @@ async fn run_add(config_overrides: &CliConfigOverrides, add_args: AddArgs) -> Re
 
     servers.insert(name.clone(), new_entry);
 
-    ConfigEditsBuilder::new(&codex_home)
+    ConfigEditsBuilder::new(&codexist_home)
         .replace_mcp_servers(&servers)
         .apply()
         .await
-        .with_context(|| format!("failed to write MCP servers to {}", codex_home.display()))?;
+        .with_context(|| format!("failed to write MCP servers to {}", codexist_home.display()))?;
 
     println!("Added global MCP server '{name}'.");
 
@@ -285,7 +285,7 @@ async fn run_add(config_overrides: &CliConfigOverrides, add_args: AddArgs) -> Re
                 if !config.features.enabled(Feature::RmcpClient) {
                     println!(
                         "MCP server supports login. Add `experimental_use_rmcp_client = true` \
-                         to your config.toml and run `codex mcp login {name}` to login."
+                         to your config.toml and run `codexist mcp login {name}` to login."
                     );
                 } else {
                     println!("Detected OAuth support. Starting OAuth flow…");
@@ -303,7 +303,7 @@ async fn run_add(config_overrides: &CliConfigOverrides, add_args: AddArgs) -> Re
             }
             Ok(false) => {}
             Err(_) => println!(
-                "MCP server may or may not require login. Run `codex mcp login {name}` to login."
+                "MCP server may or may not require login. Run `codexist mcp login {name}` to login."
             ),
         }
     }
@@ -320,19 +320,19 @@ async fn run_remove(config_overrides: &CliConfigOverrides, remove_args: RemoveAr
 
     validate_server_name(&name)?;
 
-    let codex_home = find_codex_home().context("failed to resolve CODEX_HOME")?;
-    let mut servers = load_global_mcp_servers(&codex_home)
+    let codexist_home = find_codexist_home().context("failed to resolve CODEXIST_HOME")?;
+    let mut servers = load_global_mcp_servers(&codexist_home)
         .await
-        .with_context(|| format!("failed to load MCP servers from {}", codex_home.display()))?;
+        .with_context(|| format!("failed to load MCP servers from {}", codexist_home.display()))?;
 
     let removed = servers.remove(&name).is_some();
 
     if removed {
-        ConfigEditsBuilder::new(&codex_home)
+        ConfigEditsBuilder::new(&codexist_home)
             .replace_mcp_servers(&servers)
             .apply()
             .await
-            .with_context(|| format!("failed to write MCP servers to {}", codex_home.display()))?;
+            .with_context(|| format!("failed to write MCP servers to {}", codexist_home.display()))?;
     }
 
     if removed {
@@ -354,7 +354,7 @@ async fn run_login(config_overrides: &CliConfigOverrides, login_args: LoginArgs)
 
     if !config.features.enabled(Feature::RmcpClient) {
         bail!(
-            "OAuth login is only supported when [features].rmcp_client is true in config.toml. See https://github.com/openai/codex/blob/main/docs/config.md#feature-flags for details."
+            "OAuth login is only supported when [features].rmcp_client is true in config.toml. See https://github.com/openai/codexist/blob/main/docs/config.md#feature-flags for details."
         );
     }
 
@@ -491,7 +491,7 @@ async fn run_list(config_overrides: &CliConfigOverrides, list_args: ListArgs) ->
     }
 
     if entries.is_empty() {
-        println!("No MCP servers configured yet. Try `codex mcp add my-tool -- my-command`.");
+        println!("No MCP servers configured yet. Try `codexist mcp add my-tool -- my-command`.");
         return Ok(());
     }
 
@@ -822,7 +822,7 @@ async fn run_get(config_overrides: &CliConfigOverrides, get_args: GetArgs) -> Re
     if let Some(timeout) = server.tool_timeout_sec {
         println!("  tool_timeout_sec: {}", timeout.as_secs_f64());
     }
-    println!("  remove: codex mcp remove {}", get_args.name);
+    println!("  remove: codexist mcp remove {}", get_args.name);
 
     Ok(())
 }

@@ -1,7 +1,7 @@
 use clap::Parser;
 use clap::ValueHint;
-use codex_common::ApprovalModeCliArg;
-use codex_common::CliConfigOverrides;
+use codexist_common::ApprovalModeCliArg;
+use codexist_common::CliConfigOverrides;
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
@@ -15,8 +15,8 @@ pub struct Cli {
     #[arg(long = "image", short = 'i', value_name = "FILE", value_delimiter = ',', num_args = 1..)]
     pub images: Vec<PathBuf>,
 
-    // Internal controls set by the top-level `codex resume` subcommand.
-    // These are not exposed as user flags on the base `codex` command.
+    // Internal controls set by the top-level `codexist resume` subcommand.
+    // These are not exposed as user flags on the base `codexist` command.
     #[clap(skip)]
     pub resume_picker: bool,
 
@@ -24,7 +24,7 @@ pub struct Cli {
     pub resume_last: bool,
 
     /// Internal: resume a specific recorded session by id (UUID). Set by the
-    /// top-level `codex resume <SESSION_ID>` wrapper; not exposed as a public flag.
+    /// top-level `codexist resume <SESSION_ID>` wrapper; not exposed as a public flag.
     #[clap(skip)]
     pub resume_session_id: Option<String>,
 
@@ -45,7 +45,7 @@ pub struct Cli {
     /// Select the sandbox policy to use when executing model-generated shell
     /// commands.
     #[arg(long = "sandbox", short = 's')]
-    pub sandbox_mode: Option<codex_common::SandboxModeCliArg>,
+    pub sandbox_mode: Option<codexist_common::SandboxModeCliArg>,
 
     /// Configure when the model requires human approval before executing a command.
     #[arg(long = "ask-for-approval", short = 'a')]

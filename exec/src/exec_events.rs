@@ -4,7 +4,7 @@ use serde::Serialize;
 use serde_json::Value as JsonValue;
 use ts_rs::TS;
 
-/// Top-level JSONL events emitted by codex exec
+/// Top-level JSONL events emitted by codexist exec
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, TS)]
 #[serde(tag = "type")]
 pub enum ThreadEvent {

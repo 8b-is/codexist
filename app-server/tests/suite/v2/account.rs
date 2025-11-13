@@ -5,21 +5,21 @@ use app_test_support::to_response;
 
 use app_test_support::ChatGptAuthFixture;
 use app_test_support::write_chatgpt_auth;
-use codex_app_server_protocol::Account;
-use codex_app_server_protocol::AuthMode;
-use codex_app_server_protocol::CancelLoginAccountParams;
-use codex_app_server_protocol::CancelLoginAccountResponse;
-use codex_app_server_protocol::GetAccountParams;
-use codex_app_server_protocol::GetAccountResponse;
-use codex_app_server_protocol::JSONRPCError;
-use codex_app_server_protocol::JSONRPCResponse;
-use codex_app_server_protocol::LoginAccountResponse;
-use codex_app_server_protocol::LogoutAccountResponse;
-use codex_app_server_protocol::RequestId;
-use codex_app_server_protocol::ServerNotification;
-use codex_core::auth::AuthCredentialsStoreMode;
-use codex_login::login_with_api_key;
-use codex_protocol::account::PlanType as AccountPlanType;
+use codexist_app_server_protocol::Account;
+use codexist_app_server_protocol::AuthMode;
+use codexist_app_server_protocol::CancelLoginAccountParams;
+use codexist_app_server_protocol::CancelLoginAccountResponse;
+use codexist_app_server_protocol::GetAccountParams;
+use codexist_app_server_protocol::GetAccountResponse;
+use codexist_app_server_protocol::JSONRPCError;
+use codexist_app_server_protocol::JSONRPCResponse;
+use codexist_app_server_protocol::LoginAccountResponse;
+use codexist_app_server_protocol::LogoutAccountResponse;
+use codexist_app_server_protocol::RequestId;
+use codexist_app_server_protocol::ServerNotification;
+use codexist_core::auth::AuthCredentialsStoreMode;
+use codexist_login::login_with_api_key;
+use codexist_protocol::account::PlanType as AccountPlanType;
 use pretty_assertions::assert_eq;
 use serial_test::serial;
 use std::path::Path;
@@ -37,8 +37,8 @@ struct CreateConfigTomlParams {
     requires_openai_auth: Option<bool>,
 }
 
-fn create_config_toml(codex_home: &Path, params: CreateConfigTomlParams) -> std::io::Result<()> {
-    let config_toml = codex_home.join("config.toml");
+fn create_config_toml(codexist_home: &Path, params: CreateConfigTomlParams) -> std::io::Result<()> {
+    let config_toml = codexist_home.join("config.toml");
     let forced_line = if let Some(method) = params.forced_method {
         format!("forced_login_method = \"{method}\"\n")
     } else {
@@ -78,17 +78,17 @@ stream_max_retries = 0
 
 #[tokio::test]
 async fn logout_account_removes_auth_and_notifies() -> Result<()> {
-    let codex_home = TempDir::new()?;
-    create_config_toml(codex_home.path(), CreateConfigTomlParams::default())?;
+    let codexist_home = TempDir::new()?;
+    create_config_toml(codexist_home.path(), CreateConfigTomlParams::default())?;
 
     login_with_api_key(
-        codex_home.path(),
+        codexist_home.path(),
         "sk-test-key",
         AuthCredentialsStoreMode::File,
     )?;
-    assert!(codex_home.path().join("auth.json").exists());
+    assert!(codexist_home.path().join("auth.json").exists());
 
-    let mut mcp = McpProcess::new_with_env(codex_home.path(), &[("OPENAI_API_KEY", None)]).await?;
+    let mut mcp = McpProcess::new_with_env(codexist_home.path(), &[("OPENAI_API_KEY", None)]).await?;
     timeout(DEFAULT_READ_TIMEOUT, mcp.initialize()).await??;
 
     let id = mcp.send_logout_account_request().await?;
@@ -114,7 +114,7 @@ async fn logout_account_removes_auth_and_notifies() -> Result<()> {
     );
 
     assert!(
-        !codex_home.path().join("auth.json").exists(),
+        !codexist_home.path().join("auth.json").exists(),
         "auth.json should be deleted"
     );
 
@@ -135,10 +135,10 @@ async fn logout_account_removes_auth_and_notifies() -> Result<()> {
 
 #[tokio::test]
 async fn login_account_api_key_succeeds_and_notifies() -> Result<()> {
-    let codex_home = TempDir::new()?;
-    create_config_toml(codex_home.path(), CreateConfigTomlParams::default())?;
+    let codexist_home = TempDir::new()?;
+    create_config_toml(codexist_home.path(), CreateConfigTomlParams::default())?;
 
-    let mut mcp = McpProcess::new(codex_home.path()).await?;
+    let mut mcp = McpProcess::new(codexist_home.path()).await?;
     timeout(DEFAULT_READ_TIMEOUT, mcp.initialize()).await??;
 
     let req_id = mcp
@@ -176,22 +176,22 @@ async fn login_account_api_key_succeeds_and_notifies() -> Result<()> {
     };
     pretty_assertions::assert_eq!(payload.auth_mode, Some(AuthMode::ApiKey));
 
-    assert!(codex_home.path().join("auth.json").exists());
+    assert!(codexist_home.path().join("auth.json").exists());
     Ok(())
 }
 
 #[tokio::test]
 async fn login_account_api_key_rejected_when_forced_chatgpt() -> Result<()> {
-    let codex_home = TempDir::new()?;
+    let codexist_home = TempDir::new()?;
     create_config_toml(
-        codex_home.path(),
+        codexist_home.path(),
         CreateConfigTomlParams {
             forced_method: Some("chatgpt".to_string()),
             ..Default::default()
         },
     )?;
 
-    let mut mcp = McpProcess::new(codex_home.path()).await?;
+    let mut mcp = McpProcess::new(codexist_home.path()).await?;
     timeout(DEFAULT_READ_TIMEOUT, mcp.initialize()).await??;
 
     let request_id = mcp
@@ -212,16 +212,16 @@ async fn login_account_api_key_rejected_when_forced_chatgpt() -> Result<()> {
 
 #[tokio::test]
 async fn login_account_chatgpt_rejected_when_forced_api() -> Result<()> {
-    let codex_home = TempDir::new()?;
+    let codexist_home = TempDir::new()?;
     create_config_toml(
-        codex_home.path(),
+        codexist_home.path(),
         CreateConfigTomlParams {
             forced_method: Some("api".to_string()),
             ..Default::default()
         },
     )?;
 
-    let mut mcp = McpProcess::new(codex_home.path()).await?;
+    let mut mcp = McpProcess::new(codexist_home.path()).await?;
     timeout(DEFAULT_READ_TIMEOUT, mcp.initialize()).await??;
 
     let request_id = mcp.send_login_account_chatgpt_request().await?;
@@ -242,10 +242,10 @@ async fn login_account_chatgpt_rejected_when_forced_api() -> Result<()> {
 // Serialize tests that launch the login server since it binds to a fixed port.
 #[serial(login_port)]
 async fn login_account_chatgpt_start() -> Result<()> {
-    let codex_home = TempDir::new()?;
-    create_config_toml(codex_home.path(), CreateConfigTomlParams::default())?;
+    let codexist_home = TempDir::new()?;
+    create_config_toml(codexist_home.path(), CreateConfigTomlParams::default())?;
 
-    let mut mcp = McpProcess::new(codex_home.path()).await?;
+    let mut mcp = McpProcess::new(codexist_home.path()).await?;
     timeout(DEFAULT_READ_TIMEOUT, mcp.initialize()).await??;
 
     let request_id = mcp.send_login_account_chatgpt_request().await?;
@@ -308,16 +308,16 @@ async fn login_account_chatgpt_start() -> Result<()> {
 // Serialize tests that launch the login server since it binds to a fixed port.
 #[serial(login_port)]
 async fn login_account_chatgpt_includes_forced_workspace_query_param() -> Result<()> {
-    let codex_home = TempDir::new()?;
+    let codexist_home = TempDir::new()?;
     create_config_toml(
-        codex_home.path(),
+        codexist_home.path(),
         CreateConfigTomlParams {
             forced_workspace_id: Some("ws-forced".to_string()),
             ..Default::default()
         },
     )?;
 
-    let mut mcp = McpProcess::new(codex_home.path()).await?;
+    let mut mcp = McpProcess::new(codexist_home.path()).await?;
     timeout(DEFAULT_READ_TIMEOUT, mcp.initialize()).await??;
 
     let request_id = mcp.send_login_account_chatgpt_request().await?;
@@ -340,16 +340,16 @@ async fn login_account_chatgpt_includes_forced_workspace_query_param() -> Result
 
 #[tokio::test]
 async fn get_account_no_auth() -> Result<()> {
-    let codex_home = TempDir::new()?;
+    let codexist_home = TempDir::new()?;
     create_config_toml(
-        codex_home.path(),
+        codexist_home.path(),
         CreateConfigTomlParams {
             requires_openai_auth: Some(true),
             ..Default::default()
         },
     )?;
 
-    let mut mcp = McpProcess::new_with_env(codex_home.path(), &[("OPENAI_API_KEY", None)]).await?;
+    let mut mcp = McpProcess::new_with_env(codexist_home.path(), &[("OPENAI_API_KEY", None)]).await?;
     timeout(DEFAULT_READ_TIMEOUT, mcp.initialize()).await??;
 
     let params = GetAccountParams {
@@ -371,16 +371,16 @@ async fn get_account_no_auth() -> Result<()> {
 
 #[tokio::test]
 async fn get_account_with_api_key() -> Result<()> {
-    let codex_home = TempDir::new()?;
+    let codexist_home = TempDir::new()?;
     create_config_toml(
-        codex_home.path(),
+        codexist_home.path(),
         CreateConfigTomlParams {
             requires_openai_auth: Some(true),
             ..Default::default()
         },
     )?;
 
-    let mut mcp = McpProcess::new(codex_home.path()).await?;
+    let mut mcp = McpProcess::new(codexist_home.path()).await?;
     timeout(DEFAULT_READ_TIMEOUT, mcp.initialize()).await??;
 
     let req_id = mcp
@@ -415,16 +415,16 @@ async fn get_account_with_api_key() -> Result<()> {
 
 #[tokio::test]
 async fn get_account_when_auth_not_required() -> Result<()> {
-    let codex_home = TempDir::new()?;
+    let codexist_home = TempDir::new()?;
     create_config_toml(
-        codex_home.path(),
+        codexist_home.path(),
         CreateConfigTomlParams {
             requires_openai_auth: Some(false),
             ..Default::default()
         },
     )?;
 
-    let mut mcp = McpProcess::new(codex_home.path()).await?;
+    let mut mcp = McpProcess::new(codexist_home.path()).await?;
     timeout(DEFAULT_READ_TIMEOUT, mcp.initialize()).await??;
 
     let params = GetAccountParams {
@@ -449,23 +449,23 @@ async fn get_account_when_auth_not_required() -> Result<()> {
 
 #[tokio::test]
 async fn get_account_with_chatgpt() -> Result<()> {
-    let codex_home = TempDir::new()?;
+    let codexist_home = TempDir::new()?;
     create_config_toml(
-        codex_home.path(),
+        codexist_home.path(),
         CreateConfigTomlParams {
             requires_openai_auth: Some(true),
             ..Default::default()
         },
     )?;
     write_chatgpt_auth(
-        codex_home.path(),
+        codexist_home.path(),
         ChatGptAuthFixture::new("access-chatgpt")
             .email("user@example.com")
             .plan_type("pro"),
         AuthCredentialsStoreMode::File,
     )?;
 
-    let mut mcp = McpProcess::new_with_env(codex_home.path(), &[("OPENAI_API_KEY", None)]).await?;
+    let mut mcp = McpProcess::new_with_env(codexist_home.path(), &[("OPENAI_API_KEY", None)]).await?;
     timeout(DEFAULT_READ_TIMEOUT, mcp.initialize()).await??;
 
     let params = GetAccountParams {

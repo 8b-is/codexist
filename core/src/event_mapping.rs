@@ -1,15 +1,15 @@
-use codex_protocol::items::AgentMessageContent;
-use codex_protocol::items::AgentMessageItem;
-use codex_protocol::items::ReasoningItem;
-use codex_protocol::items::TurnItem;
-use codex_protocol::items::UserMessageItem;
-use codex_protocol::items::WebSearchItem;
-use codex_protocol::models::ContentItem;
-use codex_protocol::models::ReasoningItemContent;
-use codex_protocol::models::ReasoningItemReasoningSummary;
-use codex_protocol::models::ResponseItem;
-use codex_protocol::models::WebSearchAction;
-use codex_protocol::user_input::UserInput;
+use codexist_protocol::items::AgentMessageContent;
+use codexist_protocol::items::AgentMessageItem;
+use codexist_protocol::items::ReasoningItem;
+use codexist_protocol::items::TurnItem;
+use codexist_protocol::items::UserMessageItem;
+use codexist_protocol::items::WebSearchItem;
+use codexist_protocol::models::ContentItem;
+use codexist_protocol::models::ReasoningItemContent;
+use codexist_protocol::models::ReasoningItemReasoningSummary;
+use codexist_protocol::models::ResponseItem;
+use codexist_protocol::models::WebSearchAction;
+use codexist_protocol::user_input::UserInput;
 use tracing::warn;
 use uuid::Uuid;
 
@@ -126,14 +126,14 @@ pub fn parse_turn_item(item: &ResponseItem) -> Option<TurnItem> {
 #[cfg(test)]
 mod tests {
     use super::parse_turn_item;
-    use codex_protocol::items::AgentMessageContent;
-    use codex_protocol::items::TurnItem;
-    use codex_protocol::models::ContentItem;
-    use codex_protocol::models::ReasoningItemContent;
-    use codex_protocol::models::ReasoningItemReasoningSummary;
-    use codex_protocol::models::ResponseItem;
-    use codex_protocol::models::WebSearchAction;
-    use codex_protocol::user_input::UserInput;
+    use codexist_protocol::items::AgentMessageContent;
+    use codexist_protocol::items::TurnItem;
+    use codexist_protocol::models::ContentItem;
+    use codexist_protocol::models::ReasoningItemContent;
+    use codexist_protocol::models::ReasoningItemReasoningSummary;
+    use codexist_protocol::models::ResponseItem;
+    use codexist_protocol::models::WebSearchAction;
+    use codexist_protocol::user_input::UserInput;
     use pretty_assertions::assert_eq;
 
     #[test]
@@ -219,7 +219,7 @@ mod tests {
             id: Some("msg-1".to_string()),
             role: "assistant".to_string(),
             content: vec![ContentItem::OutputText {
-                text: "Hello from Codex".to_string(),
+                text: "Hello from Codexist".to_string(),
             }],
         };
 
@@ -230,7 +230,7 @@ mod tests {
                 let Some(AgentMessageContent::Text { text }) = message.content.first() else {
                     panic!("expected agent message text content");
                 };
-                assert_eq!(text, "Hello from Codex");
+                assert_eq!(text, "Hello from Codexist");
             }
             other => panic!("expected TurnItem::AgentMessage, got {other:?}"),
         }

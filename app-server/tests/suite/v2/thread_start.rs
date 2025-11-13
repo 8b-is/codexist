@@ -2,12 +2,12 @@ use anyhow::Result;
 use app_test_support::McpProcess;
 use app_test_support::create_mock_chat_completions_server;
 use app_test_support::to_response;
-use codex_app_server_protocol::JSONRPCNotification;
-use codex_app_server_protocol::JSONRPCResponse;
-use codex_app_server_protocol::RequestId;
-use codex_app_server_protocol::ThreadStartParams;
-use codex_app_server_protocol::ThreadStartResponse;
-use codex_app_server_protocol::ThreadStartedNotification;
+use codexist_app_server_protocol::JSONRPCNotification;
+use codexist_app_server_protocol::JSONRPCResponse;
+use codexist_app_server_protocol::RequestId;
+use codexist_app_server_protocol::ThreadStartParams;
+use codexist_app_server_protocol::ThreadStartResponse;
+use codexist_app_server_protocol::ThreadStartedNotification;
 use std::path::Path;
 use tempfile::TempDir;
 use tokio::time::timeout;
@@ -19,11 +19,11 @@ async fn thread_start_creates_thread_and_emits_started() -> Result<()> {
     // Provide a mock server and config so model wiring is valid.
     let server = create_mock_chat_completions_server(vec![]).await;
 
-    let codex_home = TempDir::new()?;
-    create_config_toml(codex_home.path(), &server.uri())?;
+    let codexist_home = TempDir::new()?;
+    create_config_toml(codexist_home.path(), &server.uri())?;
 
     // Start server and initialize.
-    let mut mcp = McpProcess::new(codex_home.path()).await?;
+    let mut mcp = McpProcess::new(codexist_home.path()).await?;
     timeout(DEFAULT_READ_TIMEOUT, mcp.initialize()).await??;
 
     // Start a v2 thread with an explicit model override.
@@ -66,8 +66,8 @@ async fn thread_start_creates_thread_and_emits_started() -> Result<()> {
 }
 
 // Helper to create a config.toml pointing at the mock model server.
-fn create_config_toml(codex_home: &Path, server_uri: &str) -> std::io::Result<()> {
-    let config_toml = codex_home.join("config.toml");
+fn create_config_toml(codexist_home: &Path, server_uri: &str) -> std::io::Result<()> {
+    let config_toml = codexist_home.join("config.toml");
     std::fs::write(
         config_toml,
         format!(

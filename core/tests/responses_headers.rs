@@ -1,16 +1,16 @@
 use std::sync::Arc;
 
-use codex_app_server_protocol::AuthMode;
-use codex_core::ContentItem;
-use codex_core::ModelClient;
-use codex_core::ModelProviderInfo;
-use codex_core::Prompt;
-use codex_core::ResponseEvent;
-use codex_core::ResponseItem;
-use codex_core::WireApi;
-use codex_otel::otel_event_manager::OtelEventManager;
-use codex_protocol::ConversationId;
-use codex_protocol::protocol::SessionSource;
+use codexist_app_server_protocol::AuthMode;
+use codexist_core::ContentItem;
+use codexist_core::ModelClient;
+use codexist_core::ModelProviderInfo;
+use codexist_core::Prompt;
+use codexist_core::ResponseEvent;
+use codexist_core::ResponseItem;
+use codexist_core::WireApi;
+use codexist_otel::otel_event_manager::OtelEventManager;
+use codexist_protocol::ConversationId;
+use codexist_protocol::protocol::SessionSource;
 use core_test_support::load_default_config_for_test;
 use core_test_support::responses;
 use futures::StreamExt;
@@ -50,8 +50,8 @@ async fn responses_stream_includes_subagent_header_on_review() {
         requires_openai_auth: false,
     };
 
-    let codex_home = TempDir::new().expect("failed to create TempDir");
-    let mut config = load_default_config_for_test(&codex_home);
+    let codexist_home = TempDir::new().expect("failed to create TempDir");
+    let mut config = load_default_config_for_test(&codexist_home);
     config.model_provider_id = provider.name.clone();
     config.model_provider = provider.clone();
     let effort = config.model_reasoning_effort;
@@ -79,7 +79,7 @@ async fn responses_stream_includes_subagent_header_on_review() {
         effort,
         summary,
         conversation_id,
-        SessionSource::SubAgent(codex_protocol::protocol::SubAgentSource::Review),
+        SessionSource::SubAgent(codexist_protocol::protocol::SubAgentSource::Review),
     );
 
     let mut prompt = Prompt::default();
@@ -138,8 +138,8 @@ async fn responses_stream_includes_subagent_header_on_other() {
         requires_openai_auth: false,
     };
 
-    let codex_home = TempDir::new().expect("failed to create TempDir");
-    let mut config = load_default_config_for_test(&codex_home);
+    let codexist_home = TempDir::new().expect("failed to create TempDir");
+    let mut config = load_default_config_for_test(&codexist_home);
     config.model_provider_id = provider.name.clone();
     config.model_provider = provider.clone();
     let effort = config.model_reasoning_effort;
@@ -167,7 +167,7 @@ async fn responses_stream_includes_subagent_header_on_other() {
         effort,
         summary,
         conversation_id,
-        SessionSource::SubAgent(codex_protocol::protocol::SubAgentSource::Other(
+        SessionSource::SubAgent(codexist_protocol::protocol::SubAgentSource::Other(
             "my-task".to_string(),
         )),
     );

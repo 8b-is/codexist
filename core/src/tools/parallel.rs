@@ -6,16 +6,16 @@ use tokio_util::either::Either;
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::AbortOnDropHandle;
 
-use crate::codex::Session;
-use crate::codex::TurnContext;
-use crate::error::CodexErr;
+use crate::codexist::Session;
+use crate::codexist::TurnContext;
+use crate::error::CodexistErr;
 use crate::function_tool::FunctionCallError;
 use crate::tools::context::SharedTurnDiffTracker;
 use crate::tools::context::ToolPayload;
 use crate::tools::router::ToolCall;
 use crate::tools::router::ToolRouter;
-use codex_protocol::models::FunctionCallOutputPayload;
-use codex_protocol::models::ResponseInputItem;
+use codexist_protocol::models::FunctionCallOutputPayload;
+use codexist_protocol::models::ResponseInputItem;
 
 pub(crate) struct ToolCallRuntime {
     router: Arc<ToolRouter>,
@@ -45,7 +45,7 @@ impl ToolCallRuntime {
         &self,
         call: ToolCall,
         cancellation_token: CancellationToken,
-    ) -> impl std::future::Future<Output = Result<ResponseInputItem, CodexErr>> {
+    ) -> impl std::future::Future<Output = Result<ResponseInputItem, CodexistErr>> {
         let supports_parallel = self.router.tool_supports_parallel(&call.tool_name);
 
         let router = Arc::clone(&self.router);
@@ -79,9 +79,9 @@ impl ToolCallRuntime {
         async move {
             match handle.await {
                 Ok(Ok(response)) => Ok(response),
-                Ok(Err(FunctionCallError::Fatal(message))) => Err(CodexErr::Fatal(message)),
-                Ok(Err(other)) => Err(CodexErr::Fatal(other.to_string())),
-                Err(err) => Err(CodexErr::Fatal(format!(
+                Ok(Err(FunctionCallError::Fatal(message))) => Err(CodexistErr::Fatal(message)),
+                Ok(Err(other)) => Err(CodexistErr::Fatal(other.to_string())),
+                Err(err) => Err(CodexistErr::Fatal(format!(
                     "tool task failed to receive: {err:?}"
                 ))),
             }

@@ -41,8 +41,8 @@ use crate::render::renderable::Renderable;
 use crate::slash_command::SlashCommand;
 use crate::slash_command::built_in_slash_commands;
 use crate::style::user_message_style;
-use codex_protocol::custom_prompts::CustomPrompt;
-use codex_protocol::custom_prompts::PROMPTS_CMD_PREFIX;
+use codexist_protocol::custom_prompts::CustomPrompt;
+use codexist_protocol::custom_prompts::PROMPTS_CMD_PREFIX;
 
 use crate::app_event::AppEvent;
 use crate::app_event_sender::AppEventSender;
@@ -52,7 +52,7 @@ use crate::clipboard_paste::normalize_pasted_path;
 use crate::clipboard_paste::pasted_image_format;
 use crate::history_cell;
 use crate::ui_consts::LIVE_PREFIX_COLS;
-use codex_file_search::FileMatch;
+use codexist_file_search::FileMatch;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::Path;
@@ -1706,7 +1706,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -1766,7 +1766,7 @@ mod tests {
             true,
             sender,
             enhanced_keys_supported,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
         setup(&mut composer);
@@ -1845,7 +1845,7 @@ mod tests {
             true,
             sender,
             true,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -1870,7 +1870,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -1896,7 +1896,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -1937,7 +1937,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -2111,7 +2111,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -2140,7 +2140,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -2169,7 +2169,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -2196,7 +2196,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -2231,7 +2231,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -2272,7 +2272,7 @@ mod tests {
                 true,
                 sender.clone(),
                 false,
-                "Ask Codex to do anything".to_string(),
+                "Ask Codexist to do anything".to_string(),
                 false,
             );
 
@@ -2315,7 +2315,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -2343,7 +2343,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
         type_chars_humanlike(&mut composer, &['/', 'm', 'o']);
@@ -2386,7 +2386,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -2439,7 +2439,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -2460,7 +2460,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -2496,7 +2496,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -2531,7 +2531,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -2610,7 +2610,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -2682,7 +2682,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -2730,7 +2730,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
         let path = PathBuf::from("/tmp/image1.png");
@@ -2754,7 +2754,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
         let path = PathBuf::from("/tmp/image2.png");
@@ -2779,7 +2779,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
         let path = PathBuf::from("/tmp/image3.png");
@@ -2820,7 +2820,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -2851,7 +2851,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -2897,7 +2897,7 @@ mod tests {
     #[test]
     fn pasting_filepath_attaches_image() {
         let tmp = tempdir().expect("create TempDir");
-        let tmp_path: PathBuf = tmp.path().join("codex_tui_test_paste_image.png");
+        let tmp_path: PathBuf = tmp.path().join("codexist_tui_test_paste_image.png");
         let img: ImageBuffer<Rgba<u8>, Vec<u8>> =
             ImageBuffer::from_fn(3, 2, |_x, _y| Rgba([1, 2, 3, 255]));
         img.save(&tmp_path).expect("failed to write temp png");
@@ -2908,7 +2908,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -2918,7 +2918,7 @@ mod tests {
             composer
                 .textarea
                 .text()
-                .starts_with("[codex_tui_test_paste_image.png 3x2] ")
+                .starts_with("[codexist_tui_test_paste_image.png 3x2] ")
         );
 
         let imgs = composer.take_recent_submission_images();
@@ -2935,7 +2935,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -2971,7 +2971,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -3005,7 +3005,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -3043,7 +3043,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -3079,7 +3079,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -3109,7 +3109,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -3159,7 +3159,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -3212,7 +3212,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -3249,7 +3249,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -3280,7 +3280,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -3316,7 +3316,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -3353,7 +3353,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -3391,7 +3391,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -3435,7 +3435,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 
@@ -3467,7 +3467,7 @@ mod tests {
             true,
             sender,
             false,
-            "Ask Codex to do anything".to_string(),
+            "Ask Codexist to do anything".to_string(),
             false,
         );
 

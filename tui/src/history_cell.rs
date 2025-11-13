@@ -17,23 +17,23 @@ use crate::text_formatting::format_and_truncate_tool_result;
 use crate::text_formatting::truncate_text;
 use crate::ui_consts::LIVE_PREFIX_COLS;
 use crate::update_action::UpdateAction;
-use crate::version::CODEX_CLI_VERSION;
+use crate::version::CODEXIST_CLI_VERSION;
 use crate::wrapping::RtOptions;
 use crate::wrapping::word_wrap_line;
 use crate::wrapping::word_wrap_lines;
 use base64::Engine;
-use codex_common::format_env_display::format_env_display;
-use codex_core::config::Config;
-use codex_core::config::types::McpServerTransportConfig;
-use codex_core::config::types::ReasoningSummaryFormat;
-use codex_core::protocol::FileChange;
-use codex_core::protocol::McpAuthStatus;
-use codex_core::protocol::McpInvocation;
-use codex_core::protocol::SessionConfiguredEvent;
-use codex_core::protocol_config_types::ReasoningEffort as ReasoningEffortConfig;
-use codex_protocol::plan_tool::PlanItemArg;
-use codex_protocol::plan_tool::StepStatus;
-use codex_protocol::plan_tool::UpdatePlanArgs;
+use codexist_common::format_env_display::format_env_display;
+use codexist_core::config::Config;
+use codexist_core::config::types::McpServerTransportConfig;
+use codexist_core::config::types::ReasoningSummaryFormat;
+use codexist_core::protocol::FileChange;
+use codexist_core::protocol::McpAuthStatus;
+use codexist_core::protocol::McpInvocation;
+use codexist_core::protocol::SessionConfiguredEvent;
+use codexist_core::protocol_config_types::ReasoningEffort as ReasoningEffortConfig;
+use codexist_protocol::plan_tool::PlanItemArg;
+use codexist_protocol::plan_tool::StepStatus;
+use codexist_protocol::plan_tool::UpdatePlanArgs;
 use image::DynamicImage;
 use image::ImageReader;
 use mcp_types::EmbeddedResourceResource;
@@ -306,7 +306,7 @@ impl HistoryCell for UpdateAvailableHistoryCell {
         } else {
             line![
                 "See ",
-                "https://github.com/openai/codex".cyan().underlined(),
+                "https://github.com/openai/codexist".cyan().underlined(),
                 " for installation options."
             ]
         };
@@ -316,12 +316,12 @@ impl HistoryCell for UpdateAvailableHistoryCell {
                 padded_emoji("✨").bold().cyan(),
                 "Update available!".bold().cyan(),
                 " ",
-                format!("{CODEX_CLI_VERSION} -> {}", self.latest_version).bold(),
+                format!("{CODEXIST_CLI_VERSION} -> {}", self.latest_version).bold(),
             ],
             update_instruction,
             "",
             "See full release notes:",
-            "https://github.com/openai/codex/releases/latest"
+            "https://github.com/openai/codexist/releases/latest"
                 .cyan()
                 .underlined(),
         ];
@@ -390,9 +390,9 @@ fn exec_snippet(command: &[String]) -> String {
 
 pub fn new_approval_decision_cell(
     command: Vec<String>,
-    decision: codex_core::protocol::ReviewDecision,
+    decision: codexist_core::protocol::ReviewDecision,
 ) -> Box<dyn HistoryCell> {
-    use codex_core::protocol::ReviewDecision::*;
+    use codexist_core::protocol::ReviewDecision::*;
 
     let (symbol, summary): (Span<'static>, Vec<Span<'static>>) = match decision {
         Approved => {
@@ -402,7 +402,7 @@ pub fn new_approval_decision_cell(
                 vec![
                     "You ".into(),
                     "approved".bold(),
-                    " codex to run ".into(),
+                    " codexist to run ".into(),
                     snippet,
                     " this time".bold(),
                 ],
@@ -415,7 +415,7 @@ pub fn new_approval_decision_cell(
                 vec![
                     "You ".into(),
                     "approved".bold(),
-                    " codex to run ".into(),
+                    " codexist to run ".into(),
                     snippet,
                     " every time this session".bold(),
                 ],
@@ -428,7 +428,7 @@ pub fn new_approval_decision_cell(
                 vec![
                     "You ".into(),
                     "did not approve".bold(),
-                    " codex to run ".into(),
+                    " codexist to run ".into(),
                     snippet,
                 ],
             )
@@ -596,7 +596,7 @@ pub(crate) fn new_session_info(
             model,
             reasoning_effort,
             config.cwd.clone(),
-            crate::version::CODEX_CLI_VERSION,
+            crate::version::CODEXIST_CLI_VERSION,
         );
 
         // Help lines below the header (new copy and list)
@@ -608,7 +608,7 @@ pub(crate) fn new_session_info(
             Line::from(vec![
                 "  ".into(),
                 "/init".into(),
-                " - create an AGENTS.md file with instructions for Codex".dim(),
+                " - create an AGENTS.md file with instructions for Codexist".dim(),
             ]),
             Line::from(vec![
                 "  ".into(),
@@ -618,7 +618,7 @@ pub(crate) fn new_session_info(
             Line::from(vec![
                 "  ".into(),
                 "/approvals".into(),
-                " - choose what Codex can do without approval".dim(),
+                " - choose what Codexist can do without approval".dim(),
             ]),
             Line::from(vec![
                 "  ".into(),
@@ -724,10 +724,10 @@ impl HistoryCell for SessionHeaderHistoryCell {
 
         let make_row = |spans: Vec<Span<'static>>| Line::from(spans);
 
-        // Title line rendered inside the box: ">_ OpenAI Codex (vX)"
+        // Title line rendered inside the box: ">_ 8b.is/codexist (vX)"
         let title_spans: Vec<Span<'static>> = vec![
             Span::from(">_ ").dim(),
-            Span::from("OpenAI Codex").bold(),
+            Span::from("8b.is/codexist").bold(),
             Span::from(" ").dim(),
             Span::from(format!("(v{})", self.version)).dim(),
         ];
@@ -1065,7 +1065,7 @@ pub(crate) fn empty_mcp_output() -> PlainHistoryCell {
         "  • No MCP servers configured.".italic().into(),
         Line::from(vec![
             "    See the ".into(),
-            "\u{1b}]8;;https://github.com/openai/codex/blob/main/docs/config.md#mcp_servers\u{7}MCP docs\u{1b}]8;;\u{7}".underlined(),
+            "\u{1b}]8;;https://github.com/openai/codexist/blob/main/docs/config.md#mcp_servers\u{7}MCP docs\u{1b}]8;;\u{7}".underlined(),
             " to configure them.".into(),
         ])
         .style(Style::default().add_modifier(Modifier::DIM)),
@@ -1465,13 +1465,13 @@ mod tests {
     use crate::exec_cell::CommandOutput;
     use crate::exec_cell::ExecCall;
     use crate::exec_cell::ExecCell;
-    use codex_core::config::Config;
-    use codex_core::config::ConfigOverrides;
-    use codex_core::config::ConfigToml;
-    use codex_core::config::types::McpServerConfig;
-    use codex_core::config::types::McpServerTransportConfig;
-    use codex_core::protocol::McpAuthStatus;
-    use codex_protocol::parse_command::ParsedCommand;
+    use codexist_core::config::Config;
+    use codexist_core::config::ConfigOverrides;
+    use codexist_core::config::ConfigToml;
+    use codexist_core::config::types::McpServerConfig;
+    use codexist_core::config::types::McpServerTransportConfig;
+    use codexist_core::protocol::McpAuthStatus;
+    use codexist_protocol::parse_command::ParsedCommand;
     use dirs::home_dir;
     use pretty_assertions::assert_eq;
     use serde_json::json;
@@ -1605,7 +1605,7 @@ mod tests {
         let summary = Line::from(vec![
             "You ".into(),
             "approved".bold(),
-            " codex to run ".into(),
+            " codexist to run ".into(),
             "echo something really long to ensure wrapping happens".dim(),
             " this time".bold(),
         ]);
@@ -1614,7 +1614,7 @@ mod tests {
         assert_eq!(
             rendered,
             vec![
-                "✔ You approved codex".to_string(),
+                "✔ You approved codexist".to_string(),
                 "  to run echo something".to_string(),
                 "  really long to ensure".to_string(),
                 "  wrapping happens this".to_string(),

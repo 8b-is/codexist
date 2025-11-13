@@ -9,7 +9,7 @@ use std::time::Duration;
 
 use anyhow::Result;
 use anyhow::anyhow;
-use codex_protocol::ConversationId;
+use codexist_protocol::ConversationId;
 use tracing_subscriber::fmt::writer::MakeWriter;
 
 const DEFAULT_MAX_BYTES: usize = 4 * 1024 * 1024; // 4 MiB
@@ -18,17 +18,17 @@ const SENTRY_DSN: &str =
 const UPLOAD_TIMEOUT_SECS: u64 = 10;
 
 #[derive(Clone)]
-pub struct CodexFeedback {
+pub struct CodexistFeedback {
     inner: Arc<FeedbackInner>,
 }
 
-impl Default for CodexFeedback {
+impl Default for CodexistFeedback {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl CodexFeedback {
+impl CodexistFeedback {
     pub fn new() -> Self {
         Self::with_capacity(DEFAULT_MAX_BYTES)
     }
@@ -45,12 +45,12 @@ impl CodexFeedback {
         }
     }
 
-    pub fn snapshot(&self, session_id: Option<ConversationId>) -> CodexLogSnapshot {
+    pub fn snapshot(&self, session_id: Option<ConversationId>) -> CodexistLogSnapshot {
         let bytes = {
             let guard = self.inner.ring.lock().expect("mutex poisoned");
             guard.snapshot_bytes()
         };
-        CodexLogSnapshot {
+        CodexistLogSnapshot {
             bytes,
             thread_id: session_id
                 .map(|id| id.to_string())
@@ -149,19 +149,19 @@ impl RingBuffer {
     }
 }
 
-pub struct CodexLogSnapshot {
+pub struct CodexistLogSnapshot {
     bytes: Vec<u8>,
     pub thread_id: String,
 }
 
-impl CodexLogSnapshot {
+impl CodexistLogSnapshot {
     pub(crate) fn as_bytes(&self) -> &[u8] {
         &self.bytes
     }
 
     pub fn save_to_temp_file(&self) -> io::Result<PathBuf> {
         let dir = std::env::temp_dir();
-        let filename = format!("codex-feedback-{}.log", self.thread_id);
+        let filename = format!("codexist-feedback-{}.log", self.thread_id);
         let path = dir.join(filename);
         fs::write(&path, self.as_bytes())?;
         Ok(path)
@@ -214,7 +214,7 @@ impl CodexLogSnapshot {
 
         let mut envelope = Envelope::new();
         let title = format!(
-            "[{}]: Codex session {}",
+            "[{}]: Codexist session {}",
             display_classification(classification),
             self.thread_id
         );
@@ -240,7 +240,7 @@ impl CodexLogSnapshot {
         if include_logs {
             envelope.add_item(EnvelopeItem::Attachment(Attachment {
                 buffer: self.bytes.clone(),
-                filename: String::from("codex-logs.log"),
+                filename: String::from("codexist-logs.log"),
                 content_type: Some("text/plain".to_string()),
                 ty: None,
             }));
@@ -281,7 +281,7 @@ mod tests {
 
     #[test]
     fn ring_buffer_drops_front_when_full() {
-        let fb = CodexFeedback::with_capacity(8);
+        let fb = CodexistFeedback::with_capacity(8);
         {
             let mut w = fb.make_writer().make_writer();
             w.write_all(b"abcdefgh").unwrap();

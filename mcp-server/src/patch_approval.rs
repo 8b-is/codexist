@@ -2,10 +2,10 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use codex_core::CodexConversation;
-use codex_core::protocol::FileChange;
-use codex_core::protocol::Op;
-use codex_core::protocol::ReviewDecision;
+use codexist_core::CodexistConversation;
+use codexist_core::protocol::FileChange;
+use codexist_core::protocol::Op;
+use codexist_core::protocol::ReviewDecision;
 use mcp_types::ElicitRequest;
 use mcp_types::ElicitRequestParamsRequestedSchema;
 use mcp_types::JSONRPCErrorError;
@@ -16,7 +16,7 @@ use serde::Serialize;
 use serde_json::json;
 use tracing::error;
 
-use crate::codex_tool_runner::INVALID_PARAMS_ERROR_CODE;
+use crate::codexist_tool_runner::INVALID_PARAMS_ERROR_CODE;
 use crate::outgoing_message::OutgoingMessageSender;
 
 #[derive(Debug, Serialize)]
@@ -24,15 +24,15 @@ pub struct PatchApprovalElicitRequestParams {
     pub message: String,
     #[serde(rename = "requestedSchema")]
     pub requested_schema: ElicitRequestParamsRequestedSchema,
-    pub codex_elicitation: String,
-    pub codex_mcp_tool_call_id: String,
-    pub codex_event_id: String,
-    pub codex_call_id: String,
+    pub codexist_elicitation: String,
+    pub codexist_mcp_tool_call_id: String,
+    pub codexist_event_id: String,
+    pub codexist_call_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub codex_reason: Option<String>,
+    pub codexist_reason: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub codex_grant_root: Option<PathBuf>,
-    pub codex_changes: HashMap<PathBuf, FileChange>,
+    pub codexist_grant_root: Option<PathBuf>,
+    pub codexist_changes: HashMap<PathBuf, FileChange>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -47,7 +47,7 @@ pub(crate) async fn handle_patch_approval_request(
     grant_root: Option<PathBuf>,
     changes: HashMap<PathBuf, FileChange>,
     outgoing: Arc<OutgoingMessageSender>,
-    codex: Arc<CodexConversation>,
+    codexist: Arc<CodexistConversation>,
     request_id: RequestId,
     tool_call_id: String,
     event_id: String,
@@ -56,7 +56,7 @@ pub(crate) async fn handle_patch_approval_request(
     if let Some(r) = &reason {
         message_lines.push(r.clone());
     }
-    message_lines.push("Allow Codex to apply proposed code changes?".to_string());
+    message_lines.push("Allow Codexist to apply proposed code changes?".to_string());
 
     let params = PatchApprovalElicitRequestParams {
         message: message_lines.join("\n"),
@@ -65,13 +65,13 @@ pub(crate) async fn handle_patch_approval_request(
             properties: json!({}),
             required: None,
         },
-        codex_elicitation: "patch-approval".to_string(),
-        codex_mcp_tool_call_id: tool_call_id.clone(),
-        codex_event_id: event_id.clone(),
-        codex_call_id: call_id,
-        codex_reason: reason,
-        codex_grant_root: grant_root,
-        codex_changes: changes,
+        codexist_elicitation: "patch-approval".to_string(),
+        codexist_mcp_tool_call_id: tool_call_id.clone(),
+        codexist_event_id: event_id.clone(),
+        codexist_call_id: call_id,
+        codexist_reason: reason,
+        codexist_grant_root: grant_root,
+        codexist_changes: changes,
     };
     let params_json = match serde_json::to_value(&params) {
         Ok(value) => value,
@@ -100,10 +100,10 @@ pub(crate) async fn handle_patch_approval_request(
 
     // Listen for the response on a separate task so we don't block the main agent loop.
     {
-        let codex = codex.clone();
+        let codexist = codexist.clone();
         let event_id = event_id.clone();
         tokio::spawn(async move {
-            on_patch_approval_response(event_id, on_response, codex).await;
+            on_patch_approval_response(event_id, on_response, codexist).await;
         });
     }
 }
@@ -111,14 +111,14 @@ pub(crate) async fn handle_patch_approval_request(
 pub(crate) async fn on_patch_approval_response(
     event_id: String,
     receiver: tokio::sync::oneshot::Receiver<mcp_types::Result>,
-    codex: Arc<CodexConversation>,
+    codexist: Arc<CodexistConversation>,
 ) {
     let response = receiver.await;
     let value = match response {
         Ok(value) => value,
         Err(err) => {
             error!("request failed: {err:?}");
-            if let Err(submit_err) = codex
+            if let Err(submit_err) = codexist
                 .submit(Op::PatchApproval {
                     id: event_id.clone(),
                     decision: ReviewDecision::Denied,
@@ -138,7 +138,7 @@ pub(crate) async fn on_patch_approval_response(
         }
     });
 
-    if let Err(err) = codex
+    if let Err(err) = codexist
         .submit(Op::PatchApproval {
             id: event_id,
             decision: response.decision,

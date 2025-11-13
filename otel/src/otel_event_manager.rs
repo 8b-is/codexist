@@ -1,15 +1,15 @@
 use chrono::SecondsFormat;
 use chrono::Utc;
-use codex_app_server_protocol::AuthMode;
-use codex_protocol::ConversationId;
-use codex_protocol::config_types::ReasoningEffort;
-use codex_protocol::config_types::ReasoningSummary;
-use codex_protocol::models::ResponseItem;
-use codex_protocol::protocol::AskForApproval;
-use codex_protocol::protocol::ReviewDecision;
-use codex_protocol::protocol::SandboxPolicy;
-use codex_protocol::protocol::SandboxRiskLevel;
-use codex_protocol::user_input::UserInput;
+use codexist_app_server_protocol::AuthMode;
+use codexist_protocol::ConversationId;
+use codexist_protocol::config_types::ReasoningEffort;
+use codexist_protocol::config_types::ReasoningSummary;
+use codexist_protocol::models::ResponseItem;
+use codexist_protocol::protocol::AskForApproval;
+use codexist_protocol::protocol::ReviewDecision;
+use codexist_protocol::protocol::SandboxPolicy;
+use codexist_protocol::protocol::SandboxRiskLevel;
+use codexist_protocol::user_input::UserInput;
 use eventsource_stream::Event as StreamEvent;
 use eventsource_stream::EventStreamError as StreamError;
 use reqwest::Error;
@@ -97,7 +97,7 @@ impl OtelEventManager {
     ) {
         tracing::event!(
             tracing::Level::INFO,
-            event.name = "codex.conversation_starts",
+            event.name = "codexist.conversation_starts",
             event.timestamp = %timestamp(),
             conversation.id = %self.metadata.conversation_id,
             app.version = %self.metadata.app_version,
@@ -136,7 +136,7 @@ impl OtelEventManager {
 
         tracing::event!(
             tracing::Level::INFO,
-            event.name = "codex.api_request",
+            event.name = "codexist.api_request",
             event.timestamp = %timestamp(),
             conversation.id = %self.metadata.conversation_id,
             app.version = %self.metadata.app_version,
@@ -205,7 +205,7 @@ impl OtelEventManager {
     fn sse_event(&self, kind: &str, duration: Duration) {
         tracing::event!(
             tracing::Level::INFO,
-            event.name = "codex.sse_event",
+            event.name = "codexist.sse_event",
             event.timestamp = %timestamp(),
             event.kind = %kind,
             conversation.id = %self.metadata.conversation_id,
@@ -227,7 +227,7 @@ impl OtelEventManager {
         match kind {
             Some(kind) => tracing::event!(
                 tracing::Level::INFO,
-                event.name = "codex.sse_event",
+                event.name = "codexist.sse_event",
                 event.timestamp = %timestamp(),
                 event.kind = %kind,
                 conversation.id = %self.metadata.conversation_id,
@@ -243,7 +243,7 @@ impl OtelEventManager {
             ),
             None => tracing::event!(
                 tracing::Level::INFO,
-                event.name = "codex.sse_event",
+                event.name = "codexist.sse_event",
                 event.timestamp = %timestamp(),
                 conversation.id = %self.metadata.conversation_id,
                 app.version = %self.metadata.app_version,
@@ -265,7 +265,7 @@ impl OtelEventManager {
     {
         tracing::event!(
             tracing::Level::INFO,
-            event.name = "codex.sse_event",
+            event.name = "codexist.sse_event",
             event.kind = %"response.completed",
             event.timestamp = %timestamp(),
             conversation.id = %self.metadata.conversation_id,
@@ -290,7 +290,7 @@ impl OtelEventManager {
     ) {
         tracing::event!(
             tracing::Level::INFO,
-            event.name = "codex.sse_event",
+            event.name = "codexist.sse_event",
             event.timestamp = %timestamp(),
             event.kind = %"response.completed",
             conversation.id = %self.metadata.conversation_id,
@@ -326,7 +326,7 @@ impl OtelEventManager {
 
         tracing::event!(
             tracing::Level::INFO,
-            event.name = "codex.user_prompt",
+            event.name = "codexist.user_prompt",
             event.timestamp = %timestamp(),
             conversation.id = %self.metadata.conversation_id,
             app.version = %self.metadata.app_version,
@@ -350,7 +350,7 @@ impl OtelEventManager {
     ) {
         tracing::event!(
             tracing::Level::INFO,
-            event.name = "codex.tool_decision",
+            event.name = "codexist.tool_decision",
             event.timestamp = %timestamp(),
             conversation.id = %self.metadata.conversation_id,
             app.version = %self.metadata.app_version,
@@ -378,7 +378,7 @@ impl OtelEventManager {
 
         tracing::event!(
             tracing::Level::INFO,
-            event.name = "codex.sandbox_assessment",
+            event.name = "codexist.sandbox_assessment",
             event.timestamp = %timestamp(),
             conversation.id = %self.metadata.conversation_id,
             app.version = %self.metadata.app_version,
@@ -398,7 +398,7 @@ impl OtelEventManager {
     pub fn sandbox_assessment_latency(&self, call_id: &str, duration: Duration) {
         tracing::event!(
             tracing::Level::INFO,
-            event.name = "codex.sandbox_assessment_latency",
+            event.name = "codexist.sandbox_assessment_latency",
             event.timestamp = %timestamp(),
             conversation.id = %self.metadata.conversation_id,
             app.version = %self.metadata.app_version,
@@ -438,7 +438,7 @@ impl OtelEventManager {
 
         tracing::event!(
             tracing::Level::INFO,
-            event.name = "codex.tool_result",
+            event.name = "codexist.tool_result",
             event.timestamp = %timestamp(),
             conversation.id = %self.metadata.conversation_id,
             app.version = %self.metadata.app_version,
@@ -463,7 +463,7 @@ impl OtelEventManager {
     pub fn log_tool_failed(&self, tool_name: &str, error: &str) {
         tracing::event!(
             tracing::Level::INFO,
-            event.name = "codex.tool_result",
+            event.name = "codexist.tool_result",
             event.timestamp = %timestamp(),
             conversation.id = %self.metadata.conversation_id,
             app.version = %self.metadata.app_version,
@@ -493,7 +493,7 @@ impl OtelEventManager {
 
         tracing::event!(
             tracing::Level::INFO,
-            event.name = "codex.tool_result",
+            event.name = "codexist.tool_result",
             event.timestamp = %timestamp(),
             conversation.id = %self.metadata.conversation_id,
             app.version = %self.metadata.app_version,

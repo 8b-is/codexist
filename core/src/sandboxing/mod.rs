@@ -19,8 +19,8 @@ use crate::seatbelt::MACOS_PATH_TO_SEATBELT_EXECUTABLE;
 #[cfg(target_os = "macos")]
 use crate::seatbelt::create_seatbelt_command_args;
 #[cfg(target_os = "macos")]
-use crate::spawn::CODEX_SANDBOX_ENV_VAR;
-use crate::spawn::CODEX_SANDBOX_NETWORK_DISABLED_ENV_VAR;
+use crate::spawn::CODEXIST_SANDBOX_ENV_VAR;
+use crate::spawn::CODEXIST_SANDBOX_NETWORK_DISABLED_ENV_VAR;
 use crate::tools::sandboxing::SandboxablePreference;
 use std::collections::HashMap;
 use std::path::Path;
@@ -57,7 +57,7 @@ pub enum SandboxPreference {
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum SandboxTransformError {
-    #[error("missing codex-linux-sandbox executable path")]
+    #[error("missing codexist-linux-sandbox executable path")]
     MissingLinuxSandboxExecutable,
     #[cfg(not(target_os = "macos"))]
     #[error("seatbelt sandbox is only available on macOS")]
@@ -97,12 +97,12 @@ impl SandboxManager {
         policy: &SandboxPolicy,
         sandbox: SandboxType,
         sandbox_policy_cwd: &Path,
-        codex_linux_sandbox_exe: Option<&PathBuf>,
+        codexist_linux_sandbox_exe: Option<&PathBuf>,
     ) -> Result<ExecEnv, SandboxTransformError> {
         let mut env = spec.env.clone();
         if !policy.has_full_network_access() {
             env.insert(
-                CODEX_SANDBOX_NETWORK_DISABLED_ENV_VAR.to_string(),
+                CODEXIST_SANDBOX_NETWORK_DISABLED_ENV_VAR.to_string(),
                 "1".to_string(),
             );
         }
@@ -116,7 +116,7 @@ impl SandboxManager {
             #[cfg(target_os = "macos")]
             SandboxType::MacosSeatbelt => {
                 let mut seatbelt_env = HashMap::new();
-                seatbelt_env.insert(CODEX_SANDBOX_ENV_VAR.to_string(), "seatbelt".to_string());
+                seatbelt_env.insert(CODEXIST_SANDBOX_ENV_VAR.to_string(), "seatbelt".to_string());
                 let mut args =
                     create_seatbelt_command_args(command.clone(), policy, sandbox_policy_cwd);
                 let mut full_command = Vec::with_capacity(1 + args.len());
@@ -127,7 +127,7 @@ impl SandboxManager {
             #[cfg(not(target_os = "macos"))]
             SandboxType::MacosSeatbelt => return Err(SandboxTransformError::SeatbeltUnavailable),
             SandboxType::LinuxSeccomp => {
-                let exe = codex_linux_sandbox_exe
+                let exe = codexist_linux_sandbox_exe
                     .ok_or(SandboxTransformError::MissingLinuxSandboxExecutable)?;
                 let mut args =
                     create_linux_sandbox_command_args(command.clone(), policy, sandbox_policy_cwd);
@@ -137,11 +137,11 @@ impl SandboxManager {
                 (
                     full_command,
                     HashMap::new(),
-                    Some("codex-linux-sandbox".to_string()),
+                    Some("codexist-linux-sandbox".to_string()),
                 )
             }
             // On Windows, the restricted token sandbox executes in-process via the
-            // codex-windows-sandbox crate. We leave the command unchanged here and
+            // codexist-windows-sandbox crate. We leave the command unchanged here and
             // branch during execution based on the sandbox type.
             #[cfg(target_os = "windows")]
             SandboxType::WindowsRestrictedToken => (command, HashMap::new(), None),

@@ -1,19 +1,19 @@
 use std::sync::Arc;
 
-use codex_app_server_protocol::AuthMode;
-use codex_core::ContentItem;
-use codex_core::LocalShellAction;
-use codex_core::LocalShellExecAction;
-use codex_core::LocalShellStatus;
-use codex_core::ModelClient;
-use codex_core::ModelProviderInfo;
-use codex_core::Prompt;
-use codex_core::ResponseItem;
-use codex_core::WireApi;
-use codex_core::spawn::CODEX_SANDBOX_NETWORK_DISABLED_ENV_VAR;
-use codex_otel::otel_event_manager::OtelEventManager;
-use codex_protocol::ConversationId;
-use codex_protocol::models::ReasoningItemContent;
+use codexist_app_server_protocol::AuthMode;
+use codexist_core::ContentItem;
+use codexist_core::LocalShellAction;
+use codexist_core::LocalShellExecAction;
+use codexist_core::LocalShellStatus;
+use codexist_core::ModelClient;
+use codexist_core::ModelProviderInfo;
+use codexist_core::Prompt;
+use codexist_core::ResponseItem;
+use codexist_core::WireApi;
+use codexist_core::spawn::CODEXIST_SANDBOX_NETWORK_DISABLED_ENV_VAR;
+use codexist_otel::otel_event_manager::OtelEventManager;
+use codexist_protocol::ConversationId;
+use codexist_protocol::models::ReasoningItemContent;
 use core_test_support::load_default_config_for_test;
 use futures::StreamExt;
 use serde_json::Value;
@@ -25,7 +25,7 @@ use wiremock::matchers::method;
 use wiremock::matchers::path;
 
 fn network_disabled() -> bool {
-    std::env::var(CODEX_SANDBOX_NETWORK_DISABLED_ENV_VAR).is_ok()
+    std::env::var(CODEXIST_SANDBOX_NETWORK_DISABLED_ENV_VAR).is_ok()
 }
 
 async fn run_request(input: Vec<ResponseItem>) -> Value {
@@ -61,11 +61,11 @@ async fn run_request(input: Vec<ResponseItem>) -> Value {
         requires_openai_auth: false,
     };
 
-    let codex_home = match TempDir::new() {
+    let codexist_home = match TempDir::new() {
         Ok(dir) => dir,
         Err(e) => panic!("failed to create TempDir: {e}"),
     };
-    let mut config = load_default_config_for_test(&codex_home);
+    let mut config = load_default_config_for_test(&codexist_home);
     config.model_provider_id = provider.name.clone();
     config.model_provider = provider.clone();
     config.show_raw_agent_reasoning = true;
@@ -94,7 +94,7 @@ async fn run_request(input: Vec<ResponseItem>) -> Value {
         effort,
         summary,
         conversation_id,
-        codex_protocol::protocol::SessionSource::Exec,
+        codexist_protocol::protocol::SessionSource::Exec,
     );
 
     let mut prompt = Prompt::default();
@@ -193,7 +193,7 @@ fn first_assistant(messages: &[Value]) -> &Value {
 async fn omits_reasoning_when_none_present() {
     if network_disabled() {
         println!(
-            "Skipping test because it cannot execute when network is disabled in a Codex sandbox."
+            "Skipping test because it cannot execute when network is disabled in a Codexist sandbox."
         );
         return;
     }
@@ -210,7 +210,7 @@ async fn omits_reasoning_when_none_present() {
 async fn attaches_reasoning_to_previous_assistant() {
     if network_disabled() {
         println!(
-            "Skipping test because it cannot execute when network is disabled in a Codex sandbox."
+            "Skipping test because it cannot execute when network is disabled in a Codexist sandbox."
         );
         return;
     }
@@ -232,7 +232,7 @@ async fn attaches_reasoning_to_previous_assistant() {
 async fn attaches_reasoning_to_function_call_anchor() {
     if network_disabled() {
         println!(
-            "Skipping test because it cannot execute when network is disabled in a Codex sandbox."
+            "Skipping test because it cannot execute when network is disabled in a Codexist sandbox."
         );
         return;
     }
@@ -259,7 +259,7 @@ async fn attaches_reasoning_to_function_call_anchor() {
 async fn attaches_reasoning_to_local_shell_call() {
     if network_disabled() {
         println!(
-            "Skipping test because it cannot execute when network is disabled in a Codex sandbox."
+            "Skipping test because it cannot execute when network is disabled in a Codexist sandbox."
         );
         return;
     }
@@ -284,7 +284,7 @@ async fn attaches_reasoning_to_local_shell_call() {
 async fn drops_reasoning_when_last_role_is_user() {
     if network_disabled() {
         println!(
-            "Skipping test because it cannot execute when network is disabled in a Codex sandbox."
+            "Skipping test because it cannot execute when network is disabled in a Codexist sandbox."
         );
         return;
     }
@@ -303,7 +303,7 @@ async fn drops_reasoning_when_last_role_is_user() {
 async fn ignores_reasoning_before_last_user() {
     if network_disabled() {
         println!(
-            "Skipping test because it cannot execute when network is disabled in a Codex sandbox."
+            "Skipping test because it cannot execute when network is disabled in a Codexist sandbox."
         );
         return;
     }
@@ -323,7 +323,7 @@ async fn ignores_reasoning_before_last_user() {
 async fn skips_empty_reasoning_segments() {
     if network_disabled() {
         println!(
-            "Skipping test because it cannot execute when network is disabled in a Codex sandbox."
+            "Skipping test because it cannot execute when network is disabled in a Codexist sandbox."
         );
         return;
     }
@@ -344,7 +344,7 @@ async fn skips_empty_reasoning_segments() {
 async fn suppresses_duplicate_assistant_messages() {
     if network_disabled() {
         println!(
-            "Skipping test because it cannot execute when network is disabled in a Codex sandbox."
+            "Skipping test because it cannot execute when network is disabled in a Codexist sandbox."
         );
         return;
     }

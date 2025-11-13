@@ -1,14 +1,14 @@
 [package]
 edition = "2024"
-name = "codex-cli"
+name = "codexist-cli"
 version = { workspace = true }
 
 [[bin]]
-name = "codex"
+name = "codexist"
 path = "src/main.rs"
 
 [lib]
-name = "codex_cli"
+name = "codexist_cli"
 path = "src/lib.rs"
 
 [lints]
@@ -18,22 +18,22 @@ workspace = true
 anyhow = { workspace = true }
 clap = { workspace = true, features = ["derive"] }
 clap_complete = { workspace = true }
-codex-app-server = { workspace = true }
-codex-app-server-protocol = { workspace = true }
-codex-arg0 = { workspace = true }
-codex-chatgpt = { workspace = true }
-codex-cloud-tasks = { path = "../cloud-tasks" }
-codex-common = { workspace = true, features = ["cli"] }
-codex-core = { workspace = true }
-codex-exec = { workspace = true }
-codex-login = { workspace = true }
-codex-mcp-server = { workspace = true }
-codex-process-hardening = { workspace = true }
-codex-protocol = { workspace = true }
-codex-responses-api-proxy = { workspace = true }
-codex-rmcp-client = { workspace = true }
-codex-stdio-to-uds = { workspace = true }
-codex-tui = { workspace = true }
+codexist-app-server = { workspace = true }
+codexist-app-server-protocol = { workspace = true }
+codexist-arg0 = { workspace = true }
+codexist-chatgpt = { workspace = true }
+codexist-cloud-tasks = { path = "../cloud-tasks" }
+codexist-common = { workspace = true, features = ["cli"] }
+codexist-core = { workspace = true }
+codexist-exec = { workspace = true }
+codexist-login = { workspace = true }
+codexist-mcp-server = { workspace = true }
+codexist-process-hardening = { workspace = true }
+codexist-protocol = { workspace = true }
+codexist-responses-api-proxy = { workspace = true }
+codexist-rmcp-client = { workspace = true }
+codexist-stdio-to-uds = { workspace = true }
+codexist-tui = { workspace = true }
 ctor = { workspace = true }
 libc = { workspace = true }
 owo-colors = { workspace = true }
@@ -51,7 +51,7 @@ tokio = { workspace = true, features = [
 tracing = { workspace = true }
 
 [target.'cfg(target_os = "windows")'.dependencies]
-codex_windows_sandbox = { package = "codex-windows-sandbox", path = "../windows-sandbox-rs" }
+codexist_windows_sandbox = { package = "codexist-windows-sandbox", path = "../windows-sandbox-rs" }
 
 [dev-dependencies]
 assert_cmd = { workspace = true }

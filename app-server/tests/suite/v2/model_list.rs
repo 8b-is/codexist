@@ -4,14 +4,14 @@ use anyhow::Result;
 use anyhow::anyhow;
 use app_test_support::McpProcess;
 use app_test_support::to_response;
-use codex_app_server_protocol::JSONRPCError;
-use codex_app_server_protocol::JSONRPCResponse;
-use codex_app_server_protocol::Model;
-use codex_app_server_protocol::ModelListParams;
-use codex_app_server_protocol::ModelListResponse;
-use codex_app_server_protocol::ReasoningEffortOption;
-use codex_app_server_protocol::RequestId;
-use codex_protocol::config_types::ReasoningEffort;
+use codexist_app_server_protocol::JSONRPCError;
+use codexist_app_server_protocol::JSONRPCResponse;
+use codexist_app_server_protocol::Model;
+use codexist_app_server_protocol::ModelListParams;
+use codexist_app_server_protocol::ModelListResponse;
+use codexist_app_server_protocol::ReasoningEffortOption;
+use codexist_app_server_protocol::RequestId;
+use codexist_protocol::config_types::ReasoningEffort;
 use pretty_assertions::assert_eq;
 use tempfile::TempDir;
 use tokio::time::timeout;
@@ -21,8 +21,8 @@ const INVALID_REQUEST_ERROR_CODE: i64 = -32600;
 
 #[tokio::test]
 async fn list_models_returns_all_models_with_large_limit() -> Result<()> {
-    let codex_home = TempDir::new()?;
-    let mut mcp = McpProcess::new(codex_home.path()).await?;
+    let codexist_home = TempDir::new()?;
+    let mut mcp = McpProcess::new(codexist_home.path()).await?;
 
     timeout(DEFAULT_TIMEOUT, mcp.initialize()).await??;
 
@@ -46,10 +46,10 @@ async fn list_models_returns_all_models_with_large_limit() -> Result<()> {
 
     let expected_models = vec![
         Model {
-            id: "gpt-5-codex".to_string(),
-            model: "gpt-5-codex".to_string(),
-            display_name: "gpt-5-codex".to_string(),
-            description: "Optimized for codex.".to_string(),
+            id: "gpt-5-codexist".to_string(),
+            model: "gpt-5-codexist".to_string(),
+            display_name: "gpt-5-codexist".to_string(),
+            description: "Optimized for codexist.".to_string(),
             supported_reasoning_efforts: vec![
                 ReasoningEffortOption {
                     reasoning_effort: ReasoningEffort::Low,
@@ -108,8 +108,8 @@ async fn list_models_returns_all_models_with_large_limit() -> Result<()> {
 
 #[tokio::test]
 async fn list_models_pagination_works() -> Result<()> {
-    let codex_home = TempDir::new()?;
-    let mut mcp = McpProcess::new(codex_home.path()).await?;
+    let codexist_home = TempDir::new()?;
+    let mut mcp = McpProcess::new(codexist_home.path()).await?;
 
     timeout(DEFAULT_TIMEOUT, mcp.initialize()).await??;
 
@@ -132,7 +132,7 @@ async fn list_models_pagination_works() -> Result<()> {
     } = to_response::<ModelListResponse>(first_response)?;
 
     assert_eq!(first_items.len(), 1);
-    assert_eq!(first_items[0].id, "gpt-5-codex");
+    assert_eq!(first_items[0].id, "gpt-5-codexist");
     let next_cursor = first_cursor.ok_or_else(|| anyhow!("cursor for second page"))?;
 
     let second_request = mcp
@@ -161,8 +161,8 @@ async fn list_models_pagination_works() -> Result<()> {
 
 #[tokio::test]
 async fn list_models_rejects_invalid_cursor() -> Result<()> {
-    let codex_home = TempDir::new()?;
-    let mut mcp = McpProcess::new(codex_home.path()).await?;
+    let codexist_home = TempDir::new()?;
+    let mut mcp = McpProcess::new(codexist_home.path()).await?;
 
     timeout(DEFAULT_TIMEOUT, mcp.initialize()).await??;
 

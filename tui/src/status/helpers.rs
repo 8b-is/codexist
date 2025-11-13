@@ -2,10 +2,10 @@ use crate::exec_command::relativize_to_home;
 use crate::text_formatting;
 use chrono::DateTime;
 use chrono::Local;
-use codex_app_server_protocol::AuthMode;
-use codex_core::AuthManager;
-use codex_core::config::Config;
-use codex_core::project_doc::discover_project_doc_paths;
+use codexist_app_server_protocol::AuthMode;
+use codexist_core::AuthManager;
+use codexist_core::config::Config;
+use codexist_core::project_doc::discover_project_doc_paths;
 use std::path::Path;
 use unicode_width::UnicodeWidthStr;
 

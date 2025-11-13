@@ -16,11 +16,11 @@ use crate::key_hint::KeyBinding;
 use crate::render::highlight::highlight_bash_to_lines;
 use crate::render::renderable::ColumnRenderable;
 use crate::render::renderable::Renderable;
-use codex_core::protocol::FileChange;
-use codex_core::protocol::Op;
-use codex_core::protocol::ReviewDecision;
-use codex_core::protocol::SandboxCommandAssessment;
-use codex_core::protocol::SandboxRiskLevel;
+use codexist_core::protocol::FileChange;
+use codexist_core::protocol::Op;
+use codexist_core::protocol::ReviewDecision;
+use codexist_core::protocol::SandboxCommandAssessment;
+use codexist_core::protocol::SandboxRiskLevel;
 use crossterm::event::KeyCode;
 use crossterm::event::KeyEvent;
 use crossterm::event::KeyEventKind;
@@ -166,14 +166,14 @@ impl ApprovalOverlay {
     fn handle_exec_decision(&self, id: &str, command: &[String], decision: ReviewDecision) {
         let cell = history_cell::new_approval_decision_cell(command.to_vec(), decision);
         self.app_event_tx.send(AppEvent::InsertHistoryCell(cell));
-        self.app_event_tx.send(AppEvent::CodexOp(Op::ExecApproval {
+        self.app_event_tx.send(AppEvent::CodexistOp(Op::ExecApproval {
             id: id.to_string(),
             decision,
         }));
     }
 
     fn handle_patch_decision(&self, id: &str, decision: ReviewDecision) {
-        self.app_event_tx.send(AppEvent::CodexOp(Op::PatchApproval {
+        self.app_event_tx.send(AppEvent::CodexistOp(Op::PatchApproval {
             id: id.to_string(),
             decision,
         }));
@@ -399,7 +399,7 @@ fn exec_options() -> Vec<ApprovalOption> {
             additional_shortcuts: vec![key_hint::plain(KeyCode::Char('a'))],
         },
         ApprovalOption {
-            label: "No, and tell Codex what to do differently".to_string(),
+            label: "No, and tell Codexist what to do differently".to_string(),
             decision: ReviewDecision::Abort,
             display_shortcut: Some(key_hint::plain(KeyCode::Esc)),
             additional_shortcuts: vec![key_hint::plain(KeyCode::Char('n'))],
@@ -416,7 +416,7 @@ fn patch_options() -> Vec<ApprovalOption> {
             additional_shortcuts: vec![key_hint::plain(KeyCode::Char('y'))],
         },
         ApprovalOption {
-            label: "No, and tell Codex what to do differently".to_string(),
+            label: "No, and tell Codexist what to do differently".to_string(),
             decision: ReviewDecision::Abort,
             display_shortcut: Some(key_hint::plain(KeyCode::Esc)),
             additional_shortcuts: vec![key_hint::plain(KeyCode::Char('n'))],
@@ -458,10 +458,10 @@ mod tests {
         let mut view = ApprovalOverlay::new(make_exec_request(), tx);
         assert!(!view.is_complete());
         view.handle_key_event(KeyEvent::new(KeyCode::Char('y'), KeyModifiers::NONE));
-        // We expect at least one CodexOp message in the queue.
+        // We expect at least one CodexistOp message in the queue.
         let mut saw_op = false;
         while let Ok(ev) = rx.try_recv() {
-            if matches!(ev, AppEvent::CodexOp(_)) {
+            if matches!(ev, AppEvent::CodexistOp(_)) {
                 saw_op = true;
                 break;
             }
@@ -519,7 +519,7 @@ mod tests {
             })
             .collect();
         let expected = vec![
-            "✔ You approved codex to run".to_string(),
+            "✔ You approved codexist to run".to_string(),
             "  git add tui/src/render/".to_string(),
             "  mod.rs tui/src/render/".to_string(),
             "  renderable.rs this time".to_string(),
@@ -542,7 +542,7 @@ mod tests {
 
         let mut decision = None;
         while let Ok(ev) = rx.try_recv() {
-            if let AppEvent::CodexOp(Op::ExecApproval { decision: d, .. }) = ev {
+            if let AppEvent::CodexistOp(Op::ExecApproval { decision: d, .. }) = ev {
                 decision = Some(d);
                 break;
             }

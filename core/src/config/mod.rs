@@ -32,14 +32,14 @@ use crate::project_doc::DEFAULT_PROJECT_DOC_FILENAME;
 use crate::project_doc::LOCAL_PROJECT_DOC_FILENAME;
 use crate::protocol::AskForApproval;
 use crate::protocol::SandboxPolicy;
-use codex_app_server_protocol::Tools;
-use codex_app_server_protocol::UserSavedConfig;
-use codex_protocol::config_types::ForcedLoginMethod;
-use codex_protocol::config_types::ReasoningEffort;
-use codex_protocol::config_types::ReasoningSummary;
-use codex_protocol::config_types::SandboxMode;
-use codex_protocol::config_types::Verbosity;
-use codex_rmcp_client::OAuthCredentialsStoreMode;
+use codexist_app_server_protocol::Tools;
+use codexist_app_server_protocol::UserSavedConfig;
+use codexist_protocol::config_types::ForcedLoginMethod;
+use codexist_protocol::config_types::ReasoningEffort;
+use codexist_protocol::config_types::ReasoningSummary;
+use codexist_protocol::config_types::SandboxMode;
+use codexist_protocol::config_types::Verbosity;
+use codexist_rmcp_client::OAuthCredentialsStoreMode;
 use dirs::home_dir;
 use dunce::canonicalize;
 use serde::Deserialize;
@@ -61,9 +61,9 @@ pub mod types;
 #[cfg(target_os = "windows")]
 pub const OPENAI_DEFAULT_MODEL: &str = "gpt-5";
 #[cfg(not(target_os = "windows"))]
-pub const OPENAI_DEFAULT_MODEL: &str = "gpt-5-codex";
-const OPENAI_DEFAULT_REVIEW_MODEL: &str = "gpt-5-codex";
-pub const GPT_5_CODEX_MEDIUM_MODEL: &str = "gpt-5-codex";
+pub const OPENAI_DEFAULT_MODEL: &str = "gpt-5-codexist";
+const OPENAI_DEFAULT_REVIEW_MODEL: &str = "gpt-5-codexist";
+pub const GPT_5_CODEXIST_MEDIUM_MODEL: &str = "gpt-5-codexist";
 
 /// Maximum number of bytes of the documentation that will be embedded. Larger
 /// files are *silently truncated* to this size so we do not take up too much of
@@ -78,7 +78,7 @@ pub struct Config {
     /// Optional override of model selection.
     pub model: String,
 
-    /// Model used specifically for review sessions. Defaults to "gpt-5-codex".
+    /// Model used specifically for review sessions. Defaults to "gpt-5-codexist".
     pub review_model: String,
 
     pub model_family: ModelFamily,
@@ -134,23 +134,23 @@ pub struct Config {
     /// Compact prompt override.
     pub compact_prompt: Option<String>,
 
-    /// Optional external notifier command. When set, Codex will spawn this
+    /// Optional external notifier command. When set, Codexist will spawn this
     /// program after each completed *turn* (i.e. when the agent finishes
     /// processing a user submission). The value must be the full command
-    /// broken into argv tokens **without** the trailing JSON argument - Codex
+    /// broken into argv tokens **without** the trailing JSON argument - Codexist
     /// appends one extra argument containing a JSON payload describing the
     /// event.
     ///
-    /// Example `~/.codex/config.toml` snippet:
+    /// Example `~/.codexist/config.toml` snippet:
     ///
     /// ```toml
-    /// notify = ["notify-send", "Codex"]
+    /// notify = ["notify-send", "Codexist"]
     /// ```
     ///
     /// which will be invoked as:
     ///
     /// ```shell
-    /// notify-send Codex '{"type":"agent-turn-complete","turn-id":"12345"}'
+    /// notify-send Codexist '{"type":"agent-turn-complete","turn-id":"12345"}'
     /// ```
     ///
     /// If unset the feature is disabled.
@@ -166,20 +166,20 @@ pub struct Config {
     pub cwd: PathBuf,
 
     /// Preferred store for CLI auth credentials.
-    /// file (default): Use a file in the Codex home directory.
+    /// file (default): Use a file in the Codexist home directory.
     /// keyring: Use an OS-specific keyring service.
     /// auto: Use the OS-specific keyring service if available, otherwise use a file.
     pub cli_auth_credentials_store_mode: AuthCredentialsStoreMode,
 
-    /// Definition for MCP servers that Codex can reach out to for tool calls.
+    /// Definition for MCP servers that Codexist can reach out to for tool calls.
     pub mcp_servers: HashMap<String, McpServerConfig>,
 
     /// Preferred store for MCP OAuth credentials.
     /// keyring: Use an OS-specific keyring service.
-    ///          Credentials stored in the keyring will only be readable by Codex unless the user explicitly grants access via OS-level keyring access.
-    ///          https://github.com/openai/codex/blob/main/codex-rs/rmcp-client/src/oauth.rs#L2
-    /// file: CODEX_HOME/.credentials.json
-    ///       This file will be readable to Codex and other applications running as the same user.
+    ///          Credentials stored in the keyring will only be readable by Codexist unless the user explicitly grants access via OS-level keyring access.
+    ///          https://github.com/openai/codexist/blob/main/codexist-rs/rmcp-client/src/oauth.rs#L2
+    /// file: CODEXIST_HOME/.credentials.json
+    ///       This file will be readable to Codexist and other applications running as the same user.
     /// auto (default): keyring if available, otherwise file.
     pub mcp_oauth_credentials_store_mode: OAuthCredentialsStoreMode,
 
@@ -192,24 +192,24 @@ pub struct Config {
     /// Additional filenames to try when looking for project-level docs.
     pub project_doc_fallback_filenames: Vec<String>,
 
-    /// Directory containing all Codex state (defaults to `~/.codex` but can be
-    /// overridden by the `CODEX_HOME` environment variable).
-    pub codex_home: PathBuf,
+    /// Directory containing all Codexist state (defaults to `~/.codexist` but can be
+    /// overridden by the `CODEXIST_HOME` environment variable).
+    pub codexist_home: PathBuf,
 
-    /// Settings that govern if and what will be written to `~/.codex/history.jsonl`.
+    /// Settings that govern if and what will be written to `~/.codexist/history.jsonl`.
     pub history: History,
 
     /// Optional URI-based file opener. If set, citations to files in the model
     /// output will be hyperlinked using the specified URI scheme.
     pub file_opener: UriBasedFileOpener,
 
-    /// Path to the `codex-linux-sandbox` executable. This must be set if
+    /// Path to the `codexist-linux-sandbox` executable. This must be set if
     /// [`crate::exec::SandboxType::LinuxSeccomp`] is used. Note that this
     /// cannot be set in the config file: it must be set in code via
     /// [`ConfigOverrides`].
     ///
-    /// When this program is invoked, arg0 will be set to `codex-linux-sandbox`.
-    pub codex_linux_sandbox_exe: Option<PathBuf>,
+    /// When this program is invoked, arg0 will be set to `codexist-linux-sandbox`.
+    pub codexist_linux_sandbox_exe: Option<PathBuf>,
 
     /// Value to use for `reasoning.effort` when making a request using the
     /// Responses API.
@@ -278,10 +278,10 @@ impl Config {
         cli_overrides: Vec<(String, TomlValue)>,
         overrides: ConfigOverrides,
     ) -> std::io::Result<Self> {
-        let codex_home = find_codex_home()?;
+        let codexist_home = find_codexist_home()?;
 
         let root_value = load_resolved_config(
-            &codex_home,
+            &codexist_home,
             cli_overrides,
             crate::config_loader::LoaderOverrides::default(),
         )
@@ -292,16 +292,16 @@ impl Config {
             std::io::Error::new(std::io::ErrorKind::InvalidData, e)
         })?;
 
-        Self::load_from_base_config_with_overrides(cfg, overrides, codex_home)
+        Self::load_from_base_config_with_overrides(cfg, overrides, codexist_home)
     }
 }
 
 pub async fn load_config_as_toml_with_cli_overrides(
-    codex_home: &Path,
+    codexist_home: &Path,
     cli_overrides: Vec<(String, TomlValue)>,
 ) -> std::io::Result<ConfigToml> {
     let root_value = load_resolved_config(
-        codex_home,
+        codexist_home,
         cli_overrides,
         crate::config_loader::LoaderOverrides::default(),
     )
@@ -316,11 +316,11 @@ pub async fn load_config_as_toml_with_cli_overrides(
 }
 
 async fn load_resolved_config(
-    codex_home: &Path,
+    codexist_home: &Path,
     cli_overrides: Vec<(String, TomlValue)>,
     overrides: crate::config_loader::LoaderOverrides,
 ) -> std::io::Result<TomlValue> {
-    let layers = load_config_layers_with_overrides(codex_home, overrides).await?;
+    let layers = load_config_layers_with_overrides(codexist_home, overrides).await?;
     Ok(apply_overlays(layers, cli_overrides))
 }
 
@@ -346,9 +346,9 @@ fn apply_overlays(
 }
 
 pub async fn load_global_mcp_servers(
-    codex_home: &Path,
+    codexist_home: &Path,
 ) -> std::io::Result<BTreeMap<String, McpServerConfig>> {
-    let root_value = load_config_as_toml(codex_home).await?;
+    let root_value = load_config_as_toml(codexist_home).await?;
     let Some(servers_value) = root_value.get("mcp_servers") else {
         return Ok(BTreeMap::new());
     };
@@ -450,12 +450,12 @@ pub(crate) fn set_project_trusted_inner(
     Ok(())
 }
 
-/// Patch `CODEX_HOME/config.toml` project state.
+/// Patch `CODEXIST_HOME/config.toml` project state.
 /// Use with caution.
-pub fn set_project_trusted(codex_home: &Path, project_path: &Path) -> anyhow::Result<()> {
+pub fn set_project_trusted(codexist_home: &Path, project_path: &Path) -> anyhow::Result<()> {
     use crate::config::edit::ConfigEditsBuilder;
 
-    ConfigEditsBuilder::new(codex_home)
+    ConfigEditsBuilder::new(codexist_home)
         .set_project_trusted(project_path)
         .apply_blocking()
 }
@@ -503,7 +503,7 @@ fn apply_toml_override(root: &mut TomlValue, path: &str, value: TomlValue) {
     }
 }
 
-/// Base config deserialized from ~/.codex/config.toml.
+/// Base config deserialized from ~/.codexist/config.toml.
 #[derive(Deserialize, Debug, Clone, Default, PartialEq)]
 pub struct ConfigToml {
     /// Optional override of model selection.
@@ -558,20 +558,20 @@ pub struct ConfigToml {
     pub forced_login_method: Option<ForcedLoginMethod>,
 
     /// Preferred backend for storing CLI auth credentials.
-    /// file (default): Use a file in the Codex home directory.
+    /// file (default): Use a file in the Codexist home directory.
     /// keyring: Use an OS-specific keyring service.
     /// auto: Use the keyring if available, otherwise use a file.
     #[serde(default)]
     pub cli_auth_credentials_store: Option<AuthCredentialsStoreMode>,
 
-    /// Definition for MCP servers that Codex can reach out to for tool calls.
+    /// Definition for MCP servers that Codexist can reach out to for tool calls.
     #[serde(default)]
     pub mcp_servers: HashMap<String, McpServerConfig>,
 
     /// Preferred backend for storing MCP OAuth credentials.
     /// keyring: Use an OS-specific keyring service.
-    ///          https://github.com/openai/codex/blob/main/codex-rs/rmcp-client/src/oauth.rs#L2
-    /// file: Use a file in the Codex home directory.
+    ///          https://github.com/openai/codexist/blob/main/codexist-rs/rmcp-client/src/oauth.rs#L2
+    /// file: Use a file in the Codexist home directory.
     /// auto (default): Use the OS-specific keyring service if available, otherwise use a file.
     #[serde(default)]
     pub mcp_oauth_credentials_store: Option<OAuthCredentialsStoreMode>,
@@ -593,7 +593,7 @@ pub struct ConfigToml {
     #[serde(default)]
     pub profiles: HashMap<String, ConfigProfile>,
 
-    /// Settings that govern if and what will be written to `~/.codex/history.jsonl`.
+    /// Settings that govern if and what will be written to `~/.codexist/history.jsonl`.
     #[serde(default)]
     pub history: Option<History>,
 
@@ -832,7 +832,7 @@ pub struct ConfigOverrides {
     pub sandbox_mode: Option<SandboxMode>,
     pub model_provider: Option<String>,
     pub config_profile: Option<String>,
-    pub codex_linux_sandbox_exe: Option<PathBuf>,
+    pub codexist_linux_sandbox_exe: Option<PathBuf>,
     pub base_instructions: Option<String>,
     pub developer_instructions: Option<String>,
     pub compact_prompt: Option<String>,
@@ -850,9 +850,9 @@ impl Config {
     pub fn load_from_base_config_with_overrides(
         cfg: ConfigToml,
         overrides: ConfigOverrides,
-        codex_home: PathBuf,
+        codexist_home: PathBuf,
     ) -> std::io::Result<Self> {
-        let user_instructions = Self::load_instructions(Some(&codex_home));
+        let user_instructions = Self::load_instructions(Some(&codexist_home));
 
         // Destructure ConfigOverrides fully to ensure all overrides are applied.
         let ConfigOverrides {
@@ -863,7 +863,7 @@ impl Config {
             sandbox_mode,
             model_provider,
             config_profile: config_profile_key,
-            codex_linux_sandbox_exe,
+            codexist_linux_sandbox_exe,
             base_instructions,
             developer_instructions,
             compact_prompt,
@@ -1125,10 +1125,10 @@ impl Config {
                     }
                 })
                 .collect(),
-            codex_home,
+            codexist_home,
             history,
             file_opener: cfg.file_opener.unwrap_or(UriBasedFileOpener::VsCode),
-            codex_linux_sandbox_exe,
+            codexist_linux_sandbox_exe,
 
             hide_agent_reasoning: cfg.hide_agent_reasoning.unwrap_or(false),
             show_raw_agent_reasoning: cfg
@@ -1182,8 +1182,8 @@ impl Config {
         Ok(config)
     }
 
-    fn load_instructions(codex_dir: Option<&Path>) -> Option<String> {
-        let base = codex_dir?;
+    fn load_instructions(codexist_dir: Option<&Path>) -> Option<String> {
+        let base = codexist_dir?;
         for candidate in [LOCAL_PROJECT_DOC_FILENAME, DEFAULT_PROJECT_DOC_FILENAME] {
             let mut path = base.to_path_buf();
             path.push(candidate);
@@ -1239,18 +1239,18 @@ fn default_review_model() -> String {
     OPENAI_DEFAULT_REVIEW_MODEL.to_string()
 }
 
-/// Returns the path to the Codex configuration directory, which can be
-/// specified by the `CODEX_HOME` environment variable. If not set, defaults to
-/// `~/.codex`.
+/// Returns the path to the Codexist configuration directory, which can be
+/// specified by the `CODEXIST_HOME` environment variable. If not set, defaults to
+/// `~/.codexist`.
 ///
-/// - If `CODEX_HOME` is set, the value will be canonicalized and this
+/// - If `CODEXIST_HOME` is set, the value will be canonicalized and this
 ///   function will Err if the path does not exist.
-/// - If `CODEX_HOME` is not set, this function does not verify that the
+/// - If `CODEXIST_HOME` is not set, this function does not verify that the
 ///   directory exists.
-pub fn find_codex_home() -> std::io::Result<PathBuf> {
-    // Honor the `CODEX_HOME` environment variable when it is set to allow users
+pub fn find_codexist_home() -> std::io::Result<PathBuf> {
+    // Honor the `CODEXIST_HOME` environment variable when it is set to allow users
     // (and tests) to override the default location.
-    if let Ok(val) = std::env::var("CODEX_HOME")
+    if let Ok(val) = std::env::var("CODEXIST_HOME")
         && !val.is_empty()
     {
         return PathBuf::from(val).canonicalize();
@@ -1262,14 +1262,14 @@ pub fn find_codex_home() -> std::io::Result<PathBuf> {
             "Could not find home directory",
         )
     })?;
-    p.push(".codex");
+    p.push(".codexist");
     Ok(p)
 }
 
-/// Returns the path to the folder where Codex logs are stored. Does not verify
+/// Returns the path to the folder where Codexist logs are stored. Does not verify
 /// that the directory exists.
 pub fn log_dir(cfg: &Config) -> std::io::Result<PathBuf> {
-    let mut p = cfg.codex_home.clone();
+    let mut p = cfg.codexist_home.clone();
     p.push("log");
     Ok(p)
 }
@@ -1523,13 +1523,13 @@ trust_level = "trusted"
 
     #[test]
     fn config_defaults_to_file_cli_auth_store_mode() -> std::io::Result<()> {
-        let codex_home = TempDir::new()?;
+        let codexist_home = TempDir::new()?;
         let cfg = ConfigToml::default();
 
         let config = Config::load_from_base_config_with_overrides(
             cfg,
             ConfigOverrides::default(),
-            codex_home.path().to_path_buf(),
+            codexist_home.path().to_path_buf(),
         )?;
 
         assert_eq!(
@@ -1542,7 +1542,7 @@ trust_level = "trusted"
 
     #[test]
     fn config_honors_explicit_keyring_auth_store_mode() -> std::io::Result<()> {
-        let codex_home = TempDir::new()?;
+        let codexist_home = TempDir::new()?;
         let cfg = ConfigToml {
             cli_auth_credentials_store: Some(AuthCredentialsStoreMode::Keyring),
             ..Default::default()
@@ -1551,7 +1551,7 @@ trust_level = "trusted"
         let config = Config::load_from_base_config_with_overrides(
             cfg,
             ConfigOverrides::default(),
-            codex_home.path().to_path_buf(),
+            codexist_home.path().to_path_buf(),
         )?;
 
         assert_eq!(
@@ -1564,13 +1564,13 @@ trust_level = "trusted"
 
     #[test]
     fn config_defaults_to_auto_oauth_store_mode() -> std::io::Result<()> {
-        let codex_home = TempDir::new()?;
+        let codexist_home = TempDir::new()?;
         let cfg = ConfigToml::default();
 
         let config = Config::load_from_base_config_with_overrides(
             cfg,
             ConfigOverrides::default(),
-            codex_home.path().to_path_buf(),
+            codexist_home.path().to_path_buf(),
         )?;
 
         assert_eq!(
@@ -1583,7 +1583,7 @@ trust_level = "trusted"
 
     #[test]
     fn profile_legacy_toggles_override_base() -> std::io::Result<()> {
-        let codex_home = TempDir::new()?;
+        let codexist_home = TempDir::new()?;
         let mut profiles = HashMap::new();
         profiles.insert(
             "work".to_string(),
@@ -1601,7 +1601,7 @@ trust_level = "trusted"
         let config = Config::load_from_base_config_with_overrides(
             cfg,
             ConfigOverrides::default(),
-            codex_home.path().to_path_buf(),
+            codexist_home.path().to_path_buf(),
         )?;
 
         assert!(!config.features.enabled(Feature::ViewImageTool));
@@ -1611,7 +1611,7 @@ trust_level = "trusted"
 
     #[test]
     fn profile_sandbox_mode_overrides_base() -> std::io::Result<()> {
-        let codex_home = TempDir::new()?;
+        let codexist_home = TempDir::new()?;
         let mut profiles = HashMap::new();
         profiles.insert(
             "work".to_string(),
@@ -1630,7 +1630,7 @@ trust_level = "trusted"
         let config = Config::load_from_base_config_with_overrides(
             cfg,
             ConfigOverrides::default(),
-            codex_home.path().to_path_buf(),
+            codexist_home.path().to_path_buf(),
         )?;
 
         assert!(matches!(
@@ -1644,7 +1644,7 @@ trust_level = "trusted"
 
     #[test]
     fn cli_override_takes_precedence_over_profile_sandbox_mode() -> std::io::Result<()> {
-        let codex_home = TempDir::new()?;
+        let codexist_home = TempDir::new()?;
         let mut profiles = HashMap::new();
         profiles.insert(
             "work".to_string(),
@@ -1667,7 +1667,7 @@ trust_level = "trusted"
         let config = Config::load_from_base_config_with_overrides(
             cfg,
             overrides,
-            codex_home.path().to_path_buf(),
+            codexist_home.path().to_path_buf(),
         )?;
 
         if cfg!(target_os = "windows") {
@@ -1686,7 +1686,7 @@ trust_level = "trusted"
 
     #[test]
     fn feature_table_overrides_legacy_flags() -> std::io::Result<()> {
-        let codex_home = TempDir::new()?;
+        let codexist_home = TempDir::new()?;
         let mut entries = BTreeMap::new();
         entries.insert("apply_patch_freeform".to_string(), false);
         let cfg = ConfigToml {
@@ -1697,7 +1697,7 @@ trust_level = "trusted"
         let config = Config::load_from_base_config_with_overrides(
             cfg,
             ConfigOverrides::default(),
-            codex_home.path().to_path_buf(),
+            codexist_home.path().to_path_buf(),
         )?;
 
         assert!(!config.features.enabled(Feature::ApplyPatchFreeform));
@@ -1708,7 +1708,7 @@ trust_level = "trusted"
 
     #[test]
     fn legacy_toggles_map_to_features() -> std::io::Result<()> {
-        let codex_home = TempDir::new()?;
+        let codexist_home = TempDir::new()?;
         let cfg = ConfigToml {
             experimental_use_unified_exec_tool: Some(true),
             experimental_use_rmcp_client: Some(true),
@@ -1719,7 +1719,7 @@ trust_level = "trusted"
         let config = Config::load_from_base_config_with_overrides(
             cfg,
             ConfigOverrides::default(),
-            codex_home.path().to_path_buf(),
+            codexist_home.path().to_path_buf(),
         )?;
 
         assert!(config.features.enabled(Feature::ApplyPatchFreeform));
@@ -1736,7 +1736,7 @@ trust_level = "trusted"
 
     #[test]
     fn config_honors_explicit_file_oauth_store_mode() -> std::io::Result<()> {
-        let codex_home = TempDir::new()?;
+        let codexist_home = TempDir::new()?;
         let cfg = ConfigToml {
             mcp_oauth_credentials_store: Some(OAuthCredentialsStoreMode::File),
             ..Default::default()
@@ -1745,7 +1745,7 @@ trust_level = "trusted"
         let config = Config::load_from_base_config_with_overrides(
             cfg,
             ConfigOverrides::default(),
-            codex_home.path().to_path_buf(),
+            codexist_home.path().to_path_buf(),
         )?;
 
         assert_eq!(
@@ -1758,9 +1758,9 @@ trust_level = "trusted"
 
     #[tokio::test]
     async fn managed_config_overrides_oauth_store_mode() -> anyhow::Result<()> {
-        let codex_home = TempDir::new()?;
-        let managed_path = codex_home.path().join("managed_config.toml");
-        let config_path = codex_home.path().join(CONFIG_TOML_FILE);
+        let codexist_home = TempDir::new()?;
+        let managed_path = codexist_home.path().join("managed_config.toml");
+        let config_path = codexist_home.path().join(CONFIG_TOML_FILE);
 
         std::fs::write(&config_path, "mcp_oauth_credentials_store = \"file\"\n")?;
         std::fs::write(&managed_path, "mcp_oauth_credentials_store = \"keyring\"\n")?;
@@ -1771,7 +1771,7 @@ trust_level = "trusted"
             managed_preferences_base64: None,
         };
 
-        let root_value = load_resolved_config(codex_home.path(), Vec::new(), overrides).await?;
+        let root_value = load_resolved_config(codexist_home.path(), Vec::new(), overrides).await?;
         let cfg: ConfigToml = root_value.try_into().map_err(|e| {
             tracing::error!("Failed to deserialize overridden config: {e}");
             std::io::Error::new(std::io::ErrorKind::InvalidData, e)
@@ -1784,7 +1784,7 @@ trust_level = "trusted"
         let final_config = Config::load_from_base_config_with_overrides(
             cfg,
             ConfigOverrides::default(),
-            codex_home.path().to_path_buf(),
+            codexist_home.path().to_path_buf(),
         )?;
         assert_eq!(
             final_config.mcp_oauth_credentials_store_mode,
@@ -1796,9 +1796,9 @@ trust_level = "trusted"
 
     #[tokio::test]
     async fn load_global_mcp_servers_returns_empty_if_missing() -> anyhow::Result<()> {
-        let codex_home = TempDir::new()?;
+        let codexist_home = TempDir::new()?;
 
-        let servers = load_global_mcp_servers(codex_home.path()).await?;
+        let servers = load_global_mcp_servers(codexist_home.path()).await?;
         assert!(servers.is_empty());
 
         Ok(())
@@ -1806,7 +1806,7 @@ trust_level = "trusted"
 
     #[tokio::test]
     async fn replace_mcp_servers_round_trips_entries() -> anyhow::Result<()> {
-        let codex_home = TempDir::new()?;
+        let codexist_home = TempDir::new()?;
 
         let mut servers = BTreeMap::new();
         servers.insert(
@@ -1828,12 +1828,12 @@ trust_level = "trusted"
         );
 
         apply_blocking(
-            codex_home.path(),
+            codexist_home.path(),
             None,
             &[ConfigEdit::ReplaceMcpServers(servers.clone())],
         )?;
 
-        let loaded = load_global_mcp_servers(codex_home.path()).await?;
+        let loaded = load_global_mcp_servers(codexist_home.path()).await?;
         assert_eq!(loaded.len(), 1);
         let docs = loaded.get("docs").expect("docs entry");
         match &docs.transport {
@@ -1858,11 +1858,11 @@ trust_level = "trusted"
 
         let empty = BTreeMap::new();
         apply_blocking(
-            codex_home.path(),
+            codexist_home.path(),
             None,
             &[ConfigEdit::ReplaceMcpServers(empty.clone())],
         )?;
-        let loaded = load_global_mcp_servers(codex_home.path()).await?;
+        let loaded = load_global_mcp_servers(codexist_home.path()).await?;
         assert!(loaded.is_empty());
 
         Ok(())
@@ -1870,11 +1870,11 @@ trust_level = "trusted"
 
     #[tokio::test]
     async fn managed_config_wins_over_cli_overrides() -> anyhow::Result<()> {
-        let codex_home = TempDir::new()?;
-        let managed_path = codex_home.path().join("managed_config.toml");
+        let codexist_home = TempDir::new()?;
+        let managed_path = codexist_home.path().join("managed_config.toml");
 
         std::fs::write(
-            codex_home.path().join(CONFIG_TOML_FILE),
+            codexist_home.path().join(CONFIG_TOML_FILE),
             "model = \"base\"\n",
         )?;
         std::fs::write(&managed_path, "model = \"managed_config\"\n")?;
@@ -1886,7 +1886,7 @@ trust_level = "trusted"
         };
 
         let root_value = load_resolved_config(
-            codex_home.path(),
+            codexist_home.path(),
             vec![("model".to_string(), TomlValue::String("cli".to_string()))],
             overrides,
         )
@@ -1903,8 +1903,8 @@ trust_level = "trusted"
 
     #[tokio::test]
     async fn load_global_mcp_servers_accepts_legacy_ms_field() -> anyhow::Result<()> {
-        let codex_home = TempDir::new()?;
-        let config_path = codex_home.path().join(CONFIG_TOML_FILE);
+        let codexist_home = TempDir::new()?;
+        let config_path = codexist_home.path().join(CONFIG_TOML_FILE);
 
         std::fs::write(
             &config_path,
@@ -1916,7 +1916,7 @@ startup_timeout_ms = 2500
 "#,
         )?;
 
-        let servers = load_global_mcp_servers(codex_home.path()).await?;
+        let servers = load_global_mcp_servers(codexist_home.path()).await?;
         let docs = servers.get("docs").expect("docs entry");
         assert_eq!(docs.startup_timeout_sec, Some(Duration::from_millis(2500)));
 
@@ -1925,8 +1925,8 @@ startup_timeout_ms = 2500
 
     #[tokio::test]
     async fn load_global_mcp_servers_rejects_inline_bearer_token() -> anyhow::Result<()> {
-        let codex_home = TempDir::new()?;
-        let config_path = codex_home.path().join(CONFIG_TOML_FILE);
+        let codexist_home = TempDir::new()?;
+        let config_path = codexist_home.path().join(CONFIG_TOML_FILE);
 
         std::fs::write(
             &config_path,
@@ -1937,7 +1937,7 @@ bearer_token = "secret"
 "#,
         )?;
 
-        let err = load_global_mcp_servers(codex_home.path())
+        let err = load_global_mcp_servers(codexist_home.path())
             .await
             .expect_err("bearer_token entries should be rejected");
 
@@ -1950,7 +1950,7 @@ bearer_token = "secret"
 
     #[tokio::test]
     async fn replace_mcp_servers_serializes_env_sorted() -> anyhow::Result<()> {
-        let codex_home = TempDir::new()?;
+        let codexist_home = TempDir::new()?;
 
         let servers = BTreeMap::from([(
             "docs".to_string(),
@@ -1974,12 +1974,12 @@ bearer_token = "secret"
         )]);
 
         apply_blocking(
-            codex_home.path(),
+            codexist_home.path(),
             None,
             &[ConfigEdit::ReplaceMcpServers(servers.clone())],
         )?;
 
-        let config_path = codex_home.path().join(CONFIG_TOML_FILE);
+        let config_path = codexist_home.path().join(CONFIG_TOML_FILE);
         let serialized = std::fs::read_to_string(&config_path)?;
         assert_eq!(
             serialized,
@@ -1993,7 +1993,7 @@ ZIG_VAR = "3"
 "#
         );
 
-        let loaded = load_global_mcp_servers(codex_home.path()).await?;
+        let loaded = load_global_mcp_servers(codexist_home.path()).await?;
         let docs = loaded.get("docs").expect("docs entry");
         match &docs.transport {
             McpServerTransportConfig::Stdio {
@@ -2021,7 +2021,7 @@ ZIG_VAR = "3"
 
     #[tokio::test]
     async fn replace_mcp_servers_serializes_env_vars() -> anyhow::Result<()> {
-        let codex_home = TempDir::new()?;
+        let codexist_home = TempDir::new()?;
 
         let servers = BTreeMap::from([(
             "docs".to_string(),
@@ -2042,19 +2042,19 @@ ZIG_VAR = "3"
         )]);
 
         apply_blocking(
-            codex_home.path(),
+            codexist_home.path(),
             None,
             &[ConfigEdit::ReplaceMcpServers(servers.clone())],
         )?;
 
-        let config_path = codex_home.path().join(CONFIG_TOML_FILE);
+        let config_path = codexist_home.path().join(CONFIG_TOML_FILE);
         let serialized = std::fs::read_to_string(&config_path)?;
         assert!(
             serialized.contains(r#"env_vars = ["ALPHA", "BETA"]"#),
             "serialized config missing env_vars field:\n{serialized}"
         );
 
-        let loaded = load_global_mcp_servers(codex_home.path()).await?;
+        let loaded = load_global_mcp_servers(codexist_home.path()).await?;
         let docs = loaded.get("docs").expect("docs entry");
         match &docs.transport {
             McpServerTransportConfig::Stdio { env_vars, .. } => {
@@ -2068,9 +2068,9 @@ ZIG_VAR = "3"
 
     #[tokio::test]
     async fn replace_mcp_servers_serializes_cwd() -> anyhow::Result<()> {
-        let codex_home = TempDir::new()?;
+        let codexist_home = TempDir::new()?;
 
-        let cwd_path = PathBuf::from("/tmp/codex-mcp");
+        let cwd_path = PathBuf::from("/tmp/codexist-mcp");
         let servers = BTreeMap::from([(
             "docs".to_string(),
             McpServerConfig {
@@ -2090,23 +2090,23 @@ ZIG_VAR = "3"
         )]);
 
         apply_blocking(
-            codex_home.path(),
+            codexist_home.path(),
             None,
             &[ConfigEdit::ReplaceMcpServers(servers.clone())],
         )?;
 
-        let config_path = codex_home.path().join(CONFIG_TOML_FILE);
+        let config_path = codexist_home.path().join(CONFIG_TOML_FILE);
         let serialized = std::fs::read_to_string(&config_path)?;
         assert!(
-            serialized.contains(r#"cwd = "/tmp/codex-mcp""#),
+            serialized.contains(r#"cwd = "/tmp/codexist-mcp""#),
             "serialized config missing cwd field:\n{serialized}"
         );
 
-        let loaded = load_global_mcp_servers(codex_home.path()).await?;
+        let loaded = load_global_mcp_servers(codexist_home.path()).await?;
         let docs = loaded.get("docs").expect("docs entry");
         match &docs.transport {
             McpServerTransportConfig::Stdio { cwd, .. } => {
-                assert_eq!(cwd.as_deref(), Some(Path::new("/tmp/codex-mcp")));
+                assert_eq!(cwd.as_deref(), Some(Path::new("/tmp/codexist-mcp")));
             }
             other => panic!("unexpected transport {other:?}"),
         }
@@ -2116,7 +2116,7 @@ ZIG_VAR = "3"
 
     #[tokio::test]
     async fn replace_mcp_servers_streamable_http_serializes_bearer_token() -> anyhow::Result<()> {
-        let codex_home = TempDir::new()?;
+        let codexist_home = TempDir::new()?;
 
         let servers = BTreeMap::from([(
             "docs".to_string(),
@@ -2136,12 +2136,12 @@ ZIG_VAR = "3"
         )]);
 
         apply_blocking(
-            codex_home.path(),
+            codexist_home.path(),
             None,
             &[ConfigEdit::ReplaceMcpServers(servers.clone())],
         )?;
 
-        let config_path = codex_home.path().join(CONFIG_TOML_FILE);
+        let config_path = codexist_home.path().join(CONFIG_TOML_FILE);
         let serialized = std::fs::read_to_string(&config_path)?;
         assert_eq!(
             serialized,
@@ -2152,7 +2152,7 @@ startup_timeout_sec = 2.0
 "#
         );
 
-        let loaded = load_global_mcp_servers(codex_home.path()).await?;
+        let loaded = load_global_mcp_servers(codexist_home.path()).await?;
         let docs = loaded.get("docs").expect("docs entry");
         match &docs.transport {
             McpServerTransportConfig::StreamableHttp {
@@ -2175,7 +2175,7 @@ startup_timeout_sec = 2.0
 
     #[tokio::test]
     async fn replace_mcp_servers_streamable_http_serializes_custom_headers() -> anyhow::Result<()> {
-        let codex_home = TempDir::new()?;
+        let codexist_home = TempDir::new()?;
 
         let servers = BTreeMap::from([(
             "docs".to_string(),
@@ -2197,12 +2197,12 @@ startup_timeout_sec = 2.0
             },
         )]);
         apply_blocking(
-            codex_home.path(),
+            codexist_home.path(),
             None,
             &[ConfigEdit::ReplaceMcpServers(servers.clone())],
         )?;
 
-        let config_path = codex_home.path().join(CONFIG_TOML_FILE);
+        let config_path = codexist_home.path().join(CONFIG_TOML_FILE);
         let serialized = std::fs::read_to_string(&config_path)?;
         assert_eq!(
             serialized,
@@ -2219,7 +2219,7 @@ X-Auth = "DOCS_AUTH"
 "#
         );
 
-        let loaded = load_global_mcp_servers(codex_home.path()).await?;
+        let loaded = load_global_mcp_servers(codexist_home.path()).await?;
         let docs = loaded.get("docs").expect("docs entry");
         match &docs.transport {
             McpServerTransportConfig::StreamableHttp {
@@ -2247,9 +2247,9 @@ X-Auth = "DOCS_AUTH"
 
     #[tokio::test]
     async fn replace_mcp_servers_streamable_http_removes_optional_sections() -> anyhow::Result<()> {
-        let codex_home = TempDir::new()?;
+        let codexist_home = TempDir::new()?;
 
-        let config_path = codex_home.path().join(CONFIG_TOML_FILE);
+        let config_path = codexist_home.path().join(CONFIG_TOML_FILE);
 
         let mut servers = BTreeMap::from([(
             "docs".to_string(),
@@ -2272,7 +2272,7 @@ X-Auth = "DOCS_AUTH"
         )]);
 
         apply_blocking(
-            codex_home.path(),
+            codexist_home.path(),
             None,
             &[ConfigEdit::ReplaceMcpServers(servers.clone())],
         )?;
@@ -2298,7 +2298,7 @@ X-Auth = "DOCS_AUTH"
             },
         );
         apply_blocking(
-            codex_home.path(),
+            codexist_home.path(),
             None,
             &[ConfigEdit::ReplaceMcpServers(servers.clone())],
         )?;
@@ -2311,7 +2311,7 @@ url = "https://example.com/mcp"
 "#
         );
 
-        let loaded = load_global_mcp_servers(codex_home.path()).await?;
+        let loaded = load_global_mcp_servers(codexist_home.path()).await?;
         let docs = loaded.get("docs").expect("docs entry");
         match &docs.transport {
             McpServerTransportConfig::StreamableHttp {
@@ -2336,8 +2336,8 @@ url = "https://example.com/mcp"
     #[tokio::test]
     async fn replace_mcp_servers_streamable_http_isolates_headers_between_servers()
     -> anyhow::Result<()> {
-        let codex_home = TempDir::new()?;
-        let config_path = codex_home.path().join(CONFIG_TOML_FILE);
+        let codexist_home = TempDir::new()?;
+        let config_path = codexist_home.path().join(CONFIG_TOML_FILE);
 
         let servers = BTreeMap::from([
             (
@@ -2382,7 +2382,7 @@ url = "https://example.com/mcp"
         ]);
 
         apply_blocking(
-            codex_home.path(),
+            codexist_home.path(),
             None,
             &[ConfigEdit::ReplaceMcpServers(servers.clone())],
         )?;
@@ -2405,7 +2405,7 @@ url = "https://example.com/mcp"
             "serialized config should not add bearer token to logs:\n{serialized}"
         );
 
-        let loaded = load_global_mcp_servers(codex_home.path()).await?;
+        let loaded = load_global_mcp_servers(codexist_home.path()).await?;
         let docs = loaded.get("docs").expect("docs entry");
         match &docs.transport {
             McpServerTransportConfig::StreamableHttp {
@@ -2440,7 +2440,7 @@ url = "https://example.com/mcp"
 
     #[tokio::test]
     async fn replace_mcp_servers_serializes_disabled_flag() -> anyhow::Result<()> {
-        let codex_home = TempDir::new()?;
+        let codexist_home = TempDir::new()?;
 
         let servers = BTreeMap::from([(
             "docs".to_string(),
@@ -2461,19 +2461,19 @@ url = "https://example.com/mcp"
         )]);
 
         apply_blocking(
-            codex_home.path(),
+            codexist_home.path(),
             None,
             &[ConfigEdit::ReplaceMcpServers(servers.clone())],
         )?;
 
-        let config_path = codex_home.path().join(CONFIG_TOML_FILE);
+        let config_path = codexist_home.path().join(CONFIG_TOML_FILE);
         let serialized = std::fs::read_to_string(&config_path)?;
         assert!(
             serialized.contains("enabled = false"),
             "serialized config missing disabled flag:\n{serialized}"
         );
 
-        let loaded = load_global_mcp_servers(codex_home.path()).await?;
+        let loaded = load_global_mcp_servers(codexist_home.path()).await?;
         let docs = loaded.get("docs").expect("docs entry");
         assert!(!docs.enabled);
 
@@ -2482,7 +2482,7 @@ url = "https://example.com/mcp"
 
     #[tokio::test]
     async fn replace_mcp_servers_serializes_tool_filters() -> anyhow::Result<()> {
-        let codex_home = TempDir::new()?;
+        let codexist_home = TempDir::new()?;
 
         let servers = BTreeMap::from([(
             "docs".to_string(),
@@ -2503,17 +2503,17 @@ url = "https://example.com/mcp"
         )]);
 
         apply_blocking(
-            codex_home.path(),
+            codexist_home.path(),
             None,
             &[ConfigEdit::ReplaceMcpServers(servers.clone())],
         )?;
 
-        let config_path = codex_home.path().join(CONFIG_TOML_FILE);
+        let config_path = codexist_home.path().join(CONFIG_TOML_FILE);
         let serialized = std::fs::read_to_string(&config_path)?;
         assert!(serialized.contains(r#"enabled_tools = ["allowed"]"#));
         assert!(serialized.contains(r#"disabled_tools = ["blocked"]"#));
 
-        let loaded = load_global_mcp_servers(codex_home.path()).await?;
+        let loaded = load_global_mcp_servers(codexist_home.path()).await?;
         let docs = loaded.get("docs").expect("docs entry");
         assert_eq!(
             docs.enabled_tools.as_ref(),
@@ -2529,18 +2529,18 @@ url = "https://example.com/mcp"
 
     #[tokio::test]
     async fn set_model_updates_defaults() -> anyhow::Result<()> {
-        let codex_home = TempDir::new()?;
+        let codexist_home = TempDir::new()?;
 
-        ConfigEditsBuilder::new(codex_home.path())
-            .set_model(Some("gpt-5-codex"), Some(ReasoningEffort::High))
+        ConfigEditsBuilder::new(codexist_home.path())
+            .set_model(Some("gpt-5-codexist"), Some(ReasoningEffort::High))
             .apply()
             .await?;
 
         let serialized =
-            tokio::fs::read_to_string(codex_home.path().join(CONFIG_TOML_FILE)).await?;
+            tokio::fs::read_to_string(codexist_home.path().join(CONFIG_TOML_FILE)).await?;
         let parsed: ConfigToml = toml::from_str(&serialized)?;
 
-        assert_eq!(parsed.model.as_deref(), Some("gpt-5-codex"));
+        assert_eq!(parsed.model.as_deref(), Some("gpt-5-codexist"));
         assert_eq!(parsed.model_reasoning_effort, Some(ReasoningEffort::High));
 
         Ok(())
@@ -2548,13 +2548,13 @@ url = "https://example.com/mcp"
 
     #[tokio::test]
     async fn set_model_overwrites_existing_model() -> anyhow::Result<()> {
-        let codex_home = TempDir::new()?;
-        let config_path = codex_home.path().join(CONFIG_TOML_FILE);
+        let codexist_home = TempDir::new()?;
+        let config_path = codexist_home.path().join(CONFIG_TOML_FILE);
 
         tokio::fs::write(
             &config_path,
             r#"
-model = "gpt-5-codex"
+model = "gpt-5-codexist"
 model_reasoning_effort = "medium"
 
 [profiles.dev]
@@ -2563,7 +2563,7 @@ model = "gpt-4.1"
         )
         .await?;
 
-        ConfigEditsBuilder::new(codex_home.path())
+        ConfigEditsBuilder::new(codexist_home.path())
             .set_model(Some("o4-mini"), Some(ReasoningEffort::High))
             .apply()
             .await?;
@@ -2586,23 +2586,23 @@ model = "gpt-4.1"
 
     #[tokio::test]
     async fn set_model_updates_profile() -> anyhow::Result<()> {
-        let codex_home = TempDir::new()?;
+        let codexist_home = TempDir::new()?;
 
-        ConfigEditsBuilder::new(codex_home.path())
+        ConfigEditsBuilder::new(codexist_home.path())
             .with_profile(Some("dev"))
-            .set_model(Some("gpt-5-codex"), Some(ReasoningEffort::Medium))
+            .set_model(Some("gpt-5-codexist"), Some(ReasoningEffort::Medium))
             .apply()
             .await?;
 
         let serialized =
-            tokio::fs::read_to_string(codex_home.path().join(CONFIG_TOML_FILE)).await?;
+            tokio::fs::read_to_string(codexist_home.path().join(CONFIG_TOML_FILE)).await?;
         let parsed: ConfigToml = toml::from_str(&serialized)?;
         let profile = parsed
             .profiles
             .get("dev")
             .expect("profile should be created");
 
-        assert_eq!(profile.model.as_deref(), Some("gpt-5-codex"));
+        assert_eq!(profile.model.as_deref(), Some("gpt-5-codexist"));
         assert_eq!(
             profile.model_reasoning_effort,
             Some(ReasoningEffort::Medium)
@@ -2613,8 +2613,8 @@ model = "gpt-4.1"
 
     #[tokio::test]
     async fn set_model_updates_existing_profile() -> anyhow::Result<()> {
-        let codex_home = TempDir::new()?;
-        let config_path = codex_home.path().join(CONFIG_TOML_FILE);
+        let codexist_home = TempDir::new()?;
+        let config_path = codexist_home.path().join(CONFIG_TOML_FILE);
 
         tokio::fs::write(
             &config_path,
@@ -2624,12 +2624,12 @@ model = "gpt-4"
 model_reasoning_effort = "medium"
 
 [profiles.prod]
-model = "gpt-5-codex"
+model = "gpt-5-codexist"
 "#,
         )
         .await?;
 
-        ConfigEditsBuilder::new(codex_home.path())
+        ConfigEditsBuilder::new(codexist_home.path())
             .with_profile(Some("dev"))
             .set_model(Some("o4-high"), Some(ReasoningEffort::Medium))
             .apply()
@@ -2653,7 +2653,7 @@ model = "gpt-5-codex"
                 .profiles
                 .get("prod")
                 .and_then(|profile| profile.model.as_deref()),
-            Some("gpt-5-codex"),
+            Some("gpt-5-codexist"),
         );
 
         Ok(())
@@ -2661,7 +2661,7 @@ model = "gpt-5-codex"
 
     struct PrecedenceTestFixture {
         cwd: TempDir,
-        codex_home: TempDir,
+        codexist_home: TempDir,
         cfg: ConfigToml,
         model_provider_map: HashMap<String, ModelProviderInfo>,
         openai_provider: ModelProviderInfo,
@@ -2673,14 +2673,14 @@ model = "gpt-5-codex"
             self.cwd.path().to_path_buf()
         }
 
-        fn codex_home(&self) -> PathBuf {
-            self.codex_home.path().to_path_buf()
+        fn codexist_home(&self) -> PathBuf {
+            self.codexist_home.path().to_path_buf()
         }
     }
 
     #[test]
     fn cli_override_sets_compact_prompt() -> std::io::Result<()> {
-        let codex_home = TempDir::new()?;
+        let codexist_home = TempDir::new()?;
         let overrides = ConfigOverrides {
             compact_prompt: Some("Use the compact override".to_string()),
             ..Default::default()
@@ -2689,7 +2689,7 @@ model = "gpt-5-codex"
         let config = Config::load_from_base_config_with_overrides(
             ConfigToml::default(),
             overrides,
-            codex_home.path().to_path_buf(),
+            codexist_home.path().to_path_buf(),
         )?;
 
         assert_eq!(
@@ -2702,8 +2702,8 @@ model = "gpt-5-codex"
 
     #[test]
     fn loads_compact_prompt_from_file() -> std::io::Result<()> {
-        let codex_home = TempDir::new()?;
-        let workspace = codex_home.path().join("workspace");
+        let codexist_home = TempDir::new()?;
+        let workspace = codexist_home.path().join("workspace");
         std::fs::create_dir_all(&workspace)?;
 
         let prompt_path = workspace.join("compact_prompt.txt");
@@ -2722,7 +2722,7 @@ model = "gpt-5-codex"
         let config = Config::load_from_base_config_with_overrides(
             cfg,
             overrides,
-            codex_home.path().to_path_buf(),
+            codexist_home.path().to_path_buf(),
         )?;
 
         assert_eq!(
@@ -2786,7 +2786,7 @@ model_verbosity = "high"
         // a parent folder, either.
         std::fs::write(cwd.join(".git"), "gitdir: nowhere")?;
 
-        let codex_home_temp_dir = TempDir::new().unwrap();
+        let codexist_home_temp_dir = TempDir::new().unwrap();
 
         let openai_chat_completions_provider = ModelProviderInfo {
             name: "OpenAI using Chat Completions".to_string(),
@@ -2819,7 +2819,7 @@ model_verbosity = "high"
 
         Ok(PrecedenceTestFixture {
             cwd: cwd_temp_dir,
-            codex_home: codex_home_temp_dir,
+            codexist_home: codexist_home_temp_dir,
             cfg,
             model_provider_map,
             openai_provider,
@@ -2851,7 +2851,7 @@ model_verbosity = "high"
         let o3_profile_config: Config = Config::load_from_base_config_with_overrides(
             fixture.cfg.clone(),
             o3_profile_overrides,
-            fixture.codex_home(),
+            fixture.codexist_home(),
         )?;
         assert_eq!(
             Config {
@@ -2877,10 +2877,10 @@ model_verbosity = "high"
                 model_providers: fixture.model_provider_map.clone(),
                 project_doc_max_bytes: PROJECT_DOC_MAX_BYTES,
                 project_doc_fallback_filenames: Vec::new(),
-                codex_home: fixture.codex_home(),
+                codexist_home: fixture.codexist_home(),
                 history: History::default(),
                 file_opener: UriBasedFileOpener::VsCode,
-                codex_linux_sandbox_exe: None,
+                codexist_linux_sandbox_exe: None,
                 hide_agent_reasoning: false,
                 show_raw_agent_reasoning: false,
                 model_reasoning_effort: Some(ReasoningEffort::High),
@@ -2923,7 +2923,7 @@ model_verbosity = "high"
         let gpt3_profile_config = Config::load_from_base_config_with_overrides(
             fixture.cfg.clone(),
             gpt3_profile_overrides,
-            fixture.codex_home(),
+            fixture.codexist_home(),
         )?;
         let expected_gpt3_profile_config = Config {
             model: "gpt-3.5-turbo".to_string(),
@@ -2948,10 +2948,10 @@ model_verbosity = "high"
             model_providers: fixture.model_provider_map.clone(),
             project_doc_max_bytes: PROJECT_DOC_MAX_BYTES,
             project_doc_fallback_filenames: Vec::new(),
-            codex_home: fixture.codex_home(),
+            codexist_home: fixture.codexist_home(),
             history: History::default(),
             file_opener: UriBasedFileOpener::VsCode,
-            codex_linux_sandbox_exe: None,
+            codexist_linux_sandbox_exe: None,
             hide_agent_reasoning: false,
             show_raw_agent_reasoning: false,
             model_reasoning_effort: None,
@@ -2990,7 +2990,7 @@ model_verbosity = "high"
         let default_profile_config = Config::load_from_base_config_with_overrides(
             fixture.cfg.clone(),
             default_profile_overrides,
-            fixture.codex_home(),
+            fixture.codexist_home(),
         )?;
 
         assert_eq!(expected_gpt3_profile_config, default_profile_config);
@@ -3009,7 +3009,7 @@ model_verbosity = "high"
         let zdr_profile_config = Config::load_from_base_config_with_overrides(
             fixture.cfg.clone(),
             zdr_profile_overrides,
-            fixture.codex_home(),
+            fixture.codexist_home(),
         )?;
         let expected_zdr_profile_config = Config {
             model: "o3".to_string(),
@@ -3034,10 +3034,10 @@ model_verbosity = "high"
             model_providers: fixture.model_provider_map.clone(),
             project_doc_max_bytes: PROJECT_DOC_MAX_BYTES,
             project_doc_fallback_filenames: Vec::new(),
-            codex_home: fixture.codex_home(),
+            codexist_home: fixture.codexist_home(),
             history: History::default(),
             file_opener: UriBasedFileOpener::VsCode,
-            codex_linux_sandbox_exe: None,
+            codexist_linux_sandbox_exe: None,
             hide_agent_reasoning: false,
             show_raw_agent_reasoning: false,
             model_reasoning_effort: None,
@@ -3081,7 +3081,7 @@ model_verbosity = "high"
         let gpt5_profile_config = Config::load_from_base_config_with_overrides(
             fixture.cfg.clone(),
             gpt5_profile_overrides,
-            fixture.codex_home(),
+            fixture.codexist_home(),
         )?;
         let expected_gpt5_profile_config = Config {
             model: "gpt-5".to_string(),
@@ -3106,10 +3106,10 @@ model_verbosity = "high"
             model_providers: fixture.model_provider_map.clone(),
             project_doc_max_bytes: PROJECT_DOC_MAX_BYTES,
             project_doc_fallback_filenames: Vec::new(),
-            codex_home: fixture.codex_home(),
+            codexist_home: fixture.codexist_home(),
             history: History::default(),
             file_opener: UriBasedFileOpener::VsCode,
-            codex_linux_sandbox_exe: None,
+            codexist_linux_sandbox_exe: None,
             hide_agent_reasoning: false,
             show_raw_agent_reasoning: false,
             model_reasoning_effort: Some(ReasoningEffort::High),
@@ -3151,7 +3151,7 @@ model_verbosity = "high"
             ConfigOverrides {
                 ..Default::default()
             },
-            fixture.codex_home(),
+            fixture.codexist_home(),
         )?;
 
         assert!(config.did_user_set_custom_approval_policy_or_sandbox_mode);
@@ -3225,12 +3225,12 @@ trust_level = "trusted"
     fn test_set_project_trusted_migrates_top_level_inline_projects_preserving_entries()
     -> anyhow::Result<()> {
         let initial = r#"toplevel = "baz"
-projects = { "/Users/mbolin/code/codex4" = { trust_level = "trusted", foo = "bar" } , "/Users/mbolin/code/codex3" = { trust_level = "trusted" } }
+projects = { "/Users/mbolin/code/codexist4" = { trust_level = "trusted", foo = "bar" } , "/Users/mbolin/code/codexist3" = { trust_level = "trusted" } }
 model = "foo""#;
         let mut doc = initial.parse::<DocumentMut>()?;
 
         // Approve a new directory
-        let new_project = Path::new("/Users/mbolin/code/codex2");
+        let new_project = Path::new("/Users/mbolin/code/codexist2");
         set_project_trusted_inner(&mut doc, new_project)?;
 
         let contents = doc.to_string();
@@ -3240,14 +3240,14 @@ model = "foo""#;
         let expected = r#"toplevel = "baz"
 model = "foo"
 
-[projects."/Users/mbolin/code/codex4"]
+[projects."/Users/mbolin/code/codexist4"]
 trust_level = "trusted"
 foo = "bar"
 
-[projects."/Users/mbolin/code/codex3"]
+[projects."/Users/mbolin/code/codexist3"]
 trust_level = "trusted"
 
-[projects."/Users/mbolin/code/codex2"]
+[projects."/Users/mbolin/code/codexist2"]
 trust_level = "trusted"
 "#;
         assert_eq!(contents, expected);

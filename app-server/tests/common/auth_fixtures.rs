@@ -6,11 +6,11 @@ use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use chrono::DateTime;
 use chrono::Utc;
-use codex_core::auth::AuthCredentialsStoreMode;
-use codex_core::auth::AuthDotJson;
-use codex_core::auth::save_auth;
-use codex_core::token_data::TokenData;
-use codex_core::token_data::parse_id_token;
+use codexist_core::auth::AuthCredentialsStoreMode;
+use codexist_core::auth::AuthDotJson;
+use codexist_core::auth::save_auth;
+use codexist_core::token_data::TokenData;
+use codexist_core::token_data::parse_id_token;
 use serde_json::json;
 
 /// Builder for writing a fake ChatGPT auth.json in tests.
@@ -110,7 +110,7 @@ pub fn encode_id_token(claims: &ChatGptIdTokenClaims) -> Result<String> {
 }
 
 pub fn write_chatgpt_auth(
-    codex_home: &Path,
+    codexist_home: &Path,
     fixture: ChatGptAuthFixture,
     cli_auth_credentials_store_mode: AuthCredentialsStoreMode,
 ) -> Result<()> {
@@ -131,5 +131,5 @@ pub fn write_chatgpt_auth(
         last_refresh,
     };
 
-    save_auth(codex_home, &auth, cli_auth_credentials_store_mode).context("write auth.json")
+    save_auth(codexist_home, &auth, cli_auth_credentials_store_mode).context("write auth.json")
 }

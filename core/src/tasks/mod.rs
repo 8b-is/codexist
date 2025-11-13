@@ -17,8 +17,8 @@ use tracing::trace;
 use tracing::warn;
 
 use crate::AuthManager;
-use crate::codex::Session;
-use crate::codex::TurnContext;
+use crate::codexist::Session;
+use crate::codexist::TurnContext;
 use crate::protocol::EventMsg;
 use crate::protocol::TaskCompleteEvent;
 use crate::protocol::TurnAbortReason;
@@ -26,7 +26,7 @@ use crate::protocol::TurnAbortedEvent;
 use crate::state::ActiveTurn;
 use crate::state::RunningTask;
 use crate::state::TaskKind;
-use codex_protocol::user_input::UserInput;
+use codexist_protocol::user_input::UserInput;
 
 pub(crate) use compact::CompactTask;
 pub(crate) use ghost_snapshot::GhostSnapshotTask;
@@ -59,7 +59,7 @@ impl SessionTaskContext {
 
 /// Async task that drives a [`Session`] turn.
 ///
-/// Implementations encapsulate a specific Codex workflow (regular chat,
+/// Implementations encapsulate a specific Codexist workflow (regular chat,
 /// reviews, ghost snapshots, etc.). Each task instance is owned by a
 /// [`Session`] and executed on a background Tokio task. The trait is
 /// intentionally small: implementers identify themselves via

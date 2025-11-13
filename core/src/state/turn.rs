@@ -8,10 +8,10 @@ use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::AbortOnDropHandle;
 
-use codex_protocol::models::ResponseInputItem;
+use codexist_protocol::models::ResponseInputItem;
 use tokio::sync::oneshot;
 
-use crate::codex::TurnContext;
+use crate::codexist::TurnContext;
 use crate::protocol::ReviewDecision;
 use crate::tasks::SessionTask;
 

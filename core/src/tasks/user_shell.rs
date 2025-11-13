@@ -2,14 +2,14 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use async_trait::async_trait;
-use codex_async_utils::CancelErr;
-use codex_async_utils::OrCancelExt;
-use codex_protocol::user_input::UserInput;
+use codexist_async_utils::CancelErr;
+use codexist_async_utils::OrCancelExt;
+use codexist_protocol::user_input::UserInput;
 use tokio_util::sync::CancellationToken;
 use tracing::error;
 use uuid::Uuid;
 
-use crate::codex::TurnContext;
+use crate::codexist::TurnContext;
 use crate::exec::ExecToolCallOutput;
 use crate::exec::SandboxType;
 use crate::exec::StdoutStream;

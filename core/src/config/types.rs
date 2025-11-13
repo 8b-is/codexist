@@ -20,7 +20,7 @@ pub struct McpServerConfig {
     #[serde(flatten)]
     pub transport: McpServerTransportConfig,
 
-    /// When `false`, Codex skips initializing this MCP server.
+    /// When `false`, Codexist skips initializing this MCP server.
     #[serde(default = "default_enabled")]
     pub enabled: bool,
 
@@ -250,7 +250,7 @@ impl UriBasedFileOpener {
     }
 }
 
-/// Settings that govern if and what will be written to `~/.codex/history.jsonl`.
+/// Settings that govern if and what will be written to `~/.codexist/history.jsonl`.
 #[derive(Deserialize, Debug, Clone, PartialEq, Default)]
 pub struct History {
     /// If true, history entries will not be written to disk.
@@ -352,7 +352,7 @@ pub struct Tui {
 }
 
 /// Settings for notices we display to users via the tui and app-server clients
-/// (primarily the Codex IDE extension). NOTE: these are different from
+/// (primarily the Codexist IDE extension). NOTE: these are different from
 /// notifications - notices are warnings, NUX screens, acknowledgements, etc.
 #[derive(Deserialize, Debug, Clone, PartialEq, Default)]
 pub struct Notice {
@@ -381,7 +381,7 @@ pub struct SandboxWorkspaceWrite {
     pub exclude_slash_tmp: bool,
 }
 
-impl From<SandboxWorkspaceWrite> for codex_app_server_protocol::SandboxSettings {
+impl From<SandboxWorkspaceWrite> for codexist_app_server_protocol::SandboxSettings {
     fn from(sandbox_workspace_write: SandboxWorkspaceWrite) -> Self {
         Self {
             writable_roots: sandbox_workspace_write.writable_roots,

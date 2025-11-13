@@ -425,13 +425,13 @@ mod tests_windows {
                     bash_exe_fallback: Some(PathBuf::from("bash.exe")),
                 },
                 vec![
-                    "codex-mcp-server.exe",
-                    "--codex-run-as-apply-patch",
+                    "codexist-mcp-server.exe",
+                    "--codexist-run-as-apply-patch",
                     "*** Begin Patch\n*** Update File: C:\\Users\\person\\destination_file.txt\n-original content\n+modified content\n*** End Patch",
                 ],
                 vec![
-                    "codex-mcp-server.exe",
-                    "--codex-run-as-apply-patch",
+                    "codexist-mcp-server.exe",
+                    "--codexist-run-as-apply-patch",
                     "*** Begin Patch\n*** Update File: C:\\Users\\person\\destination_file.txt\n-original content\n+modified content\n*** End Patch",
                 ],
             ),

@@ -3,9 +3,9 @@ source: tui/src/chatwidget/tests.rs
 expression: popup
 ---
   Select Model and Effort
-  Switch the model for this and future Codex CLI sessions
+  Switch the model for this and future Codexist CLI sessions
 
-› 1. gpt-5-codex (current)  Optimized for codex.
+› 1. gpt-5-codexist (current)  Optimized for codexist.
   2. gpt-5                  Broad world knowledge with strong general
                             reasoning.
 

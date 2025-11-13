@@ -12,39 +12,39 @@ use tokio::process::ChildStdout;
 
 use anyhow::Context;
 use assert_cmd::prelude::*;
-use codex_app_server_protocol::AddConversationListenerParams;
-use codex_app_server_protocol::ArchiveConversationParams;
-use codex_app_server_protocol::CancelLoginAccountParams;
-use codex_app_server_protocol::CancelLoginChatGptParams;
-use codex_app_server_protocol::ClientInfo;
-use codex_app_server_protocol::ClientNotification;
-use codex_app_server_protocol::FeedbackUploadParams;
-use codex_app_server_protocol::GetAccountParams;
-use codex_app_server_protocol::GetAuthStatusParams;
-use codex_app_server_protocol::InitializeParams;
-use codex_app_server_protocol::InterruptConversationParams;
-use codex_app_server_protocol::JSONRPCError;
-use codex_app_server_protocol::JSONRPCMessage;
-use codex_app_server_protocol::JSONRPCNotification;
-use codex_app_server_protocol::JSONRPCRequest;
-use codex_app_server_protocol::JSONRPCResponse;
-use codex_app_server_protocol::ListConversationsParams;
-use codex_app_server_protocol::LoginApiKeyParams;
-use codex_app_server_protocol::ModelListParams;
-use codex_app_server_protocol::NewConversationParams;
-use codex_app_server_protocol::RemoveConversationListenerParams;
-use codex_app_server_protocol::RequestId;
-use codex_app_server_protocol::ResumeConversationParams;
-use codex_app_server_protocol::SendUserMessageParams;
-use codex_app_server_protocol::SendUserTurnParams;
-use codex_app_server_protocol::ServerRequest;
-use codex_app_server_protocol::SetDefaultModelParams;
-use codex_app_server_protocol::ThreadArchiveParams;
-use codex_app_server_protocol::ThreadListParams;
-use codex_app_server_protocol::ThreadResumeParams;
-use codex_app_server_protocol::ThreadStartParams;
-use codex_app_server_protocol::TurnInterruptParams;
-use codex_app_server_protocol::TurnStartParams;
+use codexist_app_server_protocol::AddConversationListenerParams;
+use codexist_app_server_protocol::ArchiveConversationParams;
+use codexist_app_server_protocol::CancelLoginAccountParams;
+use codexist_app_server_protocol::CancelLoginChatGptParams;
+use codexist_app_server_protocol::ClientInfo;
+use codexist_app_server_protocol::ClientNotification;
+use codexist_app_server_protocol::FeedbackUploadParams;
+use codexist_app_server_protocol::GetAccountParams;
+use codexist_app_server_protocol::GetAuthStatusParams;
+use codexist_app_server_protocol::InitializeParams;
+use codexist_app_server_protocol::InterruptConversationParams;
+use codexist_app_server_protocol::JSONRPCError;
+use codexist_app_server_protocol::JSONRPCMessage;
+use codexist_app_server_protocol::JSONRPCNotification;
+use codexist_app_server_protocol::JSONRPCRequest;
+use codexist_app_server_protocol::JSONRPCResponse;
+use codexist_app_server_protocol::ListConversationsParams;
+use codexist_app_server_protocol::LoginApiKeyParams;
+use codexist_app_server_protocol::ModelListParams;
+use codexist_app_server_protocol::NewConversationParams;
+use codexist_app_server_protocol::RemoveConversationListenerParams;
+use codexist_app_server_protocol::RequestId;
+use codexist_app_server_protocol::ResumeConversationParams;
+use codexist_app_server_protocol::SendUserMessageParams;
+use codexist_app_server_protocol::SendUserTurnParams;
+use codexist_app_server_protocol::ServerRequest;
+use codexist_app_server_protocol::SetDefaultModelParams;
+use codexist_app_server_protocol::ThreadArchiveParams;
+use codexist_app_server_protocol::ThreadListParams;
+use codexist_app_server_protocol::ThreadResumeParams;
+use codexist_app_server_protocol::ThreadStartParams;
+use codexist_app_server_protocol::TurnInterruptParams;
+use codexist_app_server_protocol::TurnStartParams;
 use std::process::Command as StdCommand;
 use tokio::process::Command;
 
@@ -61,8 +61,8 @@ pub struct McpProcess {
 }
 
 impl McpProcess {
-    pub async fn new(codex_home: &Path) -> anyhow::Result<Self> {
-        Self::new_with_env(codex_home, &[]).await
+    pub async fn new(codexist_home: &Path) -> anyhow::Result<Self> {
+        Self::new_with_env(codexist_home, &[]).await
     }
 
     /// Creates a new MCP process, allowing tests to override or remove
@@ -71,12 +71,12 @@ impl McpProcess {
     /// Pass a tuple of (key, Some(value)) to set/override, or (key, None) to
     /// remove a variable from the child's environment.
     pub async fn new_with_env(
-        codex_home: &Path,
+        codexist_home: &Path,
         env_overrides: &[(&str, Option<&str>)],
     ) -> anyhow::Result<Self> {
         // Use assert_cmd to locate the binary path and then switch to tokio::process::Command
-        let std_cmd = StdCommand::cargo_bin("codex-app-server")
-            .context("should find binary for codex-mcp-server")?;
+        let std_cmd = StdCommand::cargo_bin("codexist-app-server")
+            .context("should find binary for codexist-mcp-server")?;
 
         let program = std_cmd.get_program().to_owned();
 
@@ -85,7 +85,7 @@ impl McpProcess {
         cmd.stdin(Stdio::piped());
         cmd.stdout(Stdio::piped());
         cmd.stderr(Stdio::piped());
-        cmd.env("CODEX_HOME", codex_home);
+        cmd.env("CODEXIST_HOME", codexist_home);
         cmd.env("RUST_LOG", "debug");
 
         for (k, v) in env_overrides {
@@ -102,7 +102,7 @@ impl McpProcess {
         let mut process = cmd
             .kill_on_drop(true)
             .spawn()
-            .context("codex-mcp-server proc should start")?;
+            .context("codexist-mcp-server proc should start")?;
         let stdin = process
             .stdin
             .take()
@@ -136,7 +136,7 @@ impl McpProcess {
     pub async fn initialize(&mut self) -> anyhow::Result<()> {
         let params = Some(serde_json::to_value(InitializeParams {
             client_info: ClientInfo {
-                name: "codex-app-server-tests".to_string(),
+                name: "codexist-app-server-tests".to_string(),
                 title: None,
                 version: "0.1.0".to_string(),
             },
@@ -624,7 +624,7 @@ impl McpProcess {
     }
 
     fn enqueue_user_message(&mut self, notification: JSONRPCNotification) {
-        if notification.method == "codex/event/user_message" {
+        if notification.method == "codexist/event/user_message" {
             self.pending_user_messages.push_back(notification);
         }
     }

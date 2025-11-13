@@ -14,12 +14,12 @@ use crate::pkce::PkceCodes;
 use crate::pkce::generate_pkce;
 use base64::Engine;
 use chrono::Utc;
-use codex_core::auth::AuthCredentialsStoreMode;
-use codex_core::auth::AuthDotJson;
-use codex_core::auth::save_auth;
-use codex_core::default_client::originator;
-use codex_core::token_data::TokenData;
-use codex_core::token_data::parse_id_token;
+use codexist_core::auth::AuthCredentialsStoreMode;
+use codexist_core::auth::AuthDotJson;
+use codexist_core::auth::save_auth;
+use codexist_core::default_client::originator;
+use codexist_core::token_data::TokenData;
+use codexist_core::token_data::parse_id_token;
 use rand::RngCore;
 use serde_json::Value as JsonValue;
 use tiny_http::Header;
@@ -33,7 +33,7 @@ const DEFAULT_PORT: u16 = 1455;
 
 #[derive(Debug, Clone)]
 pub struct ServerOptions {
-    pub codex_home: PathBuf,
+    pub codexist_home: PathBuf,
     pub client_id: String,
     pub issuer: String,
     pub port: u16,
@@ -45,13 +45,13 @@ pub struct ServerOptions {
 
 impl ServerOptions {
     pub fn new(
-        codex_home: PathBuf,
+        codexist_home: PathBuf,
         client_id: String,
         forced_chatgpt_workspace_id: Option<String>,
         cli_auth_credentials_store_mode: AuthCredentialsStoreMode,
     ) -> Self {
         Self {
-            codex_home,
+            codexist_home,
             client_id,
             issuer: DEFAULT_ISSUER.to_string(),
             port: DEFAULT_PORT,
@@ -269,7 +269,7 @@ async fn process_request(
                         .await
                         .ok();
                     if let Err(err) = persist_tokens_async(
-                        &opts.codex_home,
+                        &opts.codexist_home,
                         api_key.clone(),
                         tokens.id_token.clone(),
                         tokens.access_token.clone(),
@@ -399,7 +399,7 @@ fn build_authorize_url(
         ),
         ("code_challenge_method".to_string(), "S256".to_string()),
         ("id_token_add_organizations".to_string(), "true".to_string()),
-        ("codex_cli_simplified_flow".to_string(), "true".to_string()),
+        ("codexist_cli_simplified_flow".to_string(), "true".to_string()),
         ("state".to_string(), state.to_string()),
         (
             "originator".to_string(),
@@ -536,7 +536,7 @@ pub(crate) async fn exchange_code_for_tokens(
 }
 
 pub(crate) async fn persist_tokens_async(
-    codex_home: &Path,
+    codexist_home: &Path,
     api_key: Option<String>,
     id_token: String,
     access_token: String,
@@ -544,7 +544,7 @@ pub(crate) async fn persist_tokens_async(
     auth_credentials_store_mode: AuthCredentialsStoreMode,
 ) -> io::Result<()> {
     // Reuse existing synchronous logic but run it off the async runtime.
-    let codex_home = codex_home.to_path_buf();
+    let codexist_home = codexist_home.to_path_buf();
     tokio::task::spawn_blocking(move || {
         let mut tokens = TokenData {
             id_token: parse_id_token(&id_token).map_err(io::Error::other)?,
@@ -563,7 +563,7 @@ pub(crate) async fn persist_tokens_async(
             tokens: Some(tokens),
             last_refresh: Some(Utc::now()),
         };
-        save_auth(&codex_home, &auth, auth_credentials_store_mode)
+        save_auth(&codexist_home, &auth, auth_credentials_store_mode)
     })
     .await
     .map_err(|e| io::Error::other(format!("persist task failed: {e}")))?

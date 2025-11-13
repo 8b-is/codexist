@@ -1,9 +1,9 @@
-use codex_core::protocol::AskForApproval;
-use codex_core::protocol::EventMsg;
-use codex_core::protocol::Op;
-use codex_core::protocol::ReviewDecision;
-use codex_core::protocol::ReviewRequest;
-use codex_core::protocol::SandboxPolicy;
+use codexist_core::protocol::AskForApproval;
+use codexist_core::protocol::EventMsg;
+use codexist_core::protocol::Op;
+use codexist_core::protocol::ReviewDecision;
+use codexist_core::protocol::ReviewRequest;
+use codexist_core::protocol::SandboxPolicy;
 use core_test_support::responses::ev_apply_patch_function_call;
 use core_test_support::responses::ev_assistant_message;
 use core_test_support::responses::ev_completed;
@@ -15,14 +15,14 @@ use core_test_support::responses::mount_sse_sequence;
 use core_test_support::responses::sse;
 use core_test_support::responses::start_mock_server;
 use core_test_support::skip_if_no_network;
-use core_test_support::test_codex::test_codex;
+use core_test_support::test_codexist::test_codexist;
 use core_test_support::wait_for_event;
 use pretty_assertions::assert_eq;
 
 /// Delegate should surface ExecApprovalRequest from sub-agent and proceed
 /// after parent submits an approval decision.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn codex_delegate_forwards_exec_approval_and_proceeds_on_approval() {
+async fn codexist_delegate_forwards_exec_approval_and_proceeds_on_approval() {
     skip_if_no_network!();
 
     // Sub-agent turn 1: emit a shell function_call requiring approval, then complete.
@@ -58,14 +58,14 @@ async fn codex_delegate_forwards_exec_approval_and_proceeds_on_approval() {
 
     // Build a conversation configured to require approvals so the delegate
     // routes ExecApprovalRequest via the parent.
-    let mut builder = test_codex().with_config(|config| {
+    let mut builder = test_codexist().with_config(|config| {
         config.approval_policy = AskForApproval::OnRequest;
         config.sandbox_policy = SandboxPolicy::ReadOnly;
     });
-    let test = builder.build(&server).await.expect("build test codex");
+    let test = builder.build(&server).await.expect("build test codexist");
 
     // Kick off review (sub-agent starts internally).
-    test.codex
+    test.codexist
         .submit(Op::Review {
             review_request: ReviewRequest {
                 prompt: "Please review".to_string(),
@@ -76,19 +76,19 @@ async fn codex_delegate_forwards_exec_approval_and_proceeds_on_approval() {
         .expect("submit review");
 
     // Lifecycle: Entered -> ExecApprovalRequest -> Exited(Some) -> TaskComplete.
-    wait_for_event(&test.codex, |ev| {
+    wait_for_event(&test.codexist, |ev| {
         matches!(ev, EventMsg::EnteredReviewMode(_))
     })
     .await;
 
     // Expect parent-side approval request (forwarded by delegate).
-    wait_for_event(&test.codex, |ev| {
+    wait_for_event(&test.codexist, |ev| {
         matches!(ev, EventMsg::ExecApprovalRequest(_))
     })
     .await;
 
     // Approve via parent; id "0" is the active sub_id in tests.
-    test.codex
+    test.codexist
         .submit(Op::ExecApproval {
             id: "0".into(),
             decision: ReviewDecision::Approved,
@@ -96,17 +96,17 @@ async fn codex_delegate_forwards_exec_approval_and_proceeds_on_approval() {
         .await
         .expect("submit exec approval");
 
-    wait_for_event(&test.codex, |ev| {
+    wait_for_event(&test.codexist, |ev| {
         matches!(ev, EventMsg::ExitedReviewMode(_))
     })
     .await;
-    wait_for_event(&test.codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&test.codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 }
 
 /// Delegate should surface ApplyPatchApprovalRequest and honor parent decision
 /// so the sub-agent can proceed to completion.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn codex_delegate_forwards_patch_approval_and_proceeds_on_decision() {
+async fn codexist_delegate_forwards_patch_approval_and_proceeds_on_decision() {
     skip_if_no_network!();
 
     let call_id = "call-patch-1";
@@ -132,15 +132,15 @@ async fn codex_delegate_forwards_patch_approval_and_proceeds_on_decision() {
     let server = start_mock_server().await;
     mount_sse_sequence(&server, vec![sse1, sse2]).await;
 
-    let mut builder = test_codex().with_config(|config| {
+    let mut builder = test_codexist().with_config(|config| {
         config.approval_policy = AskForApproval::OnRequest;
         // Use a restricted sandbox so patch approval is required
         config.sandbox_policy = SandboxPolicy::ReadOnly;
         config.include_apply_patch_tool = true;
     });
-    let test = builder.build(&server).await.expect("build test codex");
+    let test = builder.build(&server).await.expect("build test codexist");
 
-    test.codex
+    test.codexist
         .submit(Op::Review {
             review_request: ReviewRequest {
                 prompt: "Please review".to_string(),
@@ -150,17 +150,17 @@ async fn codex_delegate_forwards_patch_approval_and_proceeds_on_decision() {
         .await
         .expect("submit review");
 
-    wait_for_event(&test.codex, |ev| {
+    wait_for_event(&test.codexist, |ev| {
         matches!(ev, EventMsg::EnteredReviewMode(_))
     })
     .await;
-    wait_for_event(&test.codex, |ev| {
+    wait_for_event(&test.codexist, |ev| {
         matches!(ev, EventMsg::ApplyPatchApprovalRequest(_))
     })
     .await;
 
     // Deny via parent so delegate can continue; id "0" is the active sub_id in tests.
-    test.codex
+    test.codexist
         .submit(Op::PatchApproval {
             id: "0".into(),
             decision: ReviewDecision::Denied,
@@ -168,15 +168,15 @@ async fn codex_delegate_forwards_patch_approval_and_proceeds_on_decision() {
         .await
         .expect("submit patch approval");
 
-    wait_for_event(&test.codex, |ev| {
+    wait_for_event(&test.codexist, |ev| {
         matches!(ev, EventMsg::ExitedReviewMode(_))
     })
     .await;
-    wait_for_event(&test.codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&test.codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn codex_delegate_ignores_legacy_deltas() {
+async fn codexist_delegate_ignores_legacy_deltas() {
     skip_if_no_network!();
 
     // Single response with reasoning summary deltas.
@@ -190,11 +190,11 @@ async fn codex_delegate_ignores_legacy_deltas() {
     let server = start_mock_server().await;
     mount_sse_sequence(&server, vec![sse_stream]).await;
 
-    let mut builder = test_codex();
-    let test = builder.build(&server).await.expect("build test codex");
+    let mut builder = test_codexist();
+    let test = builder.build(&server).await.expect("build test codexist");
 
     // Kick off review (delegated).
-    test.codex
+    test.codexist
         .submit(Op::Review {
             review_request: ReviewRequest {
                 prompt: "Please review".to_string(),
@@ -208,7 +208,7 @@ async fn codex_delegate_ignores_legacy_deltas() {
     let mut legacy_reasoning_delta_count = 0;
 
     loop {
-        let ev = wait_for_event(&test.codex, |_| true).await;
+        let ev = wait_for_event(&test.codexist, |_| true).await;
         match ev {
             EventMsg::ReasoningContentDelta(_) => reasoning_delta_count += 1,
             EventMsg::AgentReasoningDelta(_) => legacy_reasoning_delta_count += 1,

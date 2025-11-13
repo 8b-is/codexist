@@ -4,22 +4,22 @@ set positional-arguments
 help:
     just -l
 
-# `codex`
-alias c := codex
-codex *args:
-    cargo run --bin codex -- "$@"
+# `codexist`
+alias c := codexist
+codexist *args:
+    cargo run --bin codexist -- "$@"
 
-# `codex exec`
+# `codexist exec`
 exec *args:
-    cargo run --bin codex -- exec "$@"
+    cargo run --bin codexist -- exec "$@"
 
-# `codex tui`
+# `codexist tui`
 tui *args:
-    cargo run --bin codex -- tui "$@"
+    cargo run --bin codexist -- tui "$@"
 
 # Run the CLI version of the file-search crate.
 file-search *args:
-    cargo run --bin codex-file-search -- "$@"
+    cargo run --bin codexist-file-search -- "$@"
 
 # format code
 fmt:
@@ -44,4 +44,4 @@ test:
 
 # Run the MCP server
 mcp-server-run *args:
-    cargo run -p codex-mcp-server -- "$@"
+    cargo run -p codexist-mcp-server -- "$@"

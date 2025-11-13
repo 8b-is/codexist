@@ -2,10 +2,10 @@ use anyhow::Result;
 use app_test_support::McpProcess;
 use app_test_support::create_fake_rollout;
 use app_test_support::to_response;
-use codex_app_server_protocol::JSONRPCResponse;
-use codex_app_server_protocol::RequestId;
-use codex_app_server_protocol::ThreadListParams;
-use codex_app_server_protocol::ThreadListResponse;
+use codexist_app_server_protocol::JSONRPCResponse;
+use codexist_app_server_protocol::RequestId;
+use codexist_app_server_protocol::ThreadListParams;
+use codexist_app_server_protocol::ThreadListResponse;
 use serde_json::json;
 use tempfile::TempDir;
 use tokio::time::timeout;
@@ -15,13 +15,13 @@ const DEFAULT_READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs
 
 #[tokio::test]
 async fn thread_list_basic_empty() -> Result<()> {
-    let codex_home = TempDir::new()?;
-    create_minimal_config(codex_home.path())?;
+    let codexist_home = TempDir::new()?;
+    create_minimal_config(codexist_home.path())?;
 
-    let mut mcp = McpProcess::new(codex_home.path()).await?;
+    let mut mcp = McpProcess::new(codexist_home.path()).await?;
     timeout(DEFAULT_READ_TIMEOUT, mcp.initialize()).await??;
 
-    // List threads in an empty CODEX_HOME; should return an empty page with nextCursor: null.
+    // List threads in an empty CODEXIST_HOME; should return an empty page with nextCursor: null.
     let list_id = mcp
         .send_thread_list_request(ThreadListParams {
             cursor: None,
@@ -42,8 +42,8 @@ async fn thread_list_basic_empty() -> Result<()> {
 }
 
 // Minimal config.toml for listing.
-fn create_minimal_config(codex_home: &std::path::Path) -> std::io::Result<()> {
-    let config_toml = codex_home.join("config.toml");
+fn create_minimal_config(codexist_home: &std::path::Path) -> std::io::Result<()> {
+    let config_toml = codexist_home.join("config.toml");
     std::fs::write(
         config_toml,
         r#"
@@ -55,33 +55,33 @@ approval_policy = "never"
 
 #[tokio::test]
 async fn thread_list_pagination_next_cursor_none_on_last_page() -> Result<()> {
-    let codex_home = TempDir::new()?;
-    create_minimal_config(codex_home.path())?;
+    let codexist_home = TempDir::new()?;
+    create_minimal_config(codexist_home.path())?;
 
     // Create three rollouts so we can paginate with limit=2.
     let _a = create_fake_rollout(
-        codex_home.path(),
+        codexist_home.path(),
         "2025-01-02T12-00-00",
         "2025-01-02T12:00:00Z",
         "Hello",
         Some("mock_provider"),
     )?;
     let _b = create_fake_rollout(
-        codex_home.path(),
+        codexist_home.path(),
         "2025-01-01T13-00-00",
         "2025-01-01T13:00:00Z",
         "Hello",
         Some("mock_provider"),
     )?;
     let _c = create_fake_rollout(
-        codex_home.path(),
+        codexist_home.path(),
         "2025-01-01T12-00-00",
         "2025-01-01T12:00:00Z",
         "Hello",
         Some("mock_provider"),
     )?;
 
-    let mut mcp = McpProcess::new(codex_home.path()).await?;
+    let mut mcp = McpProcess::new(codexist_home.path()).await?;
     timeout(DEFAULT_READ_TIMEOUT, mcp.initialize()).await??;
 
     // Page 1: limit 2 → expect next_cursor Some.
@@ -139,12 +139,12 @@ async fn thread_list_pagination_next_cursor_none_on_last_page() -> Result<()> {
 
 #[tokio::test]
 async fn thread_list_respects_provider_filter() -> Result<()> {
-    let codex_home = TempDir::new()?;
-    create_minimal_config(codex_home.path())?;
+    let codexist_home = TempDir::new()?;
+    create_minimal_config(codexist_home.path())?;
 
     // Create rollouts under two providers.
     let _a = create_fake_rollout(
-        codex_home.path(),
+        codexist_home.path(),
         "2025-01-02T10-00-00",
         "2025-01-02T10:00:00Z",
         "X",
@@ -152,7 +152,7 @@ async fn thread_list_respects_provider_filter() -> Result<()> {
     )?; // mock_provider
     // one with a different provider
     let uuid = Uuid::new_v4();
-    let dir = codex_home
+    let dir = codexist_home
         .path()
         .join("sessions")
         .join("2025")
@@ -168,7 +168,7 @@ async fn thread_list_respects_provider_filter() -> Result<()> {
                 "id": uuid,
                 "timestamp": "2025-01-02T11:00:00Z",
                 "cwd": "/",
-                "originator": "codex",
+                "originator": "codexist",
                 "cli_version": "0.0.0",
                 "instructions": null,
                 "source": "vscode",
@@ -191,7 +191,7 @@ async fn thread_list_respects_provider_filter() -> Result<()> {
     ];
     std::fs::write(file_path, lines.join("\n") + "\n")?;
 
-    let mut mcp = McpProcess::new(codex_home.path()).await?;
+    let mut mcp = McpProcess::new(codexist_home.path()).await?;
     timeout(DEFAULT_READ_TIMEOUT, mcp.initialize()).await??;
 
     // Filter to only other_provider; expect 1 item, nextCursor None.

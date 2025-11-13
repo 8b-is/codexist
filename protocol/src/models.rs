@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use base64::Engine;
-use codex_utils_image::load_and_resize_to_fit;
+use codexist_utils_image::load_and_resize_to_fit;
 use mcp_types::CallToolResult;
 use mcp_types::ContentBlock;
 use serde::Deserialize;
@@ -11,8 +11,8 @@ use serde::ser::Serializer;
 use ts_rs::TS;
 
 use crate::user_input::UserInput;
-use codex_git::GhostCommit;
-use codex_utils_image::error::ImageProcessingError;
+use codexist_git::GhostCommit;
+use codexist_utils_image::error::ImageProcessingError;
 use schemars::JsonSchema;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, JsonSchema, TS)]
@@ -151,7 +151,7 @@ fn local_image_error_placeholder(
 ) -> ContentItem {
     ContentItem::InputText {
         text: format!(
-            "Codex could not read the local image at `{}`: {}",
+            "Codexist could not read the local image at `{}`: {}",
             path.display(),
             error
         ),
@@ -495,7 +495,7 @@ impl std::ops::Deref for FunctionCallOutputPayload {
     }
 }
 
-// (Moved event mapping logic into codex-core to avoid coupling protocol to UI-facing events.)
+// (Moved event mapping logic into codexist-core to avoid coupling protocol to UI-facing events.)
 
 #[cfg(test)]
 mod tests {

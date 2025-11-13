@@ -3,52 +3,52 @@ use std::sync::atomic::AtomicU64;
 
 use async_channel::Receiver;
 use async_channel::Sender;
-use codex_async_utils::OrCancelExt;
-use codex_protocol::protocol::ApplyPatchApprovalRequestEvent;
-use codex_protocol::protocol::Event;
-use codex_protocol::protocol::EventMsg;
-use codex_protocol::protocol::ExecApprovalRequestEvent;
-use codex_protocol::protocol::Op;
-use codex_protocol::protocol::SessionSource;
-use codex_protocol::protocol::SubAgentSource;
-use codex_protocol::protocol::Submission;
-use codex_protocol::user_input::UserInput;
+use codexist_async_utils::OrCancelExt;
+use codexist_protocol::protocol::ApplyPatchApprovalRequestEvent;
+use codexist_protocol::protocol::Event;
+use codexist_protocol::protocol::EventMsg;
+use codexist_protocol::protocol::ExecApprovalRequestEvent;
+use codexist_protocol::protocol::Op;
+use codexist_protocol::protocol::SessionSource;
+use codexist_protocol::protocol::SubAgentSource;
+use codexist_protocol::protocol::Submission;
+use codexist_protocol::user_input::UserInput;
 use tokio_util::sync::CancellationToken;
 
 use crate::AuthManager;
-use crate::codex::Codex;
-use crate::codex::CodexSpawnOk;
-use crate::codex::SUBMISSION_CHANNEL_CAPACITY;
-use crate::codex::Session;
-use crate::codex::TurnContext;
+use crate::codexist::Codexist;
+use crate::codexist::CodexistSpawnOk;
+use crate::codexist::SUBMISSION_CHANNEL_CAPACITY;
+use crate::codexist::Session;
+use crate::codexist::TurnContext;
 use crate::config::Config;
-use crate::error::CodexErr;
-use codex_protocol::protocol::InitialHistory;
+use crate::error::CodexistErr;
+use codexist_protocol::protocol::InitialHistory;
 
-/// Start an interactive sub-Codex conversation and return IO channels.
+/// Start an interactive sub-Codexist conversation and return IO channels.
 ///
 /// The returned `events_rx` yields non-approval events emitted by the sub-agent.
 /// Approval requests are handled via `parent_session` and are not surfaced.
 /// The returned `ops_tx` allows the caller to submit additional `Op`s to the sub-agent.
-pub(crate) async fn run_codex_conversation_interactive(
+pub(crate) async fn run_codexist_conversation_interactive(
     config: Config,
     auth_manager: Arc<AuthManager>,
     parent_session: Arc<Session>,
     parent_ctx: Arc<TurnContext>,
     cancel_token: CancellationToken,
     initial_history: Option<InitialHistory>,
-) -> Result<Codex, CodexErr> {
+) -> Result<Codexist, CodexistErr> {
     let (tx_sub, rx_sub) = async_channel::bounded(SUBMISSION_CHANNEL_CAPACITY);
     let (tx_ops, rx_ops) = async_channel::bounded(SUBMISSION_CHANNEL_CAPACITY);
 
-    let CodexSpawnOk { codex, .. } = Codex::spawn(
+    let CodexistSpawnOk { codexist, .. } = Codexist::spawn(
         config,
         auth_manager,
         initial_history.unwrap_or(InitialHistory::New),
         SessionSource::SubAgent(SubAgentSource::Review),
     )
     .await?;
-    let codex = Arc::new(codex);
+    let codexist = Arc::new(codexist);
 
     // Use a child token so parent cancel cascades but we can scope it to this task
     let cancel_token_events = cancel_token.child_token();
@@ -58,10 +58,10 @@ pub(crate) async fn run_codex_conversation_interactive(
     // routing them to the parent session for decisions.
     let parent_session_clone = Arc::clone(&parent_session);
     let parent_ctx_clone = Arc::clone(&parent_ctx);
-    let codex_for_events = Arc::clone(&codex);
+    let codexist_for_events = Arc::clone(&codexist);
     tokio::spawn(async move {
         let _ = forward_events(
-            codex_for_events,
+            codexist_for_events,
             tx_sub,
             parent_session_clone,
             parent_ctx_clone,
@@ -72,12 +72,12 @@ pub(crate) async fn run_codex_conversation_interactive(
     });
 
     // Forward ops from the caller to the sub-agent.
-    let codex_for_ops = Arc::clone(&codex);
+    let codexist_for_ops = Arc::clone(&codexist);
     tokio::spawn(async move {
-        forward_ops(codex_for_ops, rx_ops, cancel_token_ops).await;
+        forward_ops(codexist_for_ops, rx_ops, cancel_token_ops).await;
     });
 
-    Ok(Codex {
+    Ok(Codexist {
         next_id: AtomicU64::new(0),
         tx_sub: tx_ops,
         rx_event: rx_sub,
@@ -87,7 +87,7 @@ pub(crate) async fn run_codex_conversation_interactive(
 /// Convenience wrapper for one-time use with an initial prompt.
 ///
 /// Internally calls the interactive variant, then immediately submits the provided input.
-pub(crate) async fn run_codex_conversation_one_shot(
+pub(crate) async fn run_codexist_conversation_one_shot(
     config: Config,
     auth_manager: Arc<AuthManager>,
     input: Vec<UserInput>,
@@ -95,11 +95,11 @@ pub(crate) async fn run_codex_conversation_one_shot(
     parent_ctx: Arc<TurnContext>,
     cancel_token: CancellationToken,
     initial_history: Option<InitialHistory>,
-) -> Result<Codex, CodexErr> {
+) -> Result<Codexist, CodexistErr> {
     // Use a child token so we can stop the delegate after completion without
     // requiring the caller to cancel the parent token.
     let child_cancel = cancel_token.child_token();
-    let io = run_codex_conversation_interactive(
+    let io = run_codexist_conversation_interactive(
         config,
         auth_manager,
         parent_session,
@@ -142,7 +142,7 @@ pub(crate) async fn run_codex_conversation_one_shot(
     let (tx_closed, rx_closed) = async_channel::bounded(SUBMISSION_CHANNEL_CAPACITY);
     drop(rx_closed);
 
-    Ok(Codex {
+    Ok(Codexist {
         next_id: AtomicU64::new(0),
         rx_event: rx_bridge,
         tx_sub: tx_closed,
@@ -150,13 +150,13 @@ pub(crate) async fn run_codex_conversation_one_shot(
 }
 
 async fn forward_events(
-    codex: Arc<Codex>,
+    codexist: Arc<Codexist>,
     tx_sub: Sender<Event>,
     parent_session: Arc<Session>,
     parent_ctx: Arc<TurnContext>,
     cancel_token: CancellationToken,
 ) {
-    while let Ok(event) = codex.next_event().await {
+    while let Ok(event) = codexist.next_event().await {
         match event {
             // ignore all legacy delta events
             Event {
@@ -173,7 +173,7 @@ async fn forward_events(
             } => {
                 // Initiate approval via parent session; do not surface to consumer.
                 handle_exec_approval(
-                    &codex,
+                    &codexist,
                     id,
                     &parent_session,
                     &parent_ctx,
@@ -187,7 +187,7 @@ async fn forward_events(
                 msg: EventMsg::ApplyPatchApprovalRequest(event),
             } => {
                 handle_patch_approval(
-                    &codex,
+                    &codexist,
                     id,
                     &parent_session,
                     &parent_ctx,
@@ -205,7 +205,7 @@ async fn forward_events(
 
 /// Forward ops from a caller to a sub-agent, respecting cancellation.
 async fn forward_ops(
-    codex: Arc<Codex>,
+    codexist: Arc<Codexist>,
     rx_ops: Receiver<Submission>,
     cancel_token_ops: CancellationToken,
 ) {
@@ -214,13 +214,13 @@ async fn forward_ops(
             Ok(Ok(Submission { id: _, op })) => op,
             Ok(Err(_)) | Err(_) => break,
         };
-        let _ = codex.submit(op).await;
+        let _ = codexist.submit(op).await;
     }
 }
 
 /// Handle an ExecApprovalRequest by consulting the parent session and replying.
 async fn handle_exec_approval(
-    codex: &Codex,
+    codexist: &Codexist,
     id: String,
     parent_session: &Session,
     parent_ctx: &TurnContext,
@@ -244,12 +244,12 @@ async fn handle_exec_approval(
     )
     .await;
 
-    let _ = codex.submit(Op::ExecApproval { id, decision }).await;
+    let _ = codexist.submit(Op::ExecApproval { id, decision }).await;
 }
 
 /// Handle an ApplyPatchApprovalRequest by consulting the parent session and replying.
 async fn handle_patch_approval(
-    codex: &Codex,
+    codexist: &Codexist,
     id: String,
     parent_session: &Session,
     parent_ctx: &TurnContext,
@@ -272,7 +272,7 @@ async fn handle_patch_approval(
         cancel_token,
     )
     .await;
-    let _ = codex.submit(Op::PatchApproval { id, decision }).await;
+    let _ = codexist.submit(Op::PatchApproval { id, decision }).await;
 }
 
 /// Await an approval decision, aborting on cancellation.
@@ -281,17 +281,17 @@ async fn await_approval_with_cancel<F>(
     parent_session: &Session,
     sub_id: &str,
     cancel_token: &CancellationToken,
-) -> codex_protocol::protocol::ReviewDecision
+) -> codexist_protocol::protocol::ReviewDecision
 where
-    F: core::future::Future<Output = codex_protocol::protocol::ReviewDecision>,
+    F: core::future::Future<Output = codexist_protocol::protocol::ReviewDecision>,
 {
     tokio::select! {
         biased;
         _ = cancel_token.cancelled() => {
             parent_session
-                .notify_approval(sub_id, codex_protocol::protocol::ReviewDecision::Abort)
+                .notify_approval(sub_id, codexist_protocol::protocol::ReviewDecision::Abort)
                 .await;
-            codex_protocol::protocol::ReviewDecision::Abort
+            codexist_protocol::protocol::ReviewDecision::Abort
         }
         decision = fut => {
             decision

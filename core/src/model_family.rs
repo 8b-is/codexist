@@ -6,7 +6,7 @@ use crate::tools::spec::ConfigShellToolType;
 /// with this content.
 const BASE_INSTRUCTIONS: &str = include_str!("../prompt.md");
 
-const GPT_5_CODEX_INSTRUCTIONS: &str = include_str!("../gpt_5_codex_prompt.md");
+const GPT_5_CODEXIST_INSTRUCTIONS: &str = include_str!("../gpt_5_codexist_prompt.md");
 const GPT_5_1_INSTRUCTIONS: &str = include_str!("../gpt_5_1_prompt.md");
 
 /// A model family is a group of models that share certain characteristics.
@@ -102,9 +102,9 @@ pub fn find_family_for_model(slug: &str) -> Option<ModelFamily> {
             supports_reasoning_summaries: true,
             needs_special_apply_patch_instructions: true,
         )
-    } else if slug.starts_with("codex-mini-latest") {
+    } else if slug.starts_with("codexist-mini-latest") {
         model_family!(
-            slug, "codex-mini-latest",
+            slug, "codexist-mini-latest",
             supports_reasoning_summaries: true,
             needs_special_apply_patch_instructions: true,
             shell_type: ConfigShellToolType::Local,
@@ -122,12 +122,12 @@ pub fn find_family_for_model(slug: &str) -> Option<ModelFamily> {
         model_family!(slug, "gpt-3.5", needs_special_apply_patch_instructions: true)
     } else if slug.starts_with("porcupine") {
         model_family!(slug, "porcupine", shell_type: ConfigShellToolType::UnifiedExec)
-    } else if slug.starts_with("test-gpt-5-codex") {
+    } else if slug.starts_with("test-gpt-5-codexist") {
         model_family!(
             slug, slug,
             supports_reasoning_summaries: true,
             reasoning_summary_format: ReasoningSummaryFormat::Experimental,
-            base_instructions: GPT_5_CODEX_INSTRUCTIONS.to_string(),
+            base_instructions: GPT_5_CODEXIST_INSTRUCTIONS.to_string(),
             experimental_supported_tools: vec![
                 "grep_files".to_string(),
                 "list_dir".to_string(),
@@ -139,12 +139,12 @@ pub fn find_family_for_model(slug: &str) -> Option<ModelFamily> {
         )
 
     // Internal models.
-    } else if slug.starts_with("codex-exp-") {
+    } else if slug.starts_with("codexist-exp-") {
         model_family!(
             slug, slug,
             supports_reasoning_summaries: true,
             reasoning_summary_format: ReasoningSummaryFormat::Experimental,
-            base_instructions: GPT_5_CODEX_INSTRUCTIONS.to_string(),
+            base_instructions: GPT_5_CODEXIST_INSTRUCTIONS.to_string(),
             apply_patch_tool_type: Some(ApplyPatchToolType::Freeform),
             experimental_supported_tools: vec![
                 "grep_files".to_string(),
@@ -156,15 +156,15 @@ pub fn find_family_for_model(slug: &str) -> Option<ModelFamily> {
         )
 
     // Production models.
-    } else if slug.starts_with("gpt-5-codex")
-        || slug.starts_with("gpt-5.1-codex")
-        || slug.starts_with("codex-")
+    } else if slug.starts_with("gpt-5-codexist")
+        || slug.starts_with("gpt-5.1-codexist")
+        || slug.starts_with("codexist-")
     {
         model_family!(
             slug, slug,
             supports_reasoning_summaries: true,
             reasoning_summary_format: ReasoningSummaryFormat::Experimental,
-            base_instructions: GPT_5_CODEX_INSTRUCTIONS.to_string(),
+            base_instructions: GPT_5_CODEXIST_INSTRUCTIONS.to_string(),
             apply_patch_tool_type: Some(ApplyPatchToolType::Freeform),
             support_verbosity: false,
         )

@@ -1,11 +1,11 @@
 use anyhow::Result;
 use app_test_support::McpProcess;
 use app_test_support::to_response;
-use codex_app_server_protocol::JSONRPCResponse;
-use codex_app_server_protocol::RequestId;
-use codex_app_server_protocol::SetDefaultModelParams;
-use codex_app_server_protocol::SetDefaultModelResponse;
-use codex_core::config::ConfigToml;
+use codexist_app_server_protocol::JSONRPCResponse;
+use codexist_app_server_protocol::RequestId;
+use codexist_app_server_protocol::SetDefaultModelParams;
+use codexist_app_server_protocol::SetDefaultModelResponse;
+use codexist_core::config::ConfigToml;
 use pretty_assertions::assert_eq;
 use std::path::Path;
 use tempfile::TempDir;
@@ -15,10 +15,10 @@ const DEFAULT_READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn set_default_model_persists_overrides() -> Result<()> {
-    let codex_home = TempDir::new()?;
-    create_config_toml(codex_home.path())?;
+    let codexist_home = TempDir::new()?;
+    create_config_toml(codexist_home.path())?;
 
-    let mut mcp = McpProcess::new(codex_home.path()).await?;
+    let mut mcp = McpProcess::new(codexist_home.path()).await?;
     timeout(DEFAULT_READ_TIMEOUT, mcp.initialize()).await??;
 
     let params = SetDefaultModelParams {
@@ -36,7 +36,7 @@ async fn set_default_model_persists_overrides() -> Result<()> {
 
     let _: SetDefaultModelResponse = to_response(resp)?;
 
-    let config_path = codex_home.path().join("config.toml");
+    let config_path = codexist_home.path().join("config.toml");
     let config_contents = tokio::fs::read_to_string(&config_path).await?;
     let config_toml: ConfigToml = toml::from_str(&config_contents)?;
 
@@ -52,12 +52,12 @@ async fn set_default_model_persists_overrides() -> Result<()> {
 }
 
 // Helper to create a config.toml; mirrors create_conversation.rs
-fn create_config_toml(codex_home: &Path) -> std::io::Result<()> {
-    let config_toml = codex_home.join("config.toml");
+fn create_config_toml(codexist_home: &Path) -> std::io::Result<()> {
+    let config_toml = codexist_home.join("config.toml");
     std::fs::write(
         config_toml,
         r#"
-model = "gpt-5-codex"
+model = "gpt-5-codexist"
 model_reasoning_effort = "medium"
 "#,
     )

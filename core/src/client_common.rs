@@ -3,11 +3,11 @@ use crate::error::Result;
 use crate::model_family::ModelFamily;
 use crate::protocol::RateLimitSnapshot;
 use crate::protocol::TokenUsage;
-use codex_apply_patch::APPLY_PATCH_TOOL_INSTRUCTIONS;
-use codex_protocol::config_types::ReasoningEffort as ReasoningEffortConfig;
-use codex_protocol::config_types::ReasoningSummary as ReasoningSummaryConfig;
-use codex_protocol::config_types::Verbosity as VerbosityConfig;
-use codex_protocol::models::ResponseItem;
+use codexist_apply_patch::APPLY_PATCH_TOOL_INSTRUCTIONS;
+use codexist_protocol::config_types::ReasoningEffort as ReasoningEffortConfig;
+use codexist_protocol::config_types::ReasoningSummary as ReasoningSummaryConfig;
+use codexist_protocol::config_types::Verbosity as VerbosityConfig;
+use codexist_protocol::models::ResponseItem;
 use futures::Stream;
 use serde::Deserialize;
 use serde::Serialize;
@@ -371,7 +371,7 @@ pub(crate) fn create_text_param_for_request(
             r#type: TextFormatType::JsonSchema,
             strict: true,
             schema: schema.clone(),
-            name: "codex_output_schema".to_string(),
+            name: "codexist_output_schema".to_string(),
         }),
     })
 }
@@ -426,7 +426,7 @@ mod tests {
                 expects_apply_patch_instructions: false,
             },
             InstructionsTestCase {
-                slug: "codex-mini-latest",
+                slug: "codexist-mini-latest",
                 expects_apply_patch_instructions: true,
             },
             InstructionsTestCase {
@@ -434,11 +434,11 @@ mod tests {
                 expects_apply_patch_instructions: false,
             },
             InstructionsTestCase {
-                slug: "gpt-5-codex",
+                slug: "gpt-5-codexist",
                 expects_apply_patch_instructions: false,
             },
             InstructionsTestCase {
-                slug: "gpt-5.1-codex",
+                slug: "gpt-5.1-codexist",
                 expects_apply_patch_instructions: false,
             },
         ];
@@ -526,7 +526,7 @@ mod tests {
 
         assert_eq!(
             format.get("name"),
-            Some(&serde_json::Value::String("codex_output_schema".into()))
+            Some(&serde_json::Value::String("codexist_output_schema".into()))
         );
         assert_eq!(
             format.get("type"),

@@ -2,18 +2,18 @@ use assert_matches::assert_matches;
 use std::sync::Arc;
 use tracing_test::traced_test;
 
-use codex_app_server_protocol::AuthMode;
-use codex_core::ContentItem;
-use codex_core::ModelClient;
-use codex_core::ModelProviderInfo;
-use codex_core::Prompt;
-use codex_core::ResponseEvent;
-use codex_core::ResponseItem;
-use codex_core::WireApi;
-use codex_core::spawn::CODEX_SANDBOX_NETWORK_DISABLED_ENV_VAR;
-use codex_otel::otel_event_manager::OtelEventManager;
-use codex_protocol::ConversationId;
-use codex_protocol::models::ReasoningItemContent;
+use codexist_app_server_protocol::AuthMode;
+use codexist_core::ContentItem;
+use codexist_core::ModelClient;
+use codexist_core::ModelProviderInfo;
+use codexist_core::Prompt;
+use codexist_core::ResponseEvent;
+use codexist_core::ResponseItem;
+use codexist_core::WireApi;
+use codexist_core::spawn::CODEXIST_SANDBOX_NETWORK_DISABLED_ENV_VAR;
+use codexist_otel::otel_event_manager::OtelEventManager;
+use codexist_protocol::ConversationId;
+use codexist_protocol::models::ReasoningItemContent;
 use core_test_support::load_default_config_for_test;
 use futures::StreamExt;
 use tempfile::TempDir;
@@ -24,7 +24,7 @@ use wiremock::matchers::method;
 use wiremock::matchers::path;
 
 fn network_disabled() -> bool {
-    std::env::var(CODEX_SANDBOX_NETWORK_DISABLED_ENV_VAR).is_ok()
+    std::env::var(CODEXIST_SANDBOX_NETWORK_DISABLED_ENV_VAR).is_ok()
 }
 
 async fn run_stream(sse_body: &str) -> Vec<ResponseEvent> {
@@ -61,11 +61,11 @@ async fn run_stream_with_bytes(sse_body: &[u8]) -> Vec<ResponseEvent> {
         requires_openai_auth: false,
     };
 
-    let codex_home = match TempDir::new() {
+    let codexist_home = match TempDir::new() {
         Ok(dir) => dir,
         Err(e) => panic!("failed to create TempDir: {e}"),
     };
-    let mut config = load_default_config_for_test(&codex_home);
+    let mut config = load_default_config_for_test(&codexist_home);
     config.model_provider_id = provider.name.clone();
     config.model_provider = provider.clone();
     config.show_raw_agent_reasoning = true;
@@ -94,7 +94,7 @@ async fn run_stream_with_bytes(sse_body: &[u8]) -> Vec<ResponseEvent> {
         effort,
         summary,
         conversation_id,
-        codex_protocol::protocol::SessionSource::Exec,
+        codexist_protocol::protocol::SessionSource::Exec,
     );
 
     let mut prompt = Prompt::default();
@@ -159,7 +159,7 @@ fn assert_reasoning(item: &ResponseItem, expected: &str) {
 async fn streams_text_without_reasoning() {
     if network_disabled() {
         println!(
-            "Skipping test because it cannot execute when network is disabled in a Codex sandbox."
+            "Skipping test because it cannot execute when network is disabled in a Codexist sandbox."
         );
         return;
     }
@@ -195,7 +195,7 @@ async fn streams_text_without_reasoning() {
 async fn streams_reasoning_from_string_delta() {
     if network_disabled() {
         println!(
-            "Skipping test because it cannot execute when network is disabled in a Codex sandbox."
+            "Skipping test because it cannot execute when network is disabled in a Codexist sandbox."
         );
         return;
     }
@@ -246,7 +246,7 @@ async fn streams_reasoning_from_string_delta() {
 async fn streams_reasoning_from_object_delta() {
     if network_disabled() {
         println!(
-            "Skipping test because it cannot execute when network is disabled in a Codex sandbox."
+            "Skipping test because it cannot execute when network is disabled in a Codexist sandbox."
         );
         return;
     }
@@ -303,7 +303,7 @@ async fn streams_reasoning_from_object_delta() {
 async fn streams_reasoning_from_final_message() {
     if network_disabled() {
         println!(
-            "Skipping test because it cannot execute when network is disabled in a Codex sandbox."
+            "Skipping test because it cannot execute when network is disabled in a Codexist sandbox."
         );
         return;
     }
@@ -335,7 +335,7 @@ async fn streams_reasoning_from_final_message() {
 async fn streams_reasoning_before_tool_call() {
     if network_disabled() {
         println!(
-            "Skipping test because it cannot execute when network is disabled in a Codex sandbox."
+            "Skipping test because it cannot execute when network is disabled in a Codexist sandbox."
         );
         return;
     }
@@ -385,7 +385,7 @@ async fn streams_reasoning_before_tool_call() {
 async fn chat_sse_emits_failed_on_parse_error() {
     if network_disabled() {
         println!(
-            "Skipping test because it cannot execute when network is disabled in a Codex sandbox."
+            "Skipping test because it cannot execute when network is disabled in a Codexist sandbox."
         );
         return;
     }
@@ -398,17 +398,17 @@ async fn chat_sse_emits_failed_on_parse_error() {
         lines
             .iter()
             .find(|line| {
-                line.contains("codex.api_request") && line.contains("http.response.status_code=200")
+                line.contains("codexist.api_request") && line.contains("http.response.status_code=200")
             })
             .map(|_| Ok(()))
-            .unwrap_or(Err("cannot find codex.api_request event".to_string()))
+            .unwrap_or(Err("cannot find codexist.api_request event".to_string()))
     });
 
     logs_assert(|lines: &[&str]| {
         lines
             .iter()
             .find(|line| {
-                line.contains("codex.sse_event")
+                line.contains("codexist.sse_event")
                     && line.contains("error.message")
                     && line.contains("expected ident at line 1 column 2")
             })
@@ -422,7 +422,7 @@ async fn chat_sse_emits_failed_on_parse_error() {
 async fn chat_sse_done_chunk_emits_event() {
     if network_disabled() {
         println!(
-            "Skipping test because it cannot execute when network is disabled in a Codex sandbox."
+            "Skipping test because it cannot execute when network is disabled in a Codexist sandbox."
         );
         return;
     }
@@ -434,7 +434,7 @@ async fn chat_sse_done_chunk_emits_event() {
     logs_assert(|lines: &[&str]| {
         lines
             .iter()
-            .find(|line| line.contains("codex.sse_event") && line.contains("event.kind=message"))
+            .find(|line| line.contains("codexist.sse_event") && line.contains("event.kind=message"))
             .map(|_| Ok(()))
             .unwrap_or(Err("cannot find SSE event".to_string()))
     });
@@ -445,7 +445,7 @@ async fn chat_sse_done_chunk_emits_event() {
 async fn chat_sse_emits_error_on_invalid_utf8() {
     if network_disabled() {
         println!(
-            "Skipping test because it cannot execute when network is disabled in a Codex sandbox."
+            "Skipping test because it cannot execute when network is disabled in a Codexist sandbox."
         );
         return;
     }
@@ -456,7 +456,7 @@ async fn chat_sse_emits_error_on_invalid_utf8() {
         lines
             .iter()
             .find(|line| {
-                line.contains("codex.sse_event")
+                line.contains("codexist.sse_event")
                     && line.contains("error.message")
                     && line.contains("UTF8 error: invalid utf-8 sequence of 1 bytes from index 0")
             })

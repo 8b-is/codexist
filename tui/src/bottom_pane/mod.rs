@@ -8,7 +8,7 @@ use crate::render::renderable::Renderable;
 use crate::render::renderable::RenderableItem;
 use crate::tui::FrameRequester;
 use bottom_pane_view::BottomPaneView;
-use codex_file_search::FileMatch;
+use codexist_file_search::FileMatch;
 use crossterm::event::KeyCode;
 use crossterm::event::KeyEvent;
 use ratatui::buffer::Buffer;
@@ -47,7 +47,7 @@ pub(crate) enum CancellationEvent {
 
 pub(crate) use chat_composer::ChatComposer;
 pub(crate) use chat_composer::InputResult;
-use codex_protocol::custom_prompts::CustomPrompt;
+use codexist_protocol::custom_prompts::CustomPrompt;
 
 use crate::status_indicator_widget::StatusIndicatorWidget;
 pub(crate) use list_selection_view::SelectionAction;
@@ -544,7 +544,7 @@ mod tests {
             frame_requester: FrameRequester::test_dummy(),
             has_input_focus: true,
             enhanced_keys_supported: false,
-            placeholder_text: "Ask Codex to do anything".to_string(),
+            placeholder_text: "Ask Codexist to do anything".to_string(),
             disable_paste_burst: false,
         });
         pane.push_approval_request(exec_request());
@@ -564,7 +564,7 @@ mod tests {
             frame_requester: FrameRequester::test_dummy(),
             has_input_focus: true,
             enhanced_keys_supported: false,
-            placeholder_text: "Ask Codex to do anything".to_string(),
+            placeholder_text: "Ask Codexist to do anything".to_string(),
             disable_paste_burst: false,
         });
 
@@ -595,7 +595,7 @@ mod tests {
             frame_requester: FrameRequester::test_dummy(),
             has_input_focus: true,
             enhanced_keys_supported: false,
-            placeholder_text: "Ask Codex to do anything".to_string(),
+            placeholder_text: "Ask Codexist to do anything".to_string(),
             disable_paste_burst: false,
         });
 
@@ -640,7 +640,7 @@ mod tests {
             for x in 0..area.width {
                 row.push(buf[(x, y)].symbol().chars().next().unwrap_or(' '));
             }
-            if row.contains("Ask Codex") {
+            if row.contains("Ask Codexist") {
                 found_composer = true;
                 break;
             }
@@ -660,7 +660,7 @@ mod tests {
             frame_requester: FrameRequester::test_dummy(),
             has_input_focus: true,
             enhanced_keys_supported: false,
-            placeholder_text: "Ask Codex to do anything".to_string(),
+            placeholder_text: "Ask Codexist to do anything".to_string(),
             disable_paste_burst: false,
         });
 
@@ -685,7 +685,7 @@ mod tests {
             frame_requester: FrameRequester::test_dummy(),
             has_input_focus: true,
             enhanced_keys_supported: false,
-            placeholder_text: "Ask Codex to do anything".to_string(),
+            placeholder_text: "Ask Codexist to do anything".to_string(),
             disable_paste_burst: false,
         });
 
@@ -714,7 +714,7 @@ mod tests {
             frame_requester: FrameRequester::test_dummy(),
             has_input_focus: true,
             enhanced_keys_supported: false,
-            placeholder_text: "Ask Codex to do anything".to_string(),
+            placeholder_text: "Ask Codexist to do anything".to_string(),
             disable_paste_burst: false,
         });
 
@@ -740,7 +740,7 @@ mod tests {
             frame_requester: FrameRequester::test_dummy(),
             has_input_focus: true,
             enhanced_keys_supported: false,
-            placeholder_text: "Ask Codex to do anything".to_string(),
+            placeholder_text: "Ask Codexist to do anything".to_string(),
             disable_paste_burst: false,
         });
 

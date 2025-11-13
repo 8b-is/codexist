@@ -1,14 +1,14 @@
 use anyhow::Result;
 use app_test_support::McpProcess;
 use app_test_support::to_response;
-use codex_app_server_protocol::JSONRPCResponse;
-use codex_app_server_protocol::RequestId;
-use codex_app_server_protocol::ThreadArchiveParams;
-use codex_app_server_protocol::ThreadArchiveResponse;
-use codex_app_server_protocol::ThreadStartParams;
-use codex_app_server_protocol::ThreadStartResponse;
-use codex_core::ARCHIVED_SESSIONS_SUBDIR;
-use codex_core::find_conversation_path_by_id_str;
+use codexist_app_server_protocol::JSONRPCResponse;
+use codexist_app_server_protocol::RequestId;
+use codexist_app_server_protocol::ThreadArchiveParams;
+use codexist_app_server_protocol::ThreadArchiveResponse;
+use codexist_app_server_protocol::ThreadStartParams;
+use codexist_app_server_protocol::ThreadStartResponse;
+use codexist_core::ARCHIVED_SESSIONS_SUBDIR;
+use codexist_core::find_conversation_path_by_id_str;
 use std::path::Path;
 use tempfile::TempDir;
 use tokio::time::timeout;
@@ -17,10 +17,10 @@ const DEFAULT_READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs
 
 #[tokio::test]
 async fn thread_archive_moves_rollout_into_archived_directory() -> Result<()> {
-    let codex_home = TempDir::new()?;
-    create_config_toml(codex_home.path())?;
+    let codexist_home = TempDir::new()?;
+    create_config_toml(codexist_home.path())?;
 
-    let mut mcp = McpProcess::new(codex_home.path()).await?;
+    let mut mcp = McpProcess::new(codexist_home.path()).await?;
     timeout(DEFAULT_READ_TIMEOUT, mcp.initialize()).await??;
 
     // Start a thread.
@@ -39,7 +39,7 @@ async fn thread_archive_moves_rollout_into_archived_directory() -> Result<()> {
     assert!(!thread.id.is_empty());
 
     // Locate the rollout path recorded for this thread id.
-    let rollout_path = find_conversation_path_by_id_str(codex_home.path(), &thread.id)
+    let rollout_path = find_conversation_path_by_id_str(codexist_home.path(), &thread.id)
         .await?
         .expect("expected rollout path for thread id to exist");
     assert!(
@@ -62,7 +62,7 @@ async fn thread_archive_moves_rollout_into_archived_directory() -> Result<()> {
     let _: ThreadArchiveResponse = to_response::<ThreadArchiveResponse>(archive_resp)?;
 
     // Verify file moved.
-    let archived_directory = codex_home.path().join(ARCHIVED_SESSIONS_SUBDIR);
+    let archived_directory = codexist_home.path().join(ARCHIVED_SESSIONS_SUBDIR);
     // The archived file keeps the original filename (rollout-...-<id>.jsonl).
     let archived_rollout_path =
         archived_directory.join(rollout_path.file_name().expect("rollout file name"));
@@ -80,8 +80,8 @@ async fn thread_archive_moves_rollout_into_archived_directory() -> Result<()> {
     Ok(())
 }
 
-fn create_config_toml(codex_home: &Path) -> std::io::Result<()> {
-    let config_toml = codex_home.join("config.toml");
+fn create_config_toml(codexist_home: &Path) -> std::io::Result<()> {
+    let config_toml = codexist_home.join("config.toml");
     std::fs::write(config_toml, config_contents())
 }
 

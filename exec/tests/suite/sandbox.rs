@@ -1,6 +1,6 @@
 #![cfg(unix)]
-use codex_core::protocol::SandboxPolicy;
-use codex_core::spawn::StdioPolicy;
+use codexist_core::protocol::SandboxPolicy;
+use codexist_core::spawn::StdioPolicy;
 use std::collections::HashMap;
 use std::future::Future;
 use std::io;
@@ -19,7 +19,7 @@ async fn spawn_command_under_sandbox(
     stdio_policy: StdioPolicy,
     env: HashMap<String, String>,
 ) -> std::io::Result<Child> {
-    use codex_core::seatbelt::spawn_command_under_seatbelt;
+    use codexist_core::seatbelt::spawn_command_under_seatbelt;
     spawn_command_under_seatbelt(
         command,
         command_cwd,
@@ -40,10 +40,10 @@ async fn spawn_command_under_sandbox(
     stdio_policy: StdioPolicy,
     env: HashMap<String, String>,
 ) -> std::io::Result<Child> {
-    use codex_core::landlock::spawn_command_under_linux_sandbox;
-    let codex_linux_sandbox_exe = assert_cmd::cargo::cargo_bin("codex-exec");
+    use codexist_core::landlock::spawn_command_under_linux_sandbox;
+    let codexist_linux_sandbox_exe = assert_cmd::cargo::cargo_bin("codexist-exec");
     spawn_command_under_linux_sandbox(
-        codex_linux_sandbox_exe,
+        codexist_linux_sandbox_exe,
         command,
         command_cwd,
         sandbox_policy,

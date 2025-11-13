@@ -209,11 +209,11 @@ mod tests {
     /// value is cleared to mimic a scenario where no system instructions have
     /// been configured.
     fn make_config(root: &TempDir, limit: usize, instructions: Option<&str>) -> Config {
-        let codex_home = TempDir::new().unwrap();
+        let codexist_home = TempDir::new().unwrap();
         let mut config = Config::load_from_base_config_with_overrides(
             ConfigToml::default(),
             ConfigOverrides::default(),
-            codex_home.path().to_path_buf(),
+            codexist_home.path().to_path_buf(),
         )
         .expect("defaults for test should always succeed");
 

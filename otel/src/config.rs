@@ -6,7 +6,7 @@ pub struct OtelSettings {
     pub environment: String,
     pub service_name: String,
     pub service_version: String,
-    pub codex_home: PathBuf,
+    pub codexist_home: PathBuf,
     pub exporter: OtelExporter,
 }
 

@@ -5,7 +5,7 @@ Central place for approvals + sandbox selection + retry semantics. Drives a
 simple sequence for any ToolRuntime: approval → select sandbox → attempt →
 retry without sandbox on denial (no re‑approval thanks to caching).
 */
-use crate::error::CodexErr;
+use crate::error::CodexistErr;
 use crate::error::SandboxErr;
 use crate::error::get_error_message_ui;
 use crate::exec::ExecToolCallOutput;
@@ -16,8 +16,8 @@ use crate::tools::sandboxing::SandboxAttempt;
 use crate::tools::sandboxing::ToolCtx;
 use crate::tools::sandboxing::ToolError;
 use crate::tools::sandboxing::ToolRuntime;
-use codex_protocol::protocol::AskForApproval;
-use codex_protocol::protocol::ReviewDecision;
+use codexist_protocol::protocol::AskForApproval;
+use codexist_protocol::protocol::ReviewDecision;
 
 pub(crate) struct ToolOrchestrator {
     sandbox: SandboxManager,
@@ -35,7 +35,7 @@ impl ToolOrchestrator {
         tool: &mut T,
         req: &Rq,
         tool_ctx: &ToolCtx<'_>,
-        turn_ctx: &crate::codex::TurnContext,
+        turn_ctx: &crate::codexist::TurnContext,
         approval_policy: AskForApproval,
     ) -> Result<Out, ToolError>
     where
@@ -45,8 +45,8 @@ impl ToolOrchestrator {
         let otel = turn_ctx.client.get_otel_event_manager();
         let otel_tn = &tool_ctx.tool_name;
         let otel_ci = &tool_ctx.call_id;
-        let otel_user = codex_otel::otel_event_manager::ToolDecisionSource::User;
-        let otel_cfg = codex_otel::otel_event_manager::ToolDecisionSource::Config;
+        let otel_user = codexist_otel::otel_event_manager::ToolDecisionSource::User;
+        let otel_cfg = codexist_otel::otel_event_manager::ToolDecisionSource::Config;
 
         // 1) Approval
         let needs_initial_approval =
@@ -99,7 +99,7 @@ impl ToolOrchestrator {
             policy: &turn_ctx.sandbox_policy,
             manager: &self.sandbox,
             sandbox_cwd: &turn_ctx.cwd,
-            codex_linux_sandbox_exe: turn_ctx.codex_linux_sandbox_exe.as_ref(),
+            codexist_linux_sandbox_exe: turn_ctx.codexist_linux_sandbox_exe.as_ref(),
         };
 
         match tool.run(req, &initial_attempt, tool_ctx).await {
@@ -107,16 +107,16 @@ impl ToolOrchestrator {
                 // We have a successful initial result
                 Ok(out)
             }
-            Err(ToolError::Codex(CodexErr::Sandbox(SandboxErr::Denied { output }))) => {
+            Err(ToolError::Codexist(CodexistErr::Sandbox(SandboxErr::Denied { output }))) => {
                 if !tool.escalate_on_failure() {
-                    return Err(ToolError::Codex(CodexErr::Sandbox(SandboxErr::Denied {
+                    return Err(ToolError::Codexist(CodexistErr::Sandbox(SandboxErr::Denied {
                         output,
                     })));
                 }
                 // Under `Never` or `OnRequest`, do not retry without sandbox; surface a concise
                 // sandbox denial that preserves the original output.
                 if !tool.wants_no_sandbox_approval(approval_policy) {
-                    return Err(ToolError::Codex(CodexErr::Sandbox(SandboxErr::Denied {
+                    return Err(ToolError::Codexist(CodexistErr::Sandbox(SandboxErr::Denied {
                         output,
                     })));
                 }
@@ -129,7 +129,7 @@ impl ToolOrchestrator {
                         let err = SandboxErr::Denied {
                             output: output.clone(),
                         };
-                        let friendly = get_error_message_ui(&CodexErr::Sandbox(err));
+                        let friendly = get_error_message_ui(&CodexistErr::Sandbox(err));
                         let failure_summary = format!("failed in sandbox: {friendly}");
 
                         risk = tool_ctx
@@ -168,7 +168,7 @@ impl ToolOrchestrator {
                     policy: &turn_ctx.sandbox_policy,
                     manager: &self.sandbox,
                     sandbox_cwd: &turn_ctx.cwd,
-                    codex_linux_sandbox_exe: None,
+                    codexist_linux_sandbox_exe: None,
                 };
 
                 // Second attempt.

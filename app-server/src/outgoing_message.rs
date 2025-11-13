@@ -2,12 +2,12 @@ use std::collections::HashMap;
 use std::sync::atomic::AtomicI64;
 use std::sync::atomic::Ordering;
 
-use codex_app_server_protocol::JSONRPCErrorError;
-use codex_app_server_protocol::RequestId;
-use codex_app_server_protocol::Result;
-use codex_app_server_protocol::ServerNotification;
-use codex_app_server_protocol::ServerRequest;
-use codex_app_server_protocol::ServerRequestPayload;
+use codexist_app_server_protocol::JSONRPCErrorError;
+use codexist_app_server_protocol::RequestId;
+use codexist_app_server_protocol::Result;
+use codexist_app_server_protocol::ServerNotification;
+use codexist_app_server_protocol::ServerRequest;
+use codexist_app_server_protocol::ServerRequestPayload;
 use serde::Serialize;
 use tokio::sync::Mutex;
 use tokio::sync::mpsc;
@@ -141,13 +141,13 @@ pub(crate) struct OutgoingError {
 
 #[cfg(test)]
 mod tests {
-    use codex_app_server_protocol::AccountLoginCompletedNotification;
-    use codex_app_server_protocol::AccountRateLimitsUpdatedNotification;
-    use codex_app_server_protocol::AccountUpdatedNotification;
-    use codex_app_server_protocol::AuthMode;
-    use codex_app_server_protocol::LoginChatGptCompleteNotification;
-    use codex_app_server_protocol::RateLimitSnapshot;
-    use codex_app_server_protocol::RateLimitWindow;
+    use codexist_app_server_protocol::AccountLoginCompletedNotification;
+    use codexist_app_server_protocol::AccountRateLimitsUpdatedNotification;
+    use codexist_app_server_protocol::AccountUpdatedNotification;
+    use codexist_app_server_protocol::AuthMode;
+    use codexist_app_server_protocol::LoginChatGptCompleteNotification;
+    use codexist_app_server_protocol::RateLimitSnapshot;
+    use codexist_app_server_protocol::RateLimitWindow;
     use pretty_assertions::assert_eq;
     use serde_json::json;
     use uuid::Uuid;

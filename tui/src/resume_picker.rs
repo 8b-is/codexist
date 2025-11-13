@@ -5,12 +5,12 @@ use std::sync::Arc;
 
 use chrono::DateTime;
 use chrono::Utc;
-use codex_core::ConversationItem;
-use codex_core::ConversationsPage;
-use codex_core::Cursor;
-use codex_core::INTERACTIVE_SESSION_SOURCES;
-use codex_core::RolloutRecorder;
-use codex_protocol::items::TurnItem;
+use codexist_core::ConversationItem;
+use codexist_core::ConversationsPage;
+use codexist_core::Cursor;
+use codexist_core::INTERACTIVE_SESSION_SOURCES;
+use codexist_core::RolloutRecorder;
+use codexist_protocol::items::TurnItem;
 use color_eyre::eyre::Result;
 use crossterm::event::KeyCode;
 use crossterm::event::KeyEvent;
@@ -31,7 +31,7 @@ use crate::text_formatting::truncate_text;
 use crate::tui::FrameRequester;
 use crate::tui::Tui;
 use crate::tui::TuiEvent;
-use codex_protocol::models::ResponseItem;
+use codexist_protocol::models::ResponseItem;
 
 const PAGE_SIZE: usize = 25;
 const LOAD_NEAR_THRESHOLD: usize = 5;
@@ -45,7 +45,7 @@ pub enum ResumeSelection {
 
 #[derive(Clone)]
 struct PageLoadRequest {
-    codex_home: PathBuf,
+    codexist_home: PathBuf,
     cursor: Option<Cursor>,
     request_token: usize,
     search_token: Option<usize>,
@@ -67,7 +67,7 @@ enum BackgroundEvent {
 /// time (e.g., "5 seconds ago"), and the absolute path.
 pub async fn run_resume_picker(
     tui: &mut Tui,
-    codex_home: &Path,
+    codexist_home: &Path,
     default_provider: &str,
 ) -> Result<ResumeSelection> {
     let alt = AltScreenGuard::enter(tui);
@@ -81,7 +81,7 @@ pub async fn run_resume_picker(
         tokio::spawn(async move {
             let provider_filter = vec![request.default_provider.clone()];
             let page = RolloutRecorder::list_conversations(
-                &request.codex_home,
+                &request.codexist_home,
                 PAGE_SIZE,
                 request.cursor.as_ref(),
                 INTERACTIVE_SESSION_SOURCES,
@@ -98,7 +98,7 @@ pub async fn run_resume_picker(
     });
 
     let mut state = PickerState::new(
-        codex_home.to_path_buf(),
+        codexist_home.to_path_buf(),
         alt.tui.frame_requester(),
         page_loader,
         default_provider.clone(),
@@ -162,7 +162,7 @@ impl Drop for AltScreenGuard<'_> {
 }
 
 struct PickerState {
-    codex_home: PathBuf,
+    codexist_home: PathBuf,
     requester: FrameRequester,
     pagination: PaginationState,
     all_rows: Vec<Row>,
@@ -238,13 +238,13 @@ struct Row {
 
 impl PickerState {
     fn new(
-        codex_home: PathBuf,
+        codexist_home: PathBuf,
         requester: FrameRequester,
         page_loader: PageLoader,
         default_provider: String,
     ) -> Self {
         Self {
-            codex_home,
+            codexist_home,
             requester,
             pagination: PaginationState {
                 next_cursor: None,
@@ -344,7 +344,7 @@ impl PickerState {
     async fn load_initial_page(&mut self) -> Result<()> {
         let provider_filter = vec![self.default_provider.clone()];
         let page = RolloutRecorder::list_conversations(
-            &self.codex_home,
+            &self.codexist_home,
             PAGE_SIZE,
             None,
             INTERACTIVE_SESSION_SOURCES,
@@ -569,7 +569,7 @@ impl PickerState {
         self.request_frame();
 
         (self.page_loader)(PageLoadRequest {
-            codex_home: self.codex_home.clone(),
+            codexist_home: self.codexist_home.clone(),
             cursor: Some(cursor),
             request_token,
             search_token,
@@ -636,7 +636,7 @@ fn extract_timestamp(value: &serde_json::Value) -> Option<DateTime<Utc>> {
 fn preview_from_head(head: &[serde_json::Value]) -> Option<String> {
     head.iter()
         .filter_map(|value| serde_json::from_value::<ResponseItem>(value.clone()).ok())
-        .find_map(|item| match codex_core::parse_turn_item(&item) {
+        .find_map(|item| match codexist_core::parse_turn_item(&item) {
             Some(TurnItem::UserMessage(user)) => Some(user.message()),
             _ => None,
         })

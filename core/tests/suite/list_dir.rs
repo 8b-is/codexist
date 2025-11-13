@@ -1,11 +1,11 @@
 #![cfg(not(target_os = "windows"))]
 
-use codex_core::protocol::AskForApproval;
-use codex_core::protocol::EventMsg;
-use codex_core::protocol::Op;
-use codex_core::protocol::SandboxPolicy;
-use codex_protocol::config_types::ReasoningSummary;
-use codex_protocol::user_input::UserInput;
+use codexist_core::protocol::AskForApproval;
+use codexist_core::protocol::EventMsg;
+use codexist_core::protocol::Op;
+use codexist_core::protocol::SandboxPolicy;
+use codexist_protocol::config_types::ReasoningSummary;
+use codexist_protocol::user_input::UserInput;
 use core_test_support::responses;
 use core_test_support::responses::ev_assistant_message;
 use core_test_support::responses::ev_completed;
@@ -14,8 +14,8 @@ use core_test_support::responses::ev_response_created;
 use core_test_support::responses::sse;
 use core_test_support::responses::start_mock_server;
 use core_test_support::skip_if_no_network;
-use core_test_support::test_codex::TestCodex;
-use core_test_support::test_codex::test_codex;
+use core_test_support::test_codexist::TestCodexist;
+use core_test_support::test_codexist::test_codexist;
 use core_test_support::wait_for_event;
 use pretty_assertions::assert_eq;
 use serde_json::Value;
@@ -28,12 +28,12 @@ async fn list_dir_tool_returns_entries() -> anyhow::Result<()> {
 
     let server = start_mock_server().await;
 
-    let TestCodex {
-        codex,
+    let TestCodexist {
+        codexist,
         cwd,
         session_configured,
         ..
-    } = test_codex().build(&server).await?;
+    } = test_codexist().build(&server).await?;
 
     let dir_path = cwd.path().join("sample_dir");
     std::fs::create_dir(&dir_path)?;
@@ -64,7 +64,7 @@ async fn list_dir_tool_returns_entries() -> anyhow::Result<()> {
 
     let session_model = session_configured.model.clone();
 
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "list directory contents".into(),
@@ -79,7 +79,7 @@ async fn list_dir_tool_returns_entries() -> anyhow::Result<()> {
         })
         .await?;
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     let requests = server.received_requests().await.expect("recorded requests");
     let request_bodies = requests
@@ -131,12 +131,12 @@ async fn list_dir_tool_depth_one_omits_children() -> anyhow::Result<()> {
 
     let server = start_mock_server().await;
 
-    let TestCodex {
-        codex,
+    let TestCodexist {
+        codexist,
         cwd,
         session_configured,
         ..
-    } = test_codex().build(&server).await?;
+    } = test_codexist().build(&server).await?;
 
     let dir_path = cwd.path().join("depth_one");
     std::fs::create_dir(&dir_path)?;
@@ -169,7 +169,7 @@ async fn list_dir_tool_depth_one_omits_children() -> anyhow::Result<()> {
 
     let session_model = session_configured.model.clone();
 
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "list directory contents depth one".into(),
@@ -184,7 +184,7 @@ async fn list_dir_tool_depth_one_omits_children() -> anyhow::Result<()> {
         })
         .await?;
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     let requests = server.received_requests().await.expect("recorded requests");
     let request_bodies = requests
@@ -236,12 +236,12 @@ async fn list_dir_tool_depth_two_includes_children_only() -> anyhow::Result<()> 
 
     let server = start_mock_server().await;
 
-    let TestCodex {
-        codex,
+    let TestCodexist {
+        codexist,
         cwd,
         session_configured,
         ..
-    } = test_codex().build(&server).await?;
+    } = test_codexist().build(&server).await?;
 
     let dir_path = cwd.path().join("depth_two");
     std::fs::create_dir(&dir_path)?;
@@ -281,7 +281,7 @@ async fn list_dir_tool_depth_two_includes_children_only() -> anyhow::Result<()> 
 
     let session_model = session_configured.model.clone();
 
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "list directory contents depth two".into(),
@@ -296,7 +296,7 @@ async fn list_dir_tool_depth_two_includes_children_only() -> anyhow::Result<()> 
         })
         .await?;
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     let requests = server.received_requests().await.expect("recorded requests");
     let request_bodies = requests
@@ -351,12 +351,12 @@ async fn list_dir_tool_depth_three_includes_grandchildren() -> anyhow::Result<()
 
     let server = start_mock_server().await;
 
-    let TestCodex {
-        codex,
+    let TestCodexist {
+        codexist,
         cwd,
         session_configured,
         ..
-    } = test_codex().build(&server).await?;
+    } = test_codexist().build(&server).await?;
 
     let dir_path = cwd.path().join("depth_three");
     std::fs::create_dir(&dir_path)?;
@@ -396,7 +396,7 @@ async fn list_dir_tool_depth_three_includes_grandchildren() -> anyhow::Result<()
 
     let session_model = session_configured.model.clone();
 
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "list directory contents depth three".into(),
@@ -411,7 +411,7 @@ async fn list_dir_tool_depth_three_includes_grandchildren() -> anyhow::Result<()
         })
         .await?;
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     let requests = server.received_requests().await.expect("recorded requests");
     let request_bodies = requests

@@ -1,13 +1,13 @@
 #![cfg(not(target_os = "windows"))]
 
 use anyhow::Ok;
-use codex_core::features::Feature;
-use codex_core::protocol::DeprecationNoticeEvent;
-use codex_core::protocol::EventMsg;
+use codexist_core::features::Feature;
+use codexist_core::protocol::DeprecationNoticeEvent;
+use codexist_core::protocol::EventMsg;
 use core_test_support::responses::start_mock_server;
 use core_test_support::skip_if_no_network;
-use core_test_support::test_codex::TestCodex;
-use core_test_support::test_codex::test_codex;
+use core_test_support::test_codexist::TestCodexist;
+use core_test_support::test_codexist::test_codexist;
 use core_test_support::wait_for_event_match;
 use pretty_assertions::assert_eq;
 
@@ -17,7 +17,7 @@ async fn emits_deprecation_notice_for_legacy_feature_flag() -> anyhow::Result<()
 
     let server = start_mock_server().await;
 
-    let mut builder = test_codex().with_config(|config| {
+    let mut builder = test_codexist().with_config(|config| {
         config.features.enable(Feature::UnifiedExec);
         config
             .features
@@ -25,9 +25,9 @@ async fn emits_deprecation_notice_for_legacy_feature_flag() -> anyhow::Result<()
         config.use_experimental_unified_exec_tool = true;
     });
 
-    let TestCodex { codex, .. } = builder.build(&server).await?;
+    let TestCodexist { codexist, .. } = builder.build(&server).await?;
 
-    let notice = wait_for_event_match(&codex, |event| match event {
+    let notice = wait_for_event_match(&codexist, |event| match event {
         EventMsg::DeprecationNotice(ev) => Some(ev.clone()),
         _ => None,
     })
@@ -42,7 +42,7 @@ async fn emits_deprecation_notice_for_legacy_feature_flag() -> anyhow::Result<()
     assert_eq!(
         details.as_deref(),
         Some(
-            "Enable it with `--enable unified_exec` or `[features].unified_exec` in config.toml. See https://github.com/openai/codex/blob/main/docs/config.md#feature-flags for details."
+            "Enable it with `--enable unified_exec` or `[features].unified_exec` in config.toml. See https://github.com/openai/codexist/blob/main/docs/config.md#feature-flags for details."
         ),
     );
 

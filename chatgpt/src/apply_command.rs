@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
 use clap::Parser;
-use codex_common::CliConfigOverrides;
-use codex_core::config::Config;
-use codex_core::config::ConfigOverrides;
+use codexist_common::CliConfigOverrides;
+use codexist_core::config::Config;
+use codexist_core::config::ConfigOverrides;
 
 use crate::chatgpt_token::init_chatgpt_token_from_auth;
 use crate::get_task::GetTaskResponse;
@@ -11,7 +11,7 @@ use crate::get_task::OutputItem;
 use crate::get_task::PrOutputItem;
 use crate::get_task::get_task;
 
-/// Applies the latest diff from a Codex agent task.
+/// Applies the latest diff from a Codexist agent task.
 #[derive(Debug, Parser)]
 pub struct ApplyCommand {
     pub task_id: String,
@@ -32,7 +32,7 @@ pub async fn run_apply_command(
     )
     .await?;
 
-    init_chatgpt_token_from_auth(&config.codex_home, config.cli_auth_credentials_store_mode)
+    init_chatgpt_token_from_auth(&config.codexist_home, config.cli_auth_credentials_store_mode)
         .await?;
 
     let task_response = get_task(&config, apply_cli.task_id).await?;
@@ -59,13 +59,13 @@ pub async fn apply_diff_from_task(
 
 async fn apply_diff(diff: &str, cwd: Option<PathBuf>) -> anyhow::Result<()> {
     let cwd = cwd.unwrap_or(std::env::current_dir().unwrap_or_else(|_| std::env::temp_dir()));
-    let req = codex_git::ApplyGitRequest {
+    let req = codexist_git::ApplyGitRequest {
         cwd,
         diff: diff.to_string(),
         revert: false,
         preflight: false,
     };
-    let res = codex_git::apply_git_patch(&req)?;
+    let res = codexist_git::apply_git_patch(&req)?;
     if res.exit_code != 0 {
         anyhow::bail!(
             "Git apply failed (applied={}, skipped={}, conflicts={})\nstdout:\n{}\nstderr:\n{}",

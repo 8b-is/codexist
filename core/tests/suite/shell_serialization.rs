@@ -1,14 +1,14 @@
 #![cfg(not(target_os = "windows"))]
 
 use anyhow::Result;
-use codex_core::features::Feature;
-use codex_core::model_family::find_family_for_model;
-use codex_core::protocol::AskForApproval;
-use codex_core::protocol::EventMsg;
-use codex_core::protocol::Op;
-use codex_core::protocol::SandboxPolicy;
-use codex_protocol::config_types::ReasoningSummary;
-use codex_protocol::user_input::UserInput;
+use codexist_core::features::Feature;
+use codexist_core::model_family::find_family_for_model;
+use codexist_core::protocol::AskForApproval;
+use codexist_core::protocol::EventMsg;
+use codexist_core::protocol::Op;
+use codexist_core::protocol::SandboxPolicy;
+use codexist_protocol::config_types::ReasoningSummary;
+use codexist_protocol::user_input::UserInput;
 use core_test_support::assert_regex_match;
 use core_test_support::responses::ev_apply_patch_function_call;
 use core_test_support::responses::ev_assistant_message;
@@ -21,8 +21,8 @@ use core_test_support::responses::mount_sse_sequence;
 use core_test_support::responses::sse;
 use core_test_support::responses::start_mock_server;
 use core_test_support::skip_if_no_network;
-use core_test_support::test_codex::TestCodex;
-use core_test_support::test_codex::test_codex;
+use core_test_support::test_codexist::TestCodexist;
+use core_test_support::test_codexist::test_codexist;
 use core_test_support::wait_for_event;
 use pretty_assertions::assert_eq;
 use regex_lite::Regex;
@@ -42,10 +42,10 @@ const FIXTURE_JSON: &str = r#"{
 }
 "#;
 
-async fn submit_turn(test: &TestCodex, prompt: &str, sandbox_policy: SandboxPolicy) -> Result<()> {
+async fn submit_turn(test: &TestCodexist, prompt: &str, sandbox_policy: SandboxPolicy) -> Result<()> {
     let session_model = test.session_configured.model.clone();
 
-    test.codex
+    test.codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: prompt.into(),
@@ -60,7 +60,7 @@ async fn submit_turn(test: &TestCodex, prompt: &str, sandbox_policy: SandboxPoli
         })
         .await?;
 
-    wait_for_event(&test.codex, |event| {
+    wait_for_event(&test.codexist, |event| {
         matches!(event, EventMsg::TaskComplete(_))
     })
     .await;
@@ -110,7 +110,7 @@ async fn shell_output_stays_json_without_freeform_apply_patch() -> Result<()> {
     skip_if_no_network!(Ok(()));
 
     let server = start_mock_server().await;
-    let mut builder = test_codex().with_config(|config| {
+    let mut builder = test_codexist().with_config(|config| {
         config.features.disable(Feature::ApplyPatchFreeform);
         config.model = "gpt-5".to_string();
         config.model_family = find_family_for_model("gpt-5").expect("gpt-5 is a model family");
@@ -181,7 +181,7 @@ async fn shell_output_is_structured_with_freeform_apply_patch() -> Result<()> {
     skip_if_no_network!(Ok(()));
 
     let server = start_mock_server().await;
-    let mut builder = test_codex().with_config(|config| {
+    let mut builder = test_codexist().with_config(|config| {
         config.features.enable(Feature::ApplyPatchFreeform);
     });
     let test = builder.build(&server).await?;
@@ -242,7 +242,7 @@ async fn shell_output_preserves_fixture_json_without_serialization() -> Result<(
     skip_if_no_network!(Ok(()));
 
     let server = start_mock_server().await;
-    let mut builder = test_codex().with_config(|config| {
+    let mut builder = test_codexist().with_config(|config| {
         config.features.disable(Feature::ApplyPatchFreeform);
         config.model = "gpt-5".to_string();
         config.model_family = find_family_for_model("gpt-5").expect("gpt-5 is a model family");
@@ -320,7 +320,7 @@ async fn shell_output_structures_fixture_with_serialization() -> Result<()> {
     skip_if_no_network!(Ok(()));
 
     let server = start_mock_server().await;
-    let mut builder = test_codex().with_config(|config| {
+    let mut builder = test_codexist().with_config(|config| {
         config.features.enable(Feature::ApplyPatchFreeform);
     });
     let test = builder.build(&server).await?;
@@ -390,7 +390,7 @@ async fn shell_output_for_freeform_tool_records_duration() -> Result<()> {
     skip_if_no_network!(Ok(()));
 
     let server = start_mock_server().await;
-    let mut builder = test_codex().with_config(|config| {
+    let mut builder = test_codexist().with_config(|config| {
         config.include_apply_patch_tool = true;
     });
     let test = builder.build(&server).await?;
@@ -467,10 +467,10 @@ async fn shell_output_reserializes_truncated_content() -> Result<()> {
     skip_if_no_network!(Ok(()));
 
     let server = start_mock_server().await;
-    let mut builder = test_codex().with_config(|config| {
-        config.model = "gpt-5-codex".to_string();
+    let mut builder = test_codexist().with_config(|config| {
+        config.model = "gpt-5-codexist".to_string();
         config.model_family =
-            find_family_for_model("gpt-5-codex").expect("gpt-5 is a model family");
+            find_family_for_model("gpt-5-codexist").expect("gpt-5 is a model family");
     });
     let test = builder.build(&server).await?;
 
@@ -545,7 +545,7 @@ async fn apply_patch_custom_tool_output_is_structured() -> Result<()> {
     skip_if_no_network!(Ok(()));
 
     let server = start_mock_server().await;
-    let mut builder = test_codex().with_config(|config| {
+    let mut builder = test_codexist().with_config(|config| {
         config.include_apply_patch_tool = true;
     });
     let test = builder.build(&server).await?;
@@ -609,7 +609,7 @@ async fn apply_patch_custom_tool_call_creates_file() -> Result<()> {
     skip_if_no_network!(Ok(()));
 
     let server = start_mock_server().await;
-    let mut builder = test_codex().with_config(|config| {
+    let mut builder = test_codexist().with_config(|config| {
         config.include_apply_patch_tool = true;
     });
     let test = builder.build(&server).await?;
@@ -676,7 +676,7 @@ async fn apply_patch_custom_tool_call_updates_existing_file() -> Result<()> {
     skip_if_no_network!(Ok(()));
 
     let server = start_mock_server().await;
-    let mut builder = test_codex().with_config(|config| {
+    let mut builder = test_codexist().with_config(|config| {
         config.include_apply_patch_tool = true;
     });
     let test = builder.build(&server).await?;
@@ -741,7 +741,7 @@ async fn apply_patch_custom_tool_call_reports_failure_output() -> Result<()> {
     skip_if_no_network!(Ok(()));
 
     let server = start_mock_server().await;
-    let mut builder = test_codex().with_config(|config| {
+    let mut builder = test_codexist().with_config(|config| {
         config.include_apply_patch_tool = true;
     });
     let test = builder.build(&server).await?;
@@ -797,7 +797,7 @@ async fn apply_patch_function_call_output_is_structured() -> Result<()> {
     skip_if_no_network!(Ok(()));
 
     let server = start_mock_server().await;
-    let mut builder = test_codex().with_config(|config| {
+    let mut builder = test_codexist().with_config(|config| {
         config.include_apply_patch_tool = true;
     });
     let test = builder.build(&server).await?;
@@ -856,10 +856,10 @@ async fn shell_output_is_structured_for_nonzero_exit() -> Result<()> {
     skip_if_no_network!(Ok(()));
 
     let server = start_mock_server().await;
-    let mut builder = test_codex().with_config(|config| {
-        config.model = "gpt-5-codex".to_string();
+    let mut builder = test_codexist().with_config(|config| {
+        config.model = "gpt-5-codexist".to_string();
         config.model_family =
-            find_family_for_model("gpt-5-codex").expect("gpt-5-codex is a model family");
+            find_family_for_model("gpt-5-codexist").expect("gpt-5-codexist is a model family");
         config.include_apply_patch_tool = true;
     });
     let test = builder.build(&server).await?;
@@ -914,10 +914,10 @@ async fn local_shell_call_output_is_structured() -> Result<()> {
     skip_if_no_network!(Ok(()));
 
     let server = start_mock_server().await;
-    let mut builder = test_codex().with_config(|config| {
-        config.model = "gpt-5-codex".to_string();
+    let mut builder = test_codexist().with_config(|config| {
+        config.model = "gpt-5-codexist".to_string();
         config.model_family =
-            find_family_for_model("gpt-5-codex").expect("gpt-5-codex is a model family");
+            find_family_for_model("gpt-5-codexist").expect("gpt-5-codexist is a model family");
         config.include_apply_patch_tool = true;
     });
     let test = builder.build(&server).await?;

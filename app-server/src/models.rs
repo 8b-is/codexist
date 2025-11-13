@@ -1,9 +1,9 @@
-use codex_app_server_protocol::AuthMode;
-use codex_app_server_protocol::Model;
-use codex_app_server_protocol::ReasoningEffortOption;
-use codex_common::model_presets::ModelPreset;
-use codex_common::model_presets::ReasoningEffortPreset;
-use codex_common::model_presets::builtin_model_presets;
+use codexist_app_server_protocol::AuthMode;
+use codexist_app_server_protocol::Model;
+use codexist_app_server_protocol::ReasoningEffortOption;
+use codexist_common::model_presets::ModelPreset;
+use codexist_common::model_presets::ReasoningEffortPreset;
+use codexist_common::model_presets::builtin_model_presets;
 
 pub fn supported_models(auth_mode: Option<AuthMode>) -> Vec<Model> {
     builtin_model_presets(auth_mode)

@@ -12,7 +12,7 @@ use crate::tui::Tui;
 use crate::tui::TuiEvent;
 use crate::update_action::UpdateAction;
 use crate::updates;
-use codex_core::config::Config;
+use codexist_core::config::Config;
 use color_eyre::Result;
 use crossterm::event::KeyCode;
 use crossterm::event::KeyEvent;
@@ -204,7 +204,7 @@ impl WidgetRef for &UpdatePromptScreen {
         column.push(
             Line::from(vec![
                 "Release notes: ".dim(),
-                "https://github.com/openai/codex/releases/latest"
+                "https://github.com/openai/codexist/releases/latest"
                     .dim()
                     .underlined(),
             ])

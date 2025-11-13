@@ -2,11 +2,11 @@ use std::sync::Arc;
 
 use crate::Prompt;
 use crate::client_common::ResponseEvent;
-use crate::codex::Session;
-use crate::codex::TurnContext;
-use crate::codex::get_last_assistant_message_from_turn;
-use crate::error::CodexErr;
-use crate::error::Result as CodexResult;
+use crate::codexist::Session;
+use crate::codexist::TurnContext;
+use crate::codexist::get_last_assistant_message_from_turn;
+use crate::error::CodexistErr;
+use crate::error::Result as CodexistResult;
 use crate::protocol::AgentMessageEvent;
 use crate::protocol::CompactedItem;
 use crate::protocol::ErrorEvent;
@@ -16,12 +16,12 @@ use crate::protocol::TurnContextItem;
 use crate::protocol::WarningEvent;
 use crate::truncate::truncate_middle;
 use crate::util::backoff;
-use codex_protocol::items::TurnItem;
-use codex_protocol::models::ContentItem;
-use codex_protocol::models::ResponseInputItem;
-use codex_protocol::models::ResponseItem;
-use codex_protocol::protocol::RolloutItem;
-use codex_protocol::user_input::UserInput;
+use codexist_protocol::items::TurnItem;
+use codexist_protocol::models::ContentItem;
+use codexist_protocol::models::ResponseInputItem;
+use codexist_protocol::models::ResponseItem;
+use codexist_protocol::protocol::RolloutItem;
+use codexist_protocol::user_input::UserInput;
 use futures::prelude::*;
 use tracing::error;
 
@@ -96,10 +96,10 @@ async fn run_compact_task_inner(
                 }
                 break;
             }
-            Err(CodexErr::Interrupted) => {
+            Err(CodexistErr::Interrupted) => {
                 return;
             }
-            Err(e @ CodexErr::ContextWindowExceeded) => {
+            Err(e @ CodexistErr::ContextWindowExceeded) => {
                 if turn_input.len() > 1 {
                     // Trim from the beginning to preserve cache (prefix-based) and keep recent messages intact.
                     error!(
@@ -265,12 +265,12 @@ async fn drain_to_completed(
     sess: &Session,
     turn_context: &TurnContext,
     prompt: &Prompt,
-) -> CodexResult<()> {
+) -> CodexistResult<()> {
     let mut stream = turn_context.client.clone().stream(prompt).await?;
     loop {
         let maybe_event = stream.next().await;
         let Some(event) = maybe_event else {
-            return Err(CodexErr::Stream(
+            return Err(CodexistErr::Stream(
                 "stream closed before response.completed".into(),
                 None,
             ));

@@ -1,7 +1,7 @@
 use crate::bash::extract_bash_command;
 use crate::bash::try_parse_shell;
 use crate::bash::try_parse_word_only_commands_sequence;
-use codex_protocol::parse_command::ParsedCommand;
+use codexist_protocol::parse_command::ParsedCommand;
 use shlex::split as shlex_split;
 use shlex::try_join as shlex_try_join;
 use std::path::PathBuf;
@@ -13,7 +13,7 @@ fn shlex_join(tokens: &[String]) -> String {
 
 /// DO NOT REVIEW THIS CODE BY HAND
 /// This parsing code is quite complex and not easy to hand-modify.
-/// The easiest way to iterate is to add unit tests and have Codex fix the implementation.
+/// The easiest way to iterate is to add unit tests and have Codexist fix the implementation.
 /// To encourage this, the tests have been put directly below this function rather than at the bottom of the
 ///
 /// Parses metadata out of an arbitrary command.
@@ -36,7 +36,7 @@ pub fn parse_command(command: &[String]) -> Vec<ParsedCommand> {
 
 #[cfg(test)]
 #[allow(clippy::items_after_test_module)]
-/// Tests are at the top to encourage using TDD + Codex to fix the implementation.
+/// Tests are at the top to encourage using TDD + Codexist to fix the implementation.
 mod tests {
     use super::*;
     use std::path::PathBuf;
@@ -320,10 +320,10 @@ mod tests {
     #[test]
     fn supports_grep_recursive_current_dir() {
         assert_parsed(
-            &vec_str(&["grep", "-R", "CODEX_SANDBOX_ENV_VAR", "-n", "."]),
+            &vec_str(&["grep", "-R", "CODEXIST_SANDBOX_ENV_VAR", "-n", "."]),
             vec![ParsedCommand::Search {
-                cmd: "grep -R CODEX_SANDBOX_ENV_VAR -n .".to_string(),
-                query: Some("CODEX_SANDBOX_ENV_VAR".to_string()),
+                cmd: "grep -R CODEXIST_SANDBOX_ENV_VAR -n .".to_string(),
+                query: Some("CODEXIST_SANDBOX_ENV_VAR".to_string()),
                 path: Some(".".to_string()),
             }],
         );
@@ -335,13 +335,13 @@ mod tests {
             &vec_str(&[
                 "grep",
                 "-R",
-                "CODEX_SANDBOX_ENV_VAR",
+                "CODEXIST_SANDBOX_ENV_VAR",
                 "-n",
                 "core/src/spawn.rs",
             ]),
             vec![ParsedCommand::Search {
-                cmd: "grep -R CODEX_SANDBOX_ENV_VAR -n core/src/spawn.rs".to_string(),
-                query: Some("CODEX_SANDBOX_ENV_VAR".to_string()),
+                cmd: "grep -R CODEXIST_SANDBOX_ENV_VAR -n core/src/spawn.rs".to_string(),
+                query: Some("CODEXIST_SANDBOX_ENV_VAR".to_string()),
                 path: Some("spawn.rs".to_string()),
             }],
         );
@@ -376,7 +376,7 @@ mod tests {
     #[test]
     fn supports_cd_and_rg_files() {
         assert_parsed(
-            &shlex_split_safe("cd codex-rs && rg --files"),
+            &shlex_split_safe("cd codexist-rs && rg --files"),
             vec![ParsedCommand::Search {
                 cmd: "rg --files".to_string(),
                 query: None,

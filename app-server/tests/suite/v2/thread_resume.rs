@@ -2,14 +2,14 @@ use anyhow::Result;
 use app_test_support::McpProcess;
 use app_test_support::create_mock_chat_completions_server;
 use app_test_support::to_response;
-use codex_app_server_protocol::JSONRPCResponse;
-use codex_app_server_protocol::RequestId;
-use codex_app_server_protocol::ThreadResumeParams;
-use codex_app_server_protocol::ThreadResumeResponse;
-use codex_app_server_protocol::ThreadStartParams;
-use codex_app_server_protocol::ThreadStartResponse;
-use codex_protocol::models::ContentItem;
-use codex_protocol::models::ResponseItem;
+use codexist_app_server_protocol::JSONRPCResponse;
+use codexist_app_server_protocol::RequestId;
+use codexist_app_server_protocol::ThreadResumeParams;
+use codexist_app_server_protocol::ThreadResumeResponse;
+use codexist_app_server_protocol::ThreadStartParams;
+use codexist_app_server_protocol::ThreadStartResponse;
+use codexist_protocol::models::ContentItem;
+use codexist_protocol::models::ResponseItem;
 use tempfile::TempDir;
 use tokio::time::timeout;
 
@@ -18,16 +18,16 @@ const DEFAULT_READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs
 #[tokio::test]
 async fn thread_resume_returns_original_thread() -> Result<()> {
     let server = create_mock_chat_completions_server(vec![]).await;
-    let codex_home = TempDir::new()?;
-    create_config_toml(codex_home.path(), &server.uri())?;
+    let codexist_home = TempDir::new()?;
+    create_config_toml(codexist_home.path(), &server.uri())?;
 
-    let mut mcp = McpProcess::new(codex_home.path()).await?;
+    let mut mcp = McpProcess::new(codexist_home.path()).await?;
     timeout(DEFAULT_READ_TIMEOUT, mcp.initialize()).await??;
 
     // Start a thread.
     let start_id = mcp
         .send_thread_start_request(ThreadStartParams {
-            model: Some("gpt-5-codex".to_string()),
+            model: Some("gpt-5-codexist".to_string()),
             ..Default::default()
         })
         .await?;
@@ -60,15 +60,15 @@ async fn thread_resume_returns_original_thread() -> Result<()> {
 #[tokio::test]
 async fn thread_resume_prefers_path_over_thread_id() -> Result<()> {
     let server = create_mock_chat_completions_server(vec![]).await;
-    let codex_home = TempDir::new()?;
-    create_config_toml(codex_home.path(), &server.uri())?;
+    let codexist_home = TempDir::new()?;
+    create_config_toml(codexist_home.path(), &server.uri())?;
 
-    let mut mcp = McpProcess::new(codex_home.path()).await?;
+    let mut mcp = McpProcess::new(codexist_home.path()).await?;
     timeout(DEFAULT_READ_TIMEOUT, mcp.initialize()).await??;
 
     let start_id = mcp
         .send_thread_start_request(ThreadStartParams {
-            model: Some("gpt-5-codex".to_string()),
+            model: Some("gpt-5-codexist".to_string()),
             ..Default::default()
         })
         .await?;
@@ -103,16 +103,16 @@ async fn thread_resume_prefers_path_over_thread_id() -> Result<()> {
 #[tokio::test]
 async fn thread_resume_supports_history_and_overrides() -> Result<()> {
     let server = create_mock_chat_completions_server(vec![]).await;
-    let codex_home = TempDir::new()?;
-    create_config_toml(codex_home.path(), &server.uri())?;
+    let codexist_home = TempDir::new()?;
+    create_config_toml(codexist_home.path(), &server.uri())?;
 
-    let mut mcp = McpProcess::new(codex_home.path()).await?;
+    let mut mcp = McpProcess::new(codexist_home.path()).await?;
     timeout(DEFAULT_READ_TIMEOUT, mcp.initialize()).await??;
 
     // Start a thread.
     let start_id = mcp
         .send_thread_start_request(ThreadStartParams {
-            model: Some("gpt-5-codex".to_string()),
+            model: Some("gpt-5-codexist".to_string()),
             ..Default::default()
         })
         .await?;
@@ -157,8 +157,8 @@ async fn thread_resume_supports_history_and_overrides() -> Result<()> {
 }
 
 // Helper to create a config.toml pointing at the mock model server.
-fn create_config_toml(codex_home: &std::path::Path, server_uri: &str) -> std::io::Result<()> {
-    let config_toml = codex_home.join("config.toml");
+fn create_config_toml(codexist_home: &std::path::Path, server_uri: &str) -> std::io::Result<()> {
+    let config_toml = codexist_home.join("config.toml");
     std::fs::write(
         config_toml,
         format!(

@@ -1,6 +1,6 @@
 //! Connection manager for Model Context Protocol (MCP) servers.
 //!
-//! The [`McpConnectionManager`] owns one [`codex_rmcp_client::RmcpClient`] per
+//! The [`McpConnectionManager`] owns one [`codexist_rmcp_client::RmcpClient`] per
 //! configured server (keyed by the *server name*). It offers convenience
 //! helpers to query the available tools across *all* servers and returns them
 //! in a single aggregated map using the fully-qualified tool name
@@ -16,8 +16,8 @@ use std::time::Duration;
 use anyhow::Context;
 use anyhow::Result;
 use anyhow::anyhow;
-use codex_rmcp_client::OAuthCredentialsStoreMode;
-use codex_rmcp_client::RmcpClient;
+use codexist_rmcp_client::OAuthCredentialsStoreMode;
+use codexist_rmcp_client::RmcpClient;
 use mcp_types::ClientCapabilities;
 use mcp_types::Implementation;
 use mcp_types::ListResourceTemplatesRequestParams;
@@ -180,11 +180,11 @@ impl McpConnectionManager {
                         elicitation: Some(json!({})),
                     },
                     client_info: Implementation {
-                        name: "codex-mcp-client".to_owned(),
+                        name: "codexist-mcp-client".to_owned(),
                         version: env!("CARGO_PKG_VERSION").to_owned(),
-                        title: Some("Codex".into()),
-                        // This field is used by Codex when it is an MCP
-                        // server: it should not be used when Codex is
+                        title: Some("Codexist".into()),
+                        // This field is used by Codexist when it is an MCP
+                        // server: it should not be used when Codexist is
                         // an MCP client.
                         user_agent: None,
                     },

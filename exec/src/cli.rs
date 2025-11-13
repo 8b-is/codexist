@@ -1,6 +1,6 @@
 use clap::Parser;
 use clap::ValueEnum;
-use codex_common::CliConfigOverrides;
+use codexist_common::CliConfigOverrides;
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
@@ -24,7 +24,7 @@ pub struct Cli {
     /// Select the sandbox policy to use when executing model-generated shell
     /// commands.
     #[arg(long = "sandbox", short = 's', value_enum)]
-    pub sandbox_mode: Option<codex_common::SandboxModeCliArg>,
+    pub sandbox_mode: Option<codexist_common::SandboxModeCliArg>,
 
     /// Configuration profile from config.toml to specify default options.
     #[arg(long = "profile", short = 'p')]
@@ -48,7 +48,7 @@ pub struct Cli {
     #[clap(long = "cd", short = 'C', value_name = "DIR")]
     pub cwd: Option<PathBuf>,
 
-    /// Allow running Codex outside a Git repository.
+    /// Allow running Codexist outside a Git repository.
     #[arg(long = "skip-git-repo-check", default_value_t = false)]
     pub skip_git_repo_check: bool,
 

@@ -131,7 +131,7 @@ impl ToolHandler for UnifiedExecHandler {
                 if with_escalated_permissions.unwrap_or(false)
                     && !matches!(
                         context.turn.approval_policy,
-                        codex_protocol::protocol::AskForApproval::OnRequest
+                        codexist_protocol::protocol::AskForApproval::OnRequest
                     )
                 {
                     return Err(FunctionCallError::RespondToModel(format!(

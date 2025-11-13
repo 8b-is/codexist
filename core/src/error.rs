@@ -1,4 +1,4 @@
-use crate::codex::ProcessedResponseItem;
+use crate::codexist::ProcessedResponseItem;
 use crate::exec::ExecToolCallOutput;
 use crate::token_data::KnownPlan;
 use crate::token_data::PlanType;
@@ -7,9 +7,9 @@ use chrono::DateTime;
 use chrono::Datelike;
 use chrono::Local;
 use chrono::Utc;
-use codex_async_utils::CancelErr;
-use codex_protocol::ConversationId;
-use codex_protocol::protocol::RateLimitSnapshot;
+use codexist_async_utils::CancelErr;
+use codexist_protocol::ConversationId;
+use codexist_protocol::protocol::RateLimitSnapshot;
 use reqwest::StatusCode;
 use serde_json;
 use std::io;
@@ -17,7 +17,7 @@ use std::time::Duration;
 use thiserror::Error;
 use tokio::task::JoinError;
 
-pub type Result<T> = std::result::Result<T, CodexErr>;
+pub type Result<T> = std::result::Result<T, CodexistErr>;
 
 /// Limit UI error messages to a reasonable size while keeping useful context.
 const ERROR_MESSAGE_UI_MAX_BYTES: usize = 2 * 1024; // 4 KiB
@@ -55,7 +55,7 @@ pub enum SandboxErr {
 }
 
 #[derive(Error, Debug)]
-pub enum CodexErr {
+pub enum CodexistErr {
     // todo(aibrahim): git rid of this error carrying the dangling artifacts
     #[error("turn aborted. Something went wrong? Hit `/feedback` to report the issue.")]
     TurnAborted {
@@ -72,7 +72,7 @@ pub enum CodexErr {
     Stream(String, Option<Duration>),
 
     #[error(
-        "Codex ran out of room in the model's context window. Start a new conversation or clear earlier history before retrying."
+        "Codexist ran out of room in the model's context window. Start a new conversation or clear earlier history before retrying."
     )]
     ContextWindowExceeded,
 
@@ -87,7 +87,7 @@ pub enum CodexErr {
     Timeout,
 
     /// Returned by run_command_stream when the child could not be spawned (its stdout/stderr pipes
-    /// could not be captured). Analogous to the previous `CodexError::Spawn` variant.
+    /// could not be captured). Analogous to the previous `CodexistError::Spawn` variant.
     #[error("spawn failed: child stdout/stderr not captured")]
     Spawn,
 
@@ -113,7 +113,7 @@ pub enum CodexErr {
     QuotaExceeded,
 
     #[error(
-        "To use Codex with your ChatGPT plan, upgrade to Plus: https://openai.com/chatgpt/pricing."
+        "To use Codexist with your ChatGPT plan, upgrade to Plus: https://openai.com/chatgpt/pricing."
     )]
     UsageNotIncluded,
 
@@ -132,7 +132,7 @@ pub enum CodexErr {
     #[error("sandbox error: {0}")]
     Sandbox(#[from] SandboxErr),
 
-    #[error("codex-linux-sandbox was required but not provided")]
+    #[error("codexist-linux-sandbox was required but not provided")]
     LandlockSandboxExecutableNotProvided,
 
     #[error("unsupported operation: {0}")]
@@ -168,9 +168,9 @@ pub enum CodexErr {
     EnvVar(EnvVarError),
 }
 
-impl From<CancelErr> for CodexErr {
+impl From<CancelErr> for CodexistErr {
     fn from(_: CancelErr) -> Self {
-        CodexErr::TurnAborted {
+        CodexistErr::TurnAborted {
             dangling_artifacts: Vec::new(),
         }
     }
@@ -311,7 +311,7 @@ impl std::fmt::Display for UsageLimitReachedError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let message = match self.plan_type.as_ref() {
             Some(PlanType::Known(KnownPlan::Plus)) => format!(
-                "You've hit your usage limit. Upgrade to Pro (https://openai.com/chatgpt/pricing), visit https://chatgpt.com/codex/settings/usage to purchase more credits{}",
+                "You've hit your usage limit. Upgrade to Pro (https://openai.com/chatgpt/pricing), visit https://chatgpt.com/codexist/settings/usage to purchase more credits{}",
                 retry_suffix_after_or(self.resets_at.as_ref())
             ),
             Some(PlanType::Known(KnownPlan::Team)) | Some(PlanType::Known(KnownPlan::Business)) => {
@@ -321,11 +321,11 @@ impl std::fmt::Display for UsageLimitReachedError {
                 )
             }
             Some(PlanType::Known(KnownPlan::Free)) => {
-                "You've hit your usage limit. Upgrade to Plus to continue using Codex (https://openai.com/chatgpt/pricing)."
+                "You've hit your usage limit. Upgrade to Plus to continue using Codexist (https://openai.com/chatgpt/pricing)."
                     .to_string()
             }
             Some(PlanType::Known(KnownPlan::Pro)) => format!(
-                "You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits{}",
+                "You've hit your usage limit. Visit https://chatgpt.com/codexist/settings/usage to purchase more credits{}",
                 retry_suffix_after_or(self.resets_at.as_ref())
             ),
             Some(PlanType::Known(KnownPlan::Enterprise))
@@ -422,8 +422,8 @@ impl std::fmt::Display for EnvVarError {
     }
 }
 
-impl CodexErr {
-    /// Minimal shim so that existing `e.downcast_ref::<CodexErr>()` checks continue to compile
+impl CodexistErr {
+    /// Minimal shim so that existing `e.downcast_ref::<CodexistErr>()` checks continue to compile
     /// after replacing `anyhow::Error` in the return signature. This mirrors the behavior of
     /// `anyhow::Error::downcast_ref` but works directly on our concrete enum.
     pub fn downcast_ref<T: std::any::Any>(&self) -> Option<&T> {
@@ -431,9 +431,9 @@ impl CodexErr {
     }
 }
 
-pub fn get_error_message_ui(e: &CodexErr) -> String {
+pub fn get_error_message_ui(e: &CodexistErr) -> String {
     let message = match e {
-        CodexErr::Sandbox(SandboxErr::Denied { output }) => {
+        CodexistErr::Sandbox(SandboxErr::Denied { output }) => {
             let aggregated = output.aggregated_output.text.trim();
             if !aggregated.is_empty() {
                 output.aggregated_output.text.clone()
@@ -452,7 +452,7 @@ pub fn get_error_message_ui(e: &CodexErr) -> String {
             }
         }
         // Timeouts are not sandbox errors from a UX perspective; present them plainly
-        CodexErr::Sandbox(SandboxErr::Timeout { output }) => {
+        CodexistErr::Sandbox(SandboxErr::Timeout { output }) => {
             format!(
                 "error: command timed out after {} ms",
                 output.duration.as_millis()
@@ -472,7 +472,7 @@ mod tests {
     use chrono::Duration as ChronoDuration;
     use chrono::TimeZone;
     use chrono::Utc;
-    use codex_protocol::protocol::RateLimitWindow;
+    use codexist_protocol::protocol::RateLimitWindow;
     use pretty_assertions::assert_eq;
 
     fn rate_limit_snapshot() -> RateLimitSnapshot {
@@ -516,7 +516,7 @@ mod tests {
         };
         assert_eq!(
             err.to_string(),
-            "You've hit your usage limit. Upgrade to Pro (https://openai.com/chatgpt/pricing), visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again later."
+            "You've hit your usage limit. Upgrade to Pro (https://openai.com/chatgpt/pricing), visit https://chatgpt.com/codexist/settings/usage to purchase more credits or try again later."
         );
     }
 
@@ -530,7 +530,7 @@ mod tests {
             duration: Duration::from_millis(10),
             timed_out: false,
         };
-        let err = CodexErr::Sandbox(SandboxErr::Denied {
+        let err = CodexistErr::Sandbox(SandboxErr::Denied {
             output: Box::new(output),
         });
         assert_eq!(get_error_message_ui(&err), "aggregate detail");
@@ -546,7 +546,7 @@ mod tests {
             duration: Duration::from_millis(10),
             timed_out: false,
         };
-        let err = CodexErr::Sandbox(SandboxErr::Denied {
+        let err = CodexistErr::Sandbox(SandboxErr::Denied {
             output: Box::new(output),
         });
         assert_eq!(get_error_message_ui(&err), "stderr detail\nstdout detail");
@@ -562,7 +562,7 @@ mod tests {
             duration: Duration::from_millis(8),
             timed_out: false,
         };
-        let err = CodexErr::Sandbox(SandboxErr::Denied {
+        let err = CodexistErr::Sandbox(SandboxErr::Denied {
             output: Box::new(output),
         });
         assert_eq!(get_error_message_ui(&err), "stdout only");
@@ -578,7 +578,7 @@ mod tests {
             duration: Duration::from_millis(5),
             timed_out: false,
         };
-        let err = CodexErr::Sandbox(SandboxErr::Denied {
+        let err = CodexistErr::Sandbox(SandboxErr::Denied {
             output: Box::new(output),
         });
         assert_eq!(
@@ -596,7 +596,7 @@ mod tests {
         };
         assert_eq!(
             err.to_string(),
-            "You've hit your usage limit. Upgrade to Plus to continue using Codex (https://openai.com/chatgpt/pricing)."
+            "You've hit your usage limit. Upgrade to Plus to continue using Codexist (https://openai.com/chatgpt/pricing)."
         );
     }
 
@@ -669,7 +669,7 @@ mod tests {
                 rate_limits: Some(rate_limit_snapshot()),
             };
             let expected = format!(
-                "You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at {expected_time}."
+                "You've hit your usage limit. Visit https://chatgpt.com/codexist/settings/usage to purchase more credits or try again at {expected_time}."
             );
             assert_eq!(err.to_string(), expected);
         });
@@ -732,7 +732,7 @@ mod tests {
                 rate_limits: Some(rate_limit_snapshot()),
             };
             let expected = format!(
-                "You've hit your usage limit. Upgrade to Pro (https://openai.com/chatgpt/pricing), visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at {expected_time}."
+                "You've hit your usage limit. Upgrade to Pro (https://openai.com/chatgpt/pricing), visit https://chatgpt.com/codexist/settings/usage to purchase more credits or try again at {expected_time}."
             );
             assert_eq!(err.to_string(), expected);
         });

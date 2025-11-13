@@ -7,13 +7,13 @@ use std::time::Duration;
 use bytes::Bytes;
 use chrono::DateTime;
 use chrono::Utc;
-use codex_app_server_protocol::AuthMode;
-use codex_otel::otel_event_manager::OtelEventManager;
-use codex_protocol::ConversationId;
-use codex_protocol::config_types::ReasoningEffort as ReasoningEffortConfig;
-use codex_protocol::config_types::ReasoningSummary as ReasoningSummaryConfig;
-use codex_protocol::models::ResponseItem;
-use codex_protocol::protocol::SessionSource;
+use codexist_app_server_protocol::AuthMode;
+use codexist_otel::otel_event_manager::OtelEventManager;
+use codexist_protocol::ConversationId;
+use codexist_protocol::config_types::ReasoningEffort as ReasoningEffortConfig;
+use codexist_protocol::config_types::ReasoningSummary as ReasoningSummaryConfig;
+use codexist_protocol::models::ResponseItem;
+use codexist_protocol::protocol::SessionSource;
 use eventsource_stream::Eventsource;
 use futures::prelude::*;
 use regex_lite::Regex;
@@ -30,7 +30,7 @@ use tracing::trace;
 use tracing::warn;
 
 use crate::AuthManager;
-use crate::auth::CodexAuth;
+use crate::auth::CodexistAuth;
 use crate::auth::RefreshTokenError;
 use crate::chat_completions::AggregateStreamExt;
 use crate::chat_completions::stream_chat_completions;
@@ -41,16 +41,16 @@ use crate::client_common::ResponsesApiRequest;
 use crate::client_common::create_reasoning_param_for_request;
 use crate::client_common::create_text_param_for_request;
 use crate::config::Config;
-use crate::default_client::CodexHttpClient;
+use crate::default_client::CodexistHttpClient;
 use crate::default_client::create_client;
-use crate::error::CodexErr;
+use crate::error::CodexistErr;
 use crate::error::ConnectionFailedError;
 use crate::error::ResponseStreamFailed;
 use crate::error::Result;
 use crate::error::RetryLimitReachedError;
 use crate::error::UnexpectedResponseError;
 use crate::error::UsageLimitReachedError;
-use crate::flags::CODEX_RS_SSE_FIXTURE;
+use crate::flags::CODEXIST_RS_SSE_FIXTURE;
 use crate::model_family::ModelFamily;
 use crate::model_provider_info::ModelProviderInfo;
 use crate::model_provider_info::WireApi;
@@ -83,7 +83,7 @@ pub struct ModelClient {
     config: Arc<Config>,
     auth_manager: Option<Arc<AuthManager>>,
     otel_event_manager: OtelEventManager,
-    client: CodexHttpClient,
+    client: CodexistHttpClient,
     provider: ModelProviderInfo,
     conversation_id: ConversationId,
     effort: Option<ReasoningEffortConfig>,
@@ -185,7 +185,7 @@ impl ModelClient {
 
     /// Implementation for the OpenAI *Responses* experimental API.
     async fn stream_responses(&self, prompt: &Prompt) -> Result<ResponseStream> {
-        if let Some(path) = &*CODEX_RS_SSE_FIXTURE {
+        if let Some(path) = &*CODEXIST_RS_SSE_FIXTURE {
             // short circuit for tests
             warn!(path, "Streaming from fixture");
             return stream_from_fixture(
@@ -360,7 +360,7 @@ impl ModelClient {
 
                 // spawn task to process SSE
                 let stream = resp.bytes_stream().map_err(move |e| {
-                    CodexErr::ResponseStreamFailed(ResponseStreamFailed {
+                    CodexistErr::ResponseStreamFailed(ResponseStreamFailed {
                         source: e,
                         request_id: request_id.clone(),
                     })
@@ -393,10 +393,10 @@ impl ModelClient {
                 {
                     let stream_error = match err {
                         RefreshTokenError::Permanent(failed) => {
-                            StreamAttemptError::Fatal(CodexErr::RefreshTokenFailed(failed))
+                            StreamAttemptError::Fatal(CodexistErr::RefreshTokenFailed(failed))
                         }
                         RefreshTokenError::Transient(other) => {
-                            StreamAttemptError::RetryableTransportError(CodexErr::Io(other))
+                            StreamAttemptError::RetryableTransportError(CodexistErr::Io(other))
                         }
                     };
                     return Err(stream_error);
@@ -415,7 +415,7 @@ impl ModelClient {
                 {
                     // Surface the error body to callers. Use `unwrap_or_default` per Clippy.
                     let body = res.text().await.unwrap_or_default();
-                    return Err(StreamAttemptError::Fatal(CodexErr::UnexpectedStatus(
+                    return Err(StreamAttemptError::Fatal(CodexistErr::UnexpectedStatus(
                         UnexpectedResponseError {
                             status,
                             body,
@@ -434,20 +434,20 @@ impl ModelClient {
                             // token.
                             let plan_type = error
                                 .plan_type
-                                .or_else(|| auth.as_ref().and_then(CodexAuth::get_plan_type));
+                                .or_else(|| auth.as_ref().and_then(CodexistAuth::get_plan_type));
                             let resets_at = error
                                 .resets_at
                                 .and_then(|seconds| DateTime::<Utc>::from_timestamp(seconds, 0));
-                            let codex_err = CodexErr::UsageLimitReached(UsageLimitReachedError {
+                            let codexist_err = CodexistErr::UsageLimitReached(UsageLimitReachedError {
                                 plan_type,
                                 resets_at,
                                 rate_limits: rate_limit_snapshot,
                             });
-                            return Err(StreamAttemptError::Fatal(codex_err));
+                            return Err(StreamAttemptError::Fatal(codexist_err));
                         } else if error.r#type.as_deref() == Some("usage_not_included") {
-                            return Err(StreamAttemptError::Fatal(CodexErr::UsageNotIncluded));
+                            return Err(StreamAttemptError::Fatal(CodexistErr::UsageNotIncluded));
                         } else if is_quota_exceeded_error(&error) {
-                            return Err(StreamAttemptError::Fatal(CodexErr::QuotaExceeded));
+                            return Err(StreamAttemptError::Fatal(CodexistErr::QuotaExceeded));
                         }
                     }
                 }
@@ -459,7 +459,7 @@ impl ModelClient {
                 })
             }
             Err(e) => Err(StreamAttemptError::RetryableTransportError(
-                CodexErr::ConnectionFailed(ConnectionFailedError { source: e }),
+                CodexistErr::ConnectionFailed(ConnectionFailedError { source: e }),
             )),
         }
     }
@@ -507,8 +507,8 @@ enum StreamAttemptError {
         retry_after: Option<Duration>,
         request_id: Option<String>,
     },
-    RetryableTransportError(CodexErr),
-    Fatal(CodexErr),
+    RetryableTransportError(CodexistErr),
+    Fatal(CodexistErr),
 }
 
 impl StreamAttemptError {
@@ -528,15 +528,15 @@ impl StreamAttemptError {
         }
     }
 
-    fn into_error(self) -> CodexErr {
+    fn into_error(self) -> CodexistErr {
         match self {
             Self::RetryableHttpError {
                 status, request_id, ..
             } => {
                 if status == StatusCode::INTERNAL_SERVER_ERROR {
-                    CodexErr::InternalServerError
+                    CodexistErr::InternalServerError
                 } else {
-                    CodexErr::RetryLimit(RetryLimitReachedError { status, request_id })
+                    CodexistErr::RetryLimit(RetryLimitReachedError { status, request_id })
                 }
             }
             Self::RetryableTransportError(error) => error,
@@ -627,16 +627,16 @@ fn attach_item_ids(payload_json: &mut Value, original_items: &[ResponseItem]) {
 fn parse_rate_limit_snapshot(headers: &HeaderMap) -> Option<RateLimitSnapshot> {
     let primary = parse_rate_limit_window(
         headers,
-        "x-codex-primary-used-percent",
-        "x-codex-primary-window-minutes",
-        "x-codex-primary-reset-at",
+        "x-codexist-primary-used-percent",
+        "x-codexist-primary-window-minutes",
+        "x-codexist-primary-reset-at",
     );
 
     let secondary = parse_rate_limit_window(
         headers,
-        "x-codex-secondary-used-percent",
-        "x-codex-secondary-window-minutes",
-        "x-codex-secondary-reset-at",
+        "x-codexist-secondary-used-percent",
+        "x-codexist-secondary-window-minutes",
+        "x-codexist-secondary-reset-at",
     );
 
     Some(RateLimitSnapshot { primary, secondary })
@@ -694,7 +694,7 @@ async fn process_sse<S>(
     // If the stream stays completely silent for an extended period treat it as disconnected.
     // The response id returned from the "complete" message.
     let mut response_completed: Option<ResponseCompleted> = None;
-    let mut response_error: Option<CodexErr> = None;
+    let mut response_error: Option<CodexistErr> = None;
 
     loop {
         let start = std::time::Instant::now();
@@ -706,7 +706,7 @@ async fn process_sse<S>(
             Ok(Some(Ok(sse))) => sse,
             Ok(Some(Err(e))) => {
                 debug!("SSE Error: {e:#}");
-                let event = CodexErr::Stream(e.to_string(), None);
+                let event = CodexistErr::Stream(e.to_string(), None);
                 let _ = tx_event.send(Err(event)).await;
                 return;
             }
@@ -738,7 +738,7 @@ async fn process_sse<S>(
                         let _ = tx_event.send(Ok(event)).await;
                     }
                     None => {
-                        let error = response_error.unwrap_or(CodexErr::Stream(
+                        let error = response_error.unwrap_or(CodexistErr::Stream(
                             "stream closed before response.completed".into(),
                             None,
                         ));
@@ -751,7 +751,7 @@ async fn process_sse<S>(
             }
             Err(_) => {
                 let _ = tx_event
-                    .send(Err(CodexErr::Stream(
+                    .send(Err(CodexistErr::Stream(
                         "idle timeout waiting for SSE".into(),
                         None,
                     )))
@@ -833,7 +833,7 @@ async fn process_sse<S>(
             }
             "response.failed" => {
                 if let Some(resp_val) = event.response {
-                    response_error = Some(CodexErr::Stream(
+                    response_error = Some(CodexistErr::Stream(
                         "response.failed event received".to_string(),
                         None,
                     ));
@@ -844,19 +844,19 @@ async fn process_sse<S>(
                         match serde_json::from_value::<Error>(error.clone()) {
                             Ok(error) => {
                                 if is_context_window_error(&error) {
-                                    response_error = Some(CodexErr::ContextWindowExceeded);
+                                    response_error = Some(CodexistErr::ContextWindowExceeded);
                                 } else if is_quota_exceeded_error(&error) {
-                                    response_error = Some(CodexErr::QuotaExceeded);
+                                    response_error = Some(CodexistErr::QuotaExceeded);
                                 } else {
                                     let delay = try_parse_retry_after(&error);
                                     let message = error.message.clone().unwrap_or_default();
-                                    response_error = Some(CodexErr::Stream(message, delay));
+                                    response_error = Some(CodexistErr::Stream(message, delay));
                                 }
                             }
                             Err(e) => {
                                 let error = format!("failed to parse ErrorResponse: {e}");
                                 debug!(error);
-                                response_error = Some(CodexErr::Stream(error, None))
+                                response_error = Some(CodexistErr::Stream(error, None))
                             }
                         }
                     }
@@ -872,7 +872,7 @@ async fn process_sse<S>(
                         Err(e) => {
                             let error = format!("failed to parse ResponseCompleted: {e}");
                             debug!(error);
-                            response_error = Some(CodexErr::Stream(error, None));
+                            response_error = Some(CodexistErr::Stream(error, None));
                             continue;
                         }
                     };
@@ -927,7 +927,7 @@ async fn stream_from_fixture(
     }
 
     let rdr = std::io::Cursor::new(content);
-    let stream = ReaderStream::new(rdr).map_err(CodexErr::Io);
+    let stream = ReaderStream::new(rdr).map_err(CodexistErr::Io);
     tokio::spawn(process_sse(
         stream,
         tx_event,
@@ -1008,7 +1008,7 @@ mod tests {
         }
 
         let reader = builder.build();
-        let stream = ReaderStream::new(reader).map_err(CodexErr::Io);
+        let stream = ReaderStream::new(reader).map_err(CodexistErr::Io);
         let (tx, mut rx) = mpsc::channel::<Result<ResponseEvent>>(16);
         tokio::spawn(process_sse(
             stream,
@@ -1045,7 +1045,7 @@ mod tests {
         }
 
         let (tx, mut rx) = mpsc::channel::<Result<ResponseEvent>>(8);
-        let stream = ReaderStream::new(std::io::Cursor::new(body)).map_err(CodexErr::Io);
+        let stream = ReaderStream::new(std::io::Cursor::new(body)).map_err(CodexistErr::Io);
         tokio::spawn(process_sse(
             stream,
             tx,
@@ -1198,7 +1198,7 @@ mod tests {
         matches!(events[0], Ok(ResponseEvent::OutputItemDone(_)));
 
         match &events[1] {
-            Err(CodexErr::Stream(msg, _)) => {
+            Err(CodexistErr::Stream(msg, _)) => {
                 assert_eq!(msg, "stream closed before response.completed")
             }
             other => panic!("unexpected second event: {other:?}"),
@@ -1233,7 +1233,7 @@ mod tests {
         assert_eq!(events.len(), 1);
 
         match &events[0] {
-            Err(CodexErr::Stream(msg, delay)) => {
+            Err(CodexistErr::Stream(msg, delay)) => {
                 assert_eq!(
                     msg,
                     "Rate limit reached for gpt-5 in organization org-AAA on tokens per min (TPM): Limit 30000, Used 22999, Requested 12528. Please try again in 11.054s. Visit https://platform.openai.com/account/rate-limits to learn more."
@@ -1272,8 +1272,8 @@ mod tests {
         assert_eq!(events.len(), 1);
 
         match &events[0] {
-            Err(err @ CodexErr::ContextWindowExceeded) => {
-                assert_eq!(err.to_string(), CodexErr::ContextWindowExceeded.to_string());
+            Err(err @ CodexistErr::ContextWindowExceeded) => {
+                assert_eq!(err.to_string(), CodexistErr::ContextWindowExceeded.to_string());
             }
             other => panic!("unexpected context window event: {other:?}"),
         }
@@ -1307,8 +1307,8 @@ mod tests {
         assert_eq!(events.len(), 1);
 
         match &events[0] {
-            Err(err @ CodexErr::ContextWindowExceeded) => {
-                assert_eq!(err.to_string(), CodexErr::ContextWindowExceeded.to_string());
+            Err(err @ CodexistErr::ContextWindowExceeded) => {
+                assert_eq!(err.to_string(), CodexistErr::ContextWindowExceeded.to_string());
             }
             other => panic!("unexpected context window event: {other:?}"),
         }
@@ -1342,8 +1342,8 @@ mod tests {
         assert_eq!(events.len(), 1);
 
         match &events[0] {
-            Err(err @ CodexErr::QuotaExceeded) => {
-                assert_eq!(err.to_string(), CodexErr::QuotaExceeded.to_string());
+            Err(err @ CodexistErr::QuotaExceeded) => {
+                assert_eq!(err.to_string(), CodexistErr::QuotaExceeded.to_string());
             }
             other => panic!("unexpected quota exceeded event: {other:?}"),
         }

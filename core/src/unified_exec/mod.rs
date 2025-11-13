@@ -31,8 +31,8 @@ use rand::Rng;
 use rand::rng;
 use tokio::sync::Mutex;
 
-use crate::codex::Session;
-use crate::codex::TurnContext;
+use crate::codexist::Session;
+use crate::codexist::TurnContext;
 
 mod errors;
 mod session;
@@ -163,9 +163,9 @@ pub(crate) fn truncate_output_to_tokens(
 #[cfg(unix)]
 mod tests {
     use super::*;
-    use crate::codex::Session;
-    use crate::codex::TurnContext;
-    use crate::codex::make_session_and_context;
+    use crate::codexist::Session;
+    use crate::codexist::TurnContext;
+    use crate::codexist::make_session_and_context;
     use crate::protocol::AskForApproval;
     use crate::protocol::SandboxPolicy;
     use crate::unified_exec::ExecCommandRequest;
@@ -259,7 +259,7 @@ mod tests {
         write_stdin(
             &session,
             session_id,
-            "export CODEX_INTERACTIVE_SHELL_VAR=codex\n",
+            "export CODEXIST_INTERACTIVE_SHELL_VAR=codexist\n",
             Some(2_500),
         )
         .await?;
@@ -267,12 +267,12 @@ mod tests {
         let out_2 = write_stdin(
             &session,
             session_id,
-            "echo $CODEX_INTERACTIVE_SHELL_VAR\n",
+            "echo $CODEXIST_INTERACTIVE_SHELL_VAR\n",
             Some(2_500),
         )
         .await?;
         assert!(
-            out_2.output.contains("codex"),
+            out_2.output.contains("codexist"),
             "expected environment variable output"
         );
 
@@ -291,7 +291,7 @@ mod tests {
         write_stdin(
             &session,
             session_a,
-            "export CODEX_INTERACTIVE_SHELL_VAR=codex\n",
+            "export CODEXIST_INTERACTIVE_SHELL_VAR=codexist\n",
             Some(2_500),
         )
         .await?;
@@ -299,7 +299,7 @@ mod tests {
         let out_2 = exec_command(
             &session,
             &turn,
-            "echo $CODEX_INTERACTIVE_SHELL_VAR",
+            "echo $CODEXIST_INTERACTIVE_SHELL_VAR",
             Some(2_500),
         )
         .await?;
@@ -308,19 +308,19 @@ mod tests {
             "short command should not retain a session"
         );
         assert!(
-            !out_2.output.contains("codex"),
+            !out_2.output.contains("codexist"),
             "short command should run in a fresh shell"
         );
 
         let out_3 = write_stdin(
             &session,
             session_a,
-            "echo $CODEX_INTERACTIVE_SHELL_VAR\n",
+            "echo $CODEXIST_INTERACTIVE_SHELL_VAR\n",
             Some(2_500),
         )
         .await?;
         assert!(
-            out_3.output.contains("codex"),
+            out_3.output.contains("codexist"),
             "session should preserve state"
         );
 
@@ -339,7 +339,7 @@ mod tests {
         write_stdin(
             &session,
             session_id,
-            "export CODEX_INTERACTIVE_SHELL_VAR=codex\n",
+            "export CODEXIST_INTERACTIVE_SHELL_VAR=codexist\n",
             Some(2_500),
         )
         .await?;
@@ -347,12 +347,12 @@ mod tests {
         let out_2 = write_stdin(
             &session,
             session_id,
-            "sleep 5 && echo $CODEX_INTERACTIVE_SHELL_VAR\n",
+            "sleep 5 && echo $CODEXIST_INTERACTIVE_SHELL_VAR\n",
             Some(10),
         )
         .await?;
         assert!(
-            !out_2.output.contains("codex"),
+            !out_2.output.contains("codexist"),
             "timeout too short should yield incomplete output"
         );
 
@@ -361,7 +361,7 @@ mod tests {
         let out_3 = write_stdin(&session, session_id, "", Some(100)).await?;
 
         assert!(
-            out_3.output.contains("codex"),
+            out_3.output.contains("codexist"),
             "subsequent poll should retrieve output"
         );
 
@@ -373,10 +373,10 @@ mod tests {
     async fn requests_with_large_timeout_are_capped() -> anyhow::Result<()> {
         let (session, turn) = test_session_and_turn();
 
-        let result = exec_command(&session, &turn, "echo codex", Some(120_000)).await?;
+        let result = exec_command(&session, &turn, "echo codexist", Some(120_000)).await?;
 
         assert!(result.session_id.is_none());
-        assert!(result.output.contains("codex"));
+        assert!(result.output.contains("codexist"));
 
         Ok(())
     }
@@ -385,13 +385,13 @@ mod tests {
     #[ignore] // Ignored while we have a better way to test this.
     async fn completed_commands_do_not_persist_sessions() -> anyhow::Result<()> {
         let (session, turn) = test_session_and_turn();
-        let result = exec_command(&session, &turn, "echo codex", Some(2_500)).await?;
+        let result = exec_command(&session, &turn, "echo codexist", Some(2_500)).await?;
 
         assert!(
             result.session_id.is_none(),
             "completed command should not retain session"
         );
-        assert!(result.output.contains("codex"));
+        assert!(result.output.contains("codexist"));
 
         assert!(
             session

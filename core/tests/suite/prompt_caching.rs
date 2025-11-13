@@ -1,21 +1,21 @@
 #![allow(clippy::unwrap_used)]
 
-use codex_core::CodexAuth;
-use codex_core::ConversationManager;
-use codex_core::ModelProviderInfo;
-use codex_core::built_in_model_providers;
-use codex_core::config::OPENAI_DEFAULT_MODEL;
-use codex_core::features::Feature;
-use codex_core::model_family::find_family_for_model;
-use codex_core::protocol::AskForApproval;
-use codex_core::protocol::EventMsg;
-use codex_core::protocol::Op;
-use codex_core::protocol::SandboxPolicy;
-use codex_core::protocol_config_types::ReasoningEffort;
-use codex_core::protocol_config_types::ReasoningSummary;
-use codex_core::shell::Shell;
-use codex_core::shell::default_user_shell;
-use codex_protocol::user_input::UserInput;
+use codexist_core::CodexistAuth;
+use codexist_core::ConversationManager;
+use codexist_core::ModelProviderInfo;
+use codexist_core::built_in_model_providers;
+use codexist_core::config::OPENAI_DEFAULT_MODEL;
+use codexist_core::features::Feature;
+use codexist_core::model_family::find_family_for_model;
+use codexist_core::protocol::AskForApproval;
+use codexist_core::protocol::EventMsg;
+use codexist_core::protocol::Op;
+use codexist_core::protocol::SandboxPolicy;
+use codexist_core::protocol_config_types::ReasoningEffort;
+use codexist_core::protocol_config_types::ReasoningSummary;
+use codexist_core::shell::Shell;
+use codexist_core::shell::default_user_shell;
+use codexist_protocol::user_input::UserInput;
 use core_test_support::load_default_config_for_test;
 use core_test_support::load_sse_fixture_with_id;
 use core_test_support::skip_if_no_network;
@@ -70,7 +70,7 @@ fn assert_tool_names(body: &serde_json::Value, expected_names: &[&str]) {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-async fn codex_mini_latest_tools() {
+async fn codexist_mini_latest_tools() {
     skip_if_no_network!();
     use pretty_assertions::assert_eq;
 
@@ -95,25 +95,25 @@ async fn codex_mini_latest_tools() {
     };
 
     let cwd = TempDir::new().unwrap();
-    let codex_home = TempDir::new().unwrap();
-    let mut config = load_default_config_for_test(&codex_home);
+    let codexist_home = TempDir::new().unwrap();
+    let mut config = load_default_config_for_test(&codexist_home);
     config.cwd = cwd.path().to_path_buf();
     config.model_provider = model_provider;
     config.user_instructions = Some("be consistent and helpful".to_string());
     config.features.disable(Feature::ApplyPatchFreeform);
 
     let conversation_manager =
-        ConversationManager::with_auth(CodexAuth::from_api_key("Test API Key"));
-    config.model = "codex-mini-latest".to_string();
-    config.model_family = find_family_for_model("codex-mini-latest").unwrap();
+        ConversationManager::with_auth(CodexistAuth::from_api_key("Test API Key"));
+    config.model = "codexist-mini-latest".to_string();
+    config.model_family = find_family_for_model("codexist-mini-latest").unwrap();
 
-    let codex = conversation_manager
+    let codexist = conversation_manager
         .new_conversation(config)
         .await
         .expect("create new conversation")
         .conversation;
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello 1".into(),
@@ -121,9 +121,9 @@ async fn codex_mini_latest_tools() {
         })
         .await
         .unwrap();
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello 2".into(),
@@ -131,7 +131,7 @@ async fn codex_mini_latest_tools() {
         })
         .await
         .unwrap();
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     let requests = server.received_requests().await.unwrap();
     assert_eq!(requests.len(), 2, "expected two POST requests");
@@ -180,23 +180,23 @@ async fn prompt_tools_are_consistent_across_requests() {
     };
 
     let cwd = TempDir::new().unwrap();
-    let codex_home = TempDir::new().unwrap();
+    let codexist_home = TempDir::new().unwrap();
 
-    let mut config = load_default_config_for_test(&codex_home);
+    let mut config = load_default_config_for_test(&codexist_home);
     config.cwd = cwd.path().to_path_buf();
     config.model_provider = model_provider;
     config.user_instructions = Some("be consistent and helpful".to_string());
 
     let conversation_manager =
-        ConversationManager::with_auth(CodexAuth::from_api_key("Test API Key"));
+        ConversationManager::with_auth(CodexistAuth::from_api_key("Test API Key"));
     let base_instructions = config.model_family.base_instructions.clone();
-    let codex = conversation_manager
+    let codexist = conversation_manager
         .new_conversation(config)
         .await
         .expect("create new conversation")
         .conversation;
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello 1".into(),
@@ -204,9 +204,9 @@ async fn prompt_tools_are_consistent_across_requests() {
         })
         .await
         .unwrap();
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello 2".into(),
@@ -214,7 +214,7 @@ async fn prompt_tools_are_consistent_across_requests() {
         })
         .await
         .unwrap();
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     let requests = server.received_requests().await.unwrap();
     assert_eq!(requests.len(), 2, "expected two POST requests");
@@ -246,7 +246,7 @@ async fn prompt_tools_are_consistent_across_requests() {
             ],
         ),
         (
-            "gpt-5-codex",
+            "gpt-5-codexist",
             vec![
                 "shell",
                 "list_mcp_resources",
@@ -258,7 +258,7 @@ async fn prompt_tools_are_consistent_across_requests() {
             ],
         ),
         (
-            "gpt-5.1-codex",
+            "gpt-5.1-codexist",
             vec![
                 "shell",
                 "list_mcp_resources",
@@ -327,21 +327,21 @@ async fn prefixes_context_and_instructions_once_and_consistently_across_requests
     };
 
     let cwd = TempDir::new().unwrap();
-    let codex_home = TempDir::new().unwrap();
-    let mut config = load_default_config_for_test(&codex_home);
+    let codexist_home = TempDir::new().unwrap();
+    let mut config = load_default_config_for_test(&codexist_home);
     config.cwd = cwd.path().to_path_buf();
     config.model_provider = model_provider;
     config.user_instructions = Some("be consistent and helpful".to_string());
 
     let conversation_manager =
-        ConversationManager::with_auth(CodexAuth::from_api_key("Test API Key"));
-    let codex = conversation_manager
+        ConversationManager::with_auth(CodexistAuth::from_api_key("Test API Key"));
+    let codexist = conversation_manager
         .new_conversation(config)
         .await
         .expect("create new conversation")
         .conversation;
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello 1".into(),
@@ -349,9 +349,9 @@ async fn prefixes_context_and_instructions_once_and_consistently_across_requests
         })
         .await
         .unwrap();
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello 2".into(),
@@ -359,7 +359,7 @@ async fn prefixes_context_and_instructions_once_and_consistently_across_requests
         })
         .await
         .unwrap();
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     let requests = server.received_requests().await.unwrap();
     assert_eq!(requests.len(), 2, "expected two POST requests");
@@ -448,22 +448,22 @@ async fn overrides_turn_context_but_keeps_cached_prefix_and_key_constant() {
     };
 
     let cwd = TempDir::new().unwrap();
-    let codex_home = TempDir::new().unwrap();
-    let mut config = load_default_config_for_test(&codex_home);
+    let codexist_home = TempDir::new().unwrap();
+    let mut config = load_default_config_for_test(&codexist_home);
     config.cwd = cwd.path().to_path_buf();
     config.model_provider = model_provider;
     config.user_instructions = Some("be consistent and helpful".to_string());
 
     let conversation_manager =
-        ConversationManager::with_auth(CodexAuth::from_api_key("Test API Key"));
-    let codex = conversation_manager
+        ConversationManager::with_auth(CodexistAuth::from_api_key("Test API Key"));
+    let codexist = conversation_manager
         .new_conversation(config)
         .await
         .expect("create new conversation")
         .conversation;
 
     // First turn
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello 1".into(),
@@ -471,10 +471,10 @@ async fn overrides_turn_context_but_keeps_cached_prefix_and_key_constant() {
         })
         .await
         .unwrap();
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     let writable = TempDir::new().unwrap();
-    codex
+    codexist
         .submit(Op::OverrideTurnContext {
             cwd: None,
             approval_policy: Some(AskForApproval::Never),
@@ -492,7 +492,7 @@ async fn overrides_turn_context_but_keeps_cached_prefix_and_key_constant() {
         .unwrap();
 
     // Second turn after overrides
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello 2".into(),
@@ -500,7 +500,7 @@ async fn overrides_turn_context_but_keeps_cached_prefix_and_key_constant() {
         })
         .await
         .unwrap();
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     // Verify we issued exactly two requests, and the cached prefix stayed identical.
     let requests = server.received_requests().await.unwrap();
@@ -576,22 +576,22 @@ async fn per_turn_overrides_keep_cached_prefix_and_key_constant() {
     };
 
     let cwd = TempDir::new().unwrap();
-    let codex_home = TempDir::new().unwrap();
-    let mut config = load_default_config_for_test(&codex_home);
+    let codexist_home = TempDir::new().unwrap();
+    let mut config = load_default_config_for_test(&codexist_home);
     config.cwd = cwd.path().to_path_buf();
     config.model_provider = model_provider;
     config.user_instructions = Some("be consistent and helpful".to_string());
 
     let conversation_manager =
-        ConversationManager::with_auth(CodexAuth::from_api_key("Test API Key"));
-    let codex = conversation_manager
+        ConversationManager::with_auth(CodexistAuth::from_api_key("Test API Key"));
+    let codexist = conversation_manager
         .new_conversation(config)
         .await
         .expect("create new conversation")
         .conversation;
 
     // First turn
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello 1".into(),
@@ -599,12 +599,12 @@ async fn per_turn_overrides_keep_cached_prefix_and_key_constant() {
         })
         .await
         .unwrap();
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     // Second turn using per-turn overrides via UserTurn
     let new_cwd = TempDir::new().unwrap();
     let writable = TempDir::new().unwrap();
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "hello 2".into(),
@@ -624,7 +624,7 @@ async fn per_turn_overrides_keep_cached_prefix_and_key_constant() {
         })
         .await
         .unwrap();
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     // Verify we issued exactly two requests, and the cached prefix stayed identical.
     let requests = server.received_requests().await.unwrap();
@@ -699,8 +699,8 @@ async fn send_user_turn_with_no_changes_does_not_send_environment_context() {
     };
 
     let cwd = TempDir::new().unwrap();
-    let codex_home = TempDir::new().unwrap();
-    let mut config = load_default_config_for_test(&codex_home);
+    let codexist_home = TempDir::new().unwrap();
+    let mut config = load_default_config_for_test(&codexist_home);
     config.cwd = cwd.path().to_path_buf();
     config.model_provider = model_provider;
     config.user_instructions = Some("be consistent and helpful".to_string());
@@ -713,14 +713,14 @@ async fn send_user_turn_with_no_changes_does_not_send_environment_context() {
     let default_summary = config.model_reasoning_summary;
 
     let conversation_manager =
-        ConversationManager::with_auth(CodexAuth::from_api_key("Test API Key"));
-    let codex = conversation_manager
+        ConversationManager::with_auth(CodexistAuth::from_api_key("Test API Key"));
+    let codexist = conversation_manager
         .new_conversation(config)
         .await
         .expect("create new conversation")
         .conversation;
 
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "hello 1".into(),
@@ -735,9 +735,9 @@ async fn send_user_turn_with_no_changes_does_not_send_environment_context() {
         })
         .await
         .unwrap();
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "hello 2".into(),
@@ -752,7 +752,7 @@ async fn send_user_turn_with_no_changes_does_not_send_environment_context() {
         })
         .await
         .unwrap();
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     let requests = server.received_requests().await.unwrap();
     assert_eq!(requests.len(), 2, "expected two POST requests");
@@ -815,8 +815,8 @@ async fn send_user_turn_with_changes_sends_environment_context() {
     };
 
     let cwd = TempDir::new().unwrap();
-    let codex_home = TempDir::new().unwrap();
-    let mut config = load_default_config_for_test(&codex_home);
+    let codexist_home = TempDir::new().unwrap();
+    let mut config = load_default_config_for_test(&codexist_home);
     config.cwd = cwd.path().to_path_buf();
     config.model_provider = model_provider;
     config.user_instructions = Some("be consistent and helpful".to_string());
@@ -829,14 +829,14 @@ async fn send_user_turn_with_changes_sends_environment_context() {
     let default_summary = config.model_reasoning_summary;
 
     let conversation_manager =
-        ConversationManager::with_auth(CodexAuth::from_api_key("Test API Key"));
-    let codex = conversation_manager
+        ConversationManager::with_auth(CodexistAuth::from_api_key("Test API Key"));
+    let codexist = conversation_manager
         .new_conversation(config.clone())
         .await
         .expect("create new conversation")
         .conversation;
 
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "hello 1".into(),
@@ -851,9 +851,9 @@ async fn send_user_turn_with_changes_sends_environment_context() {
         })
         .await
         .unwrap();
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "hello 2".into(),
@@ -868,7 +868,7 @@ async fn send_user_turn_with_changes_sends_environment_context() {
         })
         .await
         .unwrap();
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     let requests = server.received_requests().await.unwrap();
     assert_eq!(requests.len(), 2, "expected two POST requests");

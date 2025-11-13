@@ -1,10 +1,10 @@
 [package]
 edition = "2024"
-name = "codex-ollama"
+name = "codexist-ollama"
 version = { workspace = true }
 
 [lib]
-name = "codex_ollama"
+name = "codexist_ollama"
 path = "src/lib.rs"
 
 [lints]
@@ -13,7 +13,7 @@ workspace = true
 [dependencies]
 async-stream = { workspace = true }
 bytes = { workspace = true }
-codex-core = { workspace = true }
+codexist-core = { workspace = true }
 futures = { workspace = true }
 reqwest = { workspace = true, features = ["json", "stream"] }
 serde_json = { workspace = true }

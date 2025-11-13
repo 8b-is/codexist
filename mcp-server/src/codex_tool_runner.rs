@@ -1,4 +1,4 @@
-//! Asynchronous worker that executes a **Codex** tool-call inside a spawned
+//! Asynchronous worker that executes a **Codexist** tool-call inside a spawned
 //! Tokio task. Separated from `message_processor.rs` to keep that file small
 //! and to make future feature-growth easier to manage.
 
@@ -9,20 +9,20 @@ use crate::exec_approval::handle_exec_approval_request;
 use crate::outgoing_message::OutgoingMessageSender;
 use crate::outgoing_message::OutgoingNotificationMeta;
 use crate::patch_approval::handle_patch_approval_request;
-use codex_core::CodexConversation;
-use codex_core::ConversationManager;
-use codex_core::NewConversation;
-use codex_core::config::Config as CodexConfig;
-use codex_core::protocol::AgentMessageEvent;
-use codex_core::protocol::ApplyPatchApprovalRequestEvent;
-use codex_core::protocol::Event;
-use codex_core::protocol::EventMsg;
-use codex_core::protocol::ExecApprovalRequestEvent;
-use codex_core::protocol::Op;
-use codex_core::protocol::Submission;
-use codex_core::protocol::TaskCompleteEvent;
-use codex_protocol::ConversationId;
-use codex_protocol::user_input::UserInput;
+use codexist_core::CodexistConversation;
+use codexist_core::ConversationManager;
+use codexist_core::NewConversation;
+use codexist_core::config::Config as CodexistConfig;
+use codexist_core::protocol::AgentMessageEvent;
+use codexist_core::protocol::ApplyPatchApprovalRequestEvent;
+use codexist_core::protocol::Event;
+use codexist_core::protocol::EventMsg;
+use codexist_core::protocol::ExecApprovalRequestEvent;
+use codexist_core::protocol::Op;
+use codexist_core::protocol::Submission;
+use codexist_core::protocol::TaskCompleteEvent;
+use codexist_protocol::ConversationId;
+use codexist_protocol::user_input::UserInput;
 use mcp_types::CallToolResult;
 use mcp_types::ContentBlock;
 use mcp_types::RequestId;
@@ -32,17 +32,17 @@ use tokio::sync::Mutex;
 
 pub(crate) const INVALID_PARAMS_ERROR_CODE: i64 = -32602;
 
-/// Run a complete Codex session and stream events back to the client.
+/// Run a complete Codexist session and stream events back to the client.
 ///
 /// On completion (success or error) the function sends the appropriate
 /// `tools/call` response so the LLM can continue the conversation.
-pub async fn run_codex_tool_session(
+pub async fn run_codexist_tool_session(
     id: RequestId,
     initial_prompt: String,
-    config: CodexConfig,
+    config: CodexistConfig,
     outgoing: Arc<OutgoingMessageSender>,
     conversation_manager: Arc<ConversationManager>,
-    running_requests_id_to_codex_uuid: Arc<Mutex<HashMap<RequestId, ConversationId>>>,
+    running_requests_id_to_codexist_uuid: Arc<Mutex<HashMap<RequestId, ConversationId>>>,
 ) {
     let NewConversation {
         conversation_id,
@@ -54,7 +54,7 @@ pub async fn run_codex_tool_session(
             let result = CallToolResult {
                 content: vec![ContentBlock::TextContent(TextContent {
                     r#type: "text".to_string(),
-                    text: format!("Failed to start Codex session: {e}"),
+                    text: format!("Failed to start Codexist session: {e}"),
                     annotations: None,
                 })],
                 is_error: Some(true),
@@ -77,14 +77,14 @@ pub async fn run_codex_tool_session(
         )
         .await;
 
-    // Use the original MCP request ID as the `sub_id` for the Codex submission so that
+    // Use the original MCP request ID as the `sub_id` for the Codexist submission so that
     // any events emitted for this tool-call can be correlated with the
     // originating `tools/call` request.
     let sub_id = match &id {
         RequestId::String(s) => s.clone(),
         RequestId::Integer(n) => n.to_string(),
     };
-    running_requests_id_to_codex_uuid
+    running_requests_id_to_codexist_uuid
         .lock()
         .await
         .insert(id.clone(), conversation_id);
@@ -100,28 +100,28 @@ pub async fn run_codex_tool_session(
     if let Err(e) = conversation.submit_with_id(submission).await {
         tracing::error!("Failed to submit initial prompt: {e}");
         // unregister the id so we don't keep it in the map
-        running_requests_id_to_codex_uuid.lock().await.remove(&id);
+        running_requests_id_to_codexist_uuid.lock().await.remove(&id);
         return;
     }
 
-    run_codex_tool_session_inner(
+    run_codexist_tool_session_inner(
         conversation,
         outgoing,
         id,
-        running_requests_id_to_codex_uuid,
+        running_requests_id_to_codexist_uuid,
     )
     .await;
 }
 
-pub async fn run_codex_tool_session_reply(
-    conversation: Arc<CodexConversation>,
+pub async fn run_codexist_tool_session_reply(
+    conversation: Arc<CodexistConversation>,
     outgoing: Arc<OutgoingMessageSender>,
     request_id: RequestId,
     prompt: String,
-    running_requests_id_to_codex_uuid: Arc<Mutex<HashMap<RequestId, ConversationId>>>,
+    running_requests_id_to_codexist_uuid: Arc<Mutex<HashMap<RequestId, ConversationId>>>,
     conversation_id: ConversationId,
 ) {
-    running_requests_id_to_codex_uuid
+    running_requests_id_to_codexist_uuid
         .lock()
         .await
         .insert(request_id.clone(), conversation_id);
@@ -133,27 +133,27 @@ pub async fn run_codex_tool_session_reply(
     {
         tracing::error!("Failed to submit user input: {e}");
         // unregister the id so we don't keep it in the map
-        running_requests_id_to_codex_uuid
+        running_requests_id_to_codexist_uuid
             .lock()
             .await
             .remove(&request_id);
         return;
     }
 
-    run_codex_tool_session_inner(
+    run_codexist_tool_session_inner(
         conversation,
         outgoing,
         request_id,
-        running_requests_id_to_codex_uuid,
+        running_requests_id_to_codexist_uuid,
     )
     .await;
 }
 
-async fn run_codex_tool_session_inner(
-    codex: Arc<CodexConversation>,
+async fn run_codexist_tool_session_inner(
+    codexist: Arc<CodexistConversation>,
     outgoing: Arc<OutgoingMessageSender>,
     request_id: RequestId,
-    running_requests_id_to_codex_uuid: Arc<Mutex<HashMap<RequestId, ConversationId>>>,
+    running_requests_id_to_codexist_uuid: Arc<Mutex<HashMap<RequestId, ConversationId>>>,
 ) {
     let request_id_str = match &request_id {
         RequestId::String(s) => s.clone(),
@@ -163,7 +163,7 @@ async fn run_codex_tool_session_inner(
     // Stream events until the task needs to pause for user interaction or
     // completes.
     loop {
-        match codex.next_event().await {
+        match codexist.next_event().await {
             Ok(event) => {
                 outgoing
                     .send_event_as_notification(
@@ -185,7 +185,7 @@ async fn run_codex_tool_session_inner(
                             command,
                             cwd,
                             outgoing.clone(),
-                            codex.clone(),
+                            codexist.clone(),
                             request_id.clone(),
                             request_id_str.clone(),
                             event.id.clone(),
@@ -197,7 +197,7 @@ async fn run_codex_tool_session_inner(
                         continue;
                     }
                     EventMsg::Error(err_event) => {
-                        // Return a response to conclude the tool call when the Codex session reports an error (e.g., interruption).
+                        // Return a response to conclude the tool call when the Codexist session reports an error (e.g., interruption).
                         let result = json!({
                             "error": err_event.message,
                         });
@@ -219,7 +219,7 @@ async fn run_codex_tool_session_inner(
                             grant_root,
                             changes,
                             outgoing.clone(),
-                            codex.clone(),
+                            codexist.clone(),
                             request_id.clone(),
                             request_id_str.clone(),
                             event.id.clone(),
@@ -243,7 +243,7 @@ async fn run_codex_tool_session_inner(
                         };
                         outgoing.send_response(request_id.clone(), result).await;
                         // unregister the id so we don't keep it in the map
-                        running_requests_id_to_codex_uuid
+                        running_requests_id_to_codexist_uuid
                             .lock()
                             .await
                             .remove(&request_id);
@@ -300,7 +300,7 @@ async fn run_codex_tool_session_inner(
                     | EventMsg::DeprecationNotice(_) => {
                         // For now, we do not do anything extra for these
                         // events. Note that
-                        // send(codex_event_to_notification(&event)) above has
+                        // send(codexist_event_to_notification(&event)) above has
                         // already dispatched these events as notifications,
                         // though we may want to do give different treatment to
                         // individual events in the future.
@@ -311,7 +311,7 @@ async fn run_codex_tool_session_inner(
                 let result = CallToolResult {
                     content: vec![ContentBlock::TextContent(TextContent {
                         r#type: "text".to_string(),
-                        text: format!("Codex runtime error: {e}"),
+                        text: format!("Codexist runtime error: {e}"),
                         annotations: None,
                     })],
                     is_error: Some(true),

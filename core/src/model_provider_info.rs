@@ -1,14 +1,14 @@
-//! Registry of model providers supported by Codex.
+//! Registry of model providers supported by Codexist.
 //!
 //! Providers can be defined in two places:
-//!   1. Built-in defaults compiled into the binary so Codex works out-of-the-box.
-//!   2. User-defined entries inside `~/.codex/config.toml` under the `model_providers`
+//!   1. Built-in defaults compiled into the binary so Codexist works out-of-the-box.
+//!   2. User-defined entries inside `~/.codexist/config.toml` under the `model_providers`
 //!      key. These override or extend the defaults at runtime.
 
-use crate::CodexAuth;
-use crate::default_client::CodexHttpClient;
-use crate::default_client::CodexRequestBuilder;
-use codex_app_server_protocol::AuthMode;
+use crate::CodexistAuth;
+use crate::default_client::CodexistHttpClient;
+use crate::default_client::CodexistRequestBuilder;
+use codexist_app_server_protocol::AuthMode;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
@@ -97,7 +97,7 @@ pub struct ModelProviderInfo {
 
 impl ModelProviderInfo {
     /// Construct a `POST` RequestBuilder for the given URL using the provided
-    /// [`CodexHttpClient`] applying:
+    /// [`CodexistHttpClient`] applying:
     ///   • provider-specific headers (static + env based)
     ///   • Bearer auth header when an API key is available.
     ///   • Auth token for OAuth.
@@ -106,14 +106,14 @@ impl ModelProviderInfo {
     /// one produced by [`ModelProviderInfo::api_key`].
     pub async fn create_request_builder<'a>(
         &'a self,
-        client: &'a CodexHttpClient,
-        auth: &Option<CodexAuth>,
-    ) -> crate::error::Result<CodexRequestBuilder> {
+        client: &'a CodexistHttpClient,
+        auth: &Option<CodexistAuth>,
+    ) -> crate::error::Result<CodexistRequestBuilder> {
         let effective_auth = if let Some(secret_key) = &self.experimental_bearer_token {
-            Some(CodexAuth::from_api_key(secret_key))
+            Some(CodexistAuth::from_api_key(secret_key))
         } else {
             match self.api_key() {
-                Ok(Some(key)) => Some(CodexAuth::from_api_key(&key)),
+                Ok(Some(key)) => Some(CodexistAuth::from_api_key(&key)),
                 Ok(None) => auth.clone(),
                 Err(err) => {
                     if auth.is_some() {
@@ -149,15 +149,15 @@ impl ModelProviderInfo {
             })
     }
 
-    pub(crate) fn get_full_url(&self, auth: &Option<CodexAuth>) -> String {
+    pub(crate) fn get_full_url(&self, auth: &Option<CodexistAuth>) -> String {
         let default_base_url = if matches!(
             auth,
-            Some(CodexAuth {
+            Some(CodexistAuth {
                 mode: AuthMode::ChatGPT,
                 ..
             })
         ) {
-            "https://chatgpt.com/backend-api/codex"
+            "https://chatgpt.com/backend-api/codexist"
         } else {
             "https://api.openai.com/v1"
         };
@@ -189,9 +189,9 @@ impl ModelProviderInfo {
     }
 
     /// Apply provider-specific HTTP headers (both static and environment-based)
-    /// onto an existing [`CodexRequestBuilder`] and return the updated
+    /// onto an existing [`CodexistRequestBuilder`] and return the updated
     /// builder.
-    fn apply_http_headers(&self, mut builder: CodexRequestBuilder) -> CodexRequestBuilder {
+    fn apply_http_headers(&self, mut builder: CodexistRequestBuilder) -> CodexistRequestBuilder {
         if let Some(extra) = &self.http_headers {
             for (k, v) in extra {
                 builder = builder.header(k, v);
@@ -226,7 +226,7 @@ impl ModelProviderInfo {
                         }
                     })
                     .map_err(|_| {
-                        crate::error::CodexErr::EnvVar(EnvVarError {
+                        crate::error::CodexistErr::EnvVar(EnvVarError {
                             var: env_key.clone(),
                             instructions: self.env_key_instructions.clone(),
                         })
@@ -267,7 +267,7 @@ pub fn built_in_model_providers() -> HashMap<String, ModelProviderInfo> {
     use ModelProviderInfo as P;
 
     // We do not want to be in the business of adjucating which third-party
-    // providers are bundled with Codex CLI, so we only include the OpenAI and
+    // providers are bundled with Codexist CLI, so we only include the OpenAI and
     // open source ("oss") providers by default. Users are encouraged to add to
     // `model_providers` in config.toml to add their own providers.
     [
@@ -277,7 +277,7 @@ pub fn built_in_model_providers() -> HashMap<String, ModelProviderInfo> {
                 name: "OpenAI".into(),
                 // Allow users to override the default OpenAI endpoint by
                 // exporting `OPENAI_BASE_URL`. This is useful when pointing
-                // Codex at a proxy, mock server, or Azure-style deployment
+                // Codexist at a proxy, mock server, or Azure-style deployment
                 // without requiring a full TOML override for the built-in
                 // OpenAI provider.
                 base_url: std::env::var("OPENAI_BASE_URL")
@@ -319,16 +319,16 @@ pub fn built_in_model_providers() -> HashMap<String, ModelProviderInfo> {
 }
 
 pub fn create_oss_provider() -> ModelProviderInfo {
-    // These CODEX_OSS_ environment variables are experimental: we may
+    // These CODEXIST_OSS_ environment variables are experimental: we may
     // switch to reading values from config.toml instead.
-    let codex_oss_base_url = match std::env::var("CODEX_OSS_BASE_URL")
+    let codexist_oss_base_url = match std::env::var("CODEXIST_OSS_BASE_URL")
         .ok()
         .filter(|v| !v.trim().is_empty())
     {
         Some(url) => url,
         None => format!(
             "http://localhost:{port}/v1",
-            port = std::env::var("CODEX_OSS_PORT")
+            port = std::env::var("CODEXIST_OSS_PORT")
                 .ok()
                 .filter(|v| !v.trim().is_empty())
                 .and_then(|v| v.parse::<u32>().ok())
@@ -336,7 +336,7 @@ pub fn create_oss_provider() -> ModelProviderInfo {
         ),
     };
 
-    create_oss_provider_with_base_url(&codex_oss_base_url)
+    create_oss_provider_with_base_url(&codexist_oss_base_url)
 }
 
 pub fn create_oss_provider_with_base_url(base_url: &str) -> ModelProviderInfo {

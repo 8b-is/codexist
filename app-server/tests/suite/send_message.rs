@@ -3,20 +3,20 @@ use app_test_support::McpProcess;
 use app_test_support::create_final_assistant_message_sse_response;
 use app_test_support::create_mock_chat_completions_server;
 use app_test_support::to_response;
-use codex_app_server_protocol::AddConversationListenerParams;
-use codex_app_server_protocol::AddConversationSubscriptionResponse;
-use codex_app_server_protocol::InputItem;
-use codex_app_server_protocol::JSONRPCNotification;
-use codex_app_server_protocol::JSONRPCResponse;
-use codex_app_server_protocol::NewConversationParams;
-use codex_app_server_protocol::NewConversationResponse;
-use codex_app_server_protocol::RequestId;
-use codex_app_server_protocol::SendUserMessageParams;
-use codex_app_server_protocol::SendUserMessageResponse;
-use codex_protocol::ConversationId;
-use codex_protocol::models::ContentItem;
-use codex_protocol::models::ResponseItem;
-use codex_protocol::protocol::RawResponseItemEvent;
+use codexist_app_server_protocol::AddConversationListenerParams;
+use codexist_app_server_protocol::AddConversationSubscriptionResponse;
+use codexist_app_server_protocol::InputItem;
+use codexist_app_server_protocol::JSONRPCNotification;
+use codexist_app_server_protocol::JSONRPCResponse;
+use codexist_app_server_protocol::NewConversationParams;
+use codexist_app_server_protocol::NewConversationResponse;
+use codexist_app_server_protocol::RequestId;
+use codexist_app_server_protocol::SendUserMessageParams;
+use codexist_app_server_protocol::SendUserMessageResponse;
+use codexist_protocol::ConversationId;
+use codexist_protocol::models::ContentItem;
+use codexist_protocol::models::ResponseItem;
+use codexist_protocol::protocol::RawResponseItemEvent;
 use pretty_assertions::assert_eq;
 use std::path::Path;
 use tempfile::TempDir;
@@ -26,20 +26,20 @@ const DEFAULT_READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs
 
 #[tokio::test]
 async fn test_send_message_success() -> Result<()> {
-    // Spin up a mock completions server that immediately ends the Codex turn.
-    // Two Codex turns hit the mock model (session start + send-user-message). Provide two SSE responses.
+    // Spin up a mock completions server that immediately ends the Codexist turn.
+    // Two Codexist turns hit the mock model (session start + send-user-message). Provide two SSE responses.
     let responses = vec![
         create_final_assistant_message_sse_response("Done")?,
         create_final_assistant_message_sse_response("Done")?,
     ];
     let server = create_mock_chat_completions_server(responses).await;
 
-    // Create a temporary Codex home with config pointing at the mock server.
-    let codex_home = TempDir::new()?;
-    create_config_toml(codex_home.path(), &server.uri())?;
+    // Create a temporary Codexist home with config pointing at the mock server.
+    let codexist_home = TempDir::new()?;
+    create_config_toml(codexist_home.path(), &server.uri())?;
 
     // Start MCP server process and initialize.
-    let mut mcp = McpProcess::new(codex_home.path()).await?;
+    let mut mcp = McpProcess::new(codexist_home.path()).await?;
     timeout(DEFAULT_READ_TIMEOUT, mcp.initialize()).await??;
 
     // Start a conversation using the new wire API.
@@ -106,7 +106,7 @@ async fn send_message(
     // Note this also ensures that the final request to the server was made.
     let task_finished_notification: JSONRPCNotification = timeout(
         DEFAULT_READ_TIMEOUT,
-        mcp.read_stream_until_notification_message("codex/event/task_complete"),
+        mcp.read_stream_until_notification_message("codexist/event/task_complete"),
     )
     .await??;
     let serde_json::Value::Object(map) = task_finished_notification
@@ -123,7 +123,7 @@ async fn send_message(
 
     let raw_attempt = tokio::time::timeout(
         std::time::Duration::from_millis(200),
-        mcp.read_stream_until_notification_message("codex/event/raw_response_item"),
+        mcp.read_stream_until_notification_message("codexist/event/raw_response_item"),
     )
     .await;
     assert!(
@@ -138,10 +138,10 @@ async fn test_send_message_raw_notifications_opt_in() -> Result<()> {
     let responses = vec![create_final_assistant_message_sse_response("Done")?];
     let server = create_mock_chat_completions_server(responses).await;
 
-    let codex_home = TempDir::new()?;
-    create_config_toml(codex_home.path(), &server.uri())?;
+    let codexist_home = TempDir::new()?;
+    create_config_toml(codexist_home.path(), &server.uri())?;
 
-    let mut mcp = McpProcess::new(codex_home.path()).await?;
+    let mut mcp = McpProcess::new(codexist_home.path()).await?;
     timeout(DEFAULT_READ_TIMEOUT, mcp.initialize()).await??;
 
     let new_conv_id = mcp
@@ -206,7 +206,7 @@ async fn test_send_message_raw_notifications_opt_in() -> Result<()> {
 
     let _ = tokio::time::timeout(
         std::time::Duration::from_millis(250),
-        mcp.read_stream_until_notification_message("codex/event/task_complete"),
+        mcp.read_stream_until_notification_message("codexist/event/task_complete"),
     )
     .await;
 
@@ -215,9 +215,9 @@ async fn test_send_message_raw_notifications_opt_in() -> Result<()> {
 
 #[tokio::test]
 async fn test_send_message_session_not_found() -> Result<()> {
-    // Start MCP without creating a Codex session
-    let codex_home = TempDir::new()?;
-    let mut mcp = McpProcess::new(codex_home.path()).await?;
+    // Start MCP without creating a Codexist session
+    let codexist_home = TempDir::new()?;
+    let mut mcp = McpProcess::new(codexist_home.path()).await?;
     timeout(DEFAULT_READ_TIMEOUT, mcp.initialize()).await??;
 
     let unknown = ConversationId::new();
@@ -244,8 +244,8 @@ async fn test_send_message_session_not_found() -> Result<()> {
 // Helpers
 // ---------------------------------------------------------------------------
 
-fn create_config_toml(codex_home: &Path, server_uri: &str) -> std::io::Result<()> {
-    let config_toml = codex_home.join("config.toml");
+fn create_config_toml(codexist_home: &Path, server_uri: &str) -> std::io::Result<()> {
+    let config_toml = codexist_home.join("config.toml");
     std::fs::write(
         config_toml,
         format!(
@@ -274,17 +274,17 @@ async fn read_raw_response_item(
 ) -> ResponseItem {
     let raw_notification: JSONRPCNotification = timeout(
         DEFAULT_READ_TIMEOUT,
-        mcp.read_stream_until_notification_message("codex/event/raw_response_item"),
+        mcp.read_stream_until_notification_message("codexist/event/raw_response_item"),
     )
     .await
-    .expect("codex/event/raw_response_item notification timeout")
-    .expect("codex/event/raw_response_item notification resp");
+    .expect("codexist/event/raw_response_item notification timeout")
+    .expect("codexist/event/raw_response_item notification resp");
 
     let serde_json::Value::Object(params) = raw_notification
         .params
-        .expect("codex/event/raw_response_item should have params")
+        .expect("codexist/event/raw_response_item should have params")
     else {
-        panic!("codex/event/raw_response_item should have params");
+        panic!("codexist/event/raw_response_item should have params");
     };
 
     let conversation_id_value = params

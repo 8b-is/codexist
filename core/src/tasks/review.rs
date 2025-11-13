@@ -1,24 +1,24 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use codex_protocol::items::TurnItem;
-use codex_protocol::models::ContentItem;
-use codex_protocol::models::ResponseItem;
-use codex_protocol::protocol::AgentMessageContentDeltaEvent;
-use codex_protocol::protocol::AgentMessageDeltaEvent;
-use codex_protocol::protocol::Event;
-use codex_protocol::protocol::EventMsg;
-use codex_protocol::protocol::ExitedReviewModeEvent;
-use codex_protocol::protocol::ItemCompletedEvent;
-use codex_protocol::protocol::ReviewOutputEvent;
+use codexist_protocol::items::TurnItem;
+use codexist_protocol::models::ContentItem;
+use codexist_protocol::models::ResponseItem;
+use codexist_protocol::protocol::AgentMessageContentDeltaEvent;
+use codexist_protocol::protocol::AgentMessageDeltaEvent;
+use codexist_protocol::protocol::Event;
+use codexist_protocol::protocol::EventMsg;
+use codexist_protocol::protocol::ExitedReviewModeEvent;
+use codexist_protocol::protocol::ItemCompletedEvent;
+use codexist_protocol::protocol::ReviewOutputEvent;
 use tokio_util::sync::CancellationToken;
 
-use crate::codex::Session;
-use crate::codex::TurnContext;
-use crate::codex_delegate::run_codex_conversation_one_shot;
+use crate::codexist::Session;
+use crate::codexist::TurnContext;
+use crate::codexist_delegate::run_codexist_conversation_one_shot;
 use crate::review_format::format_review_findings_block;
 use crate::state::TaskKind;
-use codex_protocol::user_input::UserInput;
+use codexist_protocol::user_input::UserInput;
 
 use super::SessionTask;
 use super::SessionTaskContext;
@@ -39,7 +39,7 @@ impl SessionTask for ReviewTask {
         input: Vec<UserInput>,
         cancellation_token: CancellationToken,
     ) -> Option<String> {
-        // Start sub-codex conversation and get the receiver for events.
+        // Start sub-codexist conversation and get the receiver for events.
         let output = match start_review_conversation(
             session.clone(),
             ctx.clone(),
@@ -83,7 +83,7 @@ async fn start_review_conversation(
 
     // Set explicit review rubric for the sub-agent
     sub_agent_config.base_instructions = Some(crate::REVIEW_PROMPT.to_string());
-    (run_codex_conversation_one_shot(
+    (run_codexist_conversation_one_shot(
         sub_agent_config,
         session.auth_manager(),
         input,

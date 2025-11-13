@@ -6,145 +6,145 @@ use crate::outgoing_message::OutgoingMessageSender;
 use crate::outgoing_message::OutgoingNotification;
 use chrono::DateTime;
 use chrono::Utc;
-use codex_app_server_protocol::Account;
-use codex_app_server_protocol::AccountLoginCompletedNotification;
-use codex_app_server_protocol::AccountRateLimitsUpdatedNotification;
-use codex_app_server_protocol::AccountUpdatedNotification;
-use codex_app_server_protocol::AddConversationListenerParams;
-use codex_app_server_protocol::AddConversationSubscriptionResponse;
-use codex_app_server_protocol::ApplyPatchApprovalParams;
-use codex_app_server_protocol::ApplyPatchApprovalResponse;
-use codex_app_server_protocol::ArchiveConversationParams;
-use codex_app_server_protocol::ArchiveConversationResponse;
-use codex_app_server_protocol::AskForApproval;
-use codex_app_server_protocol::AuthMode;
-use codex_app_server_protocol::AuthStatusChangeNotification;
-use codex_app_server_protocol::CancelLoginAccountParams;
-use codex_app_server_protocol::CancelLoginAccountResponse;
-use codex_app_server_protocol::CancelLoginChatGptResponse;
-use codex_app_server_protocol::ClientRequest;
-use codex_app_server_protocol::ConversationGitInfo;
-use codex_app_server_protocol::ConversationSummary;
-use codex_app_server_protocol::ExecCommandApprovalParams;
-use codex_app_server_protocol::ExecCommandApprovalResponse;
-use codex_app_server_protocol::ExecOneOffCommandParams;
-use codex_app_server_protocol::ExecOneOffCommandResponse;
-use codex_app_server_protocol::FeedbackUploadParams;
-use codex_app_server_protocol::FeedbackUploadResponse;
-use codex_app_server_protocol::FuzzyFileSearchParams;
-use codex_app_server_protocol::FuzzyFileSearchResponse;
-use codex_app_server_protocol::GetAccountParams;
-use codex_app_server_protocol::GetAccountRateLimitsResponse;
-use codex_app_server_protocol::GetAccountResponse;
-use codex_app_server_protocol::GetAuthStatusParams;
-use codex_app_server_protocol::GetAuthStatusResponse;
-use codex_app_server_protocol::GetConversationSummaryParams;
-use codex_app_server_protocol::GetConversationSummaryResponse;
-use codex_app_server_protocol::GetUserAgentResponse;
-use codex_app_server_protocol::GetUserSavedConfigResponse;
-use codex_app_server_protocol::GitDiffToRemoteResponse;
-use codex_app_server_protocol::InputItem as WireInputItem;
-use codex_app_server_protocol::InterruptConversationParams;
-use codex_app_server_protocol::InterruptConversationResponse;
-use codex_app_server_protocol::ItemCompletedNotification;
-use codex_app_server_protocol::ItemStartedNotification;
-use codex_app_server_protocol::JSONRPCErrorError;
-use codex_app_server_protocol::ListConversationsParams;
-use codex_app_server_protocol::ListConversationsResponse;
-use codex_app_server_protocol::LoginAccountParams;
-use codex_app_server_protocol::LoginApiKeyParams;
-use codex_app_server_protocol::LoginApiKeyResponse;
-use codex_app_server_protocol::LoginChatGptCompleteNotification;
-use codex_app_server_protocol::LoginChatGptResponse;
-use codex_app_server_protocol::LogoutAccountResponse;
-use codex_app_server_protocol::LogoutChatGptResponse;
-use codex_app_server_protocol::ModelListParams;
-use codex_app_server_protocol::ModelListResponse;
-use codex_app_server_protocol::NewConversationParams;
-use codex_app_server_protocol::NewConversationResponse;
-use codex_app_server_protocol::RemoveConversationListenerParams;
-use codex_app_server_protocol::RemoveConversationSubscriptionResponse;
-use codex_app_server_protocol::RequestId;
-use codex_app_server_protocol::Result as JsonRpcResult;
-use codex_app_server_protocol::ResumeConversationParams;
-use codex_app_server_protocol::ResumeConversationResponse;
-use codex_app_server_protocol::SandboxMode;
-use codex_app_server_protocol::SendUserMessageParams;
-use codex_app_server_protocol::SendUserMessageResponse;
-use codex_app_server_protocol::SendUserTurnParams;
-use codex_app_server_protocol::SendUserTurnResponse;
-use codex_app_server_protocol::ServerNotification;
-use codex_app_server_protocol::ServerRequestPayload;
-use codex_app_server_protocol::SessionConfiguredNotification;
-use codex_app_server_protocol::SetDefaultModelParams;
-use codex_app_server_protocol::SetDefaultModelResponse;
-use codex_app_server_protocol::Thread;
-use codex_app_server_protocol::ThreadArchiveParams;
-use codex_app_server_protocol::ThreadArchiveResponse;
-use codex_app_server_protocol::ThreadItem;
-use codex_app_server_protocol::ThreadListParams;
-use codex_app_server_protocol::ThreadListResponse;
-use codex_app_server_protocol::ThreadResumeParams;
-use codex_app_server_protocol::ThreadResumeResponse;
-use codex_app_server_protocol::ThreadStartParams;
-use codex_app_server_protocol::ThreadStartResponse;
-use codex_app_server_protocol::ThreadStartedNotification;
-use codex_app_server_protocol::Turn;
-use codex_app_server_protocol::TurnInterruptParams;
-use codex_app_server_protocol::TurnInterruptResponse;
-use codex_app_server_protocol::TurnStartParams;
-use codex_app_server_protocol::TurnStartResponse;
-use codex_app_server_protocol::TurnStartedNotification;
-use codex_app_server_protocol::TurnStatus;
-use codex_app_server_protocol::UserInfoResponse;
-use codex_app_server_protocol::UserInput as V2UserInput;
-use codex_app_server_protocol::UserSavedConfig;
-use codex_backend_client::Client as BackendClient;
-use codex_core::AuthManager;
-use codex_core::CodexConversation;
-use codex_core::ConversationManager;
-use codex_core::Cursor as RolloutCursor;
-use codex_core::INTERACTIVE_SESSION_SOURCES;
-use codex_core::InitialHistory;
-use codex_core::NewConversation;
-use codex_core::RolloutRecorder;
-use codex_core::SessionMeta;
-use codex_core::auth::CLIENT_ID;
-use codex_core::auth::login_with_api_key;
-use codex_core::config::Config;
-use codex_core::config::ConfigOverrides;
-use codex_core::config::ConfigToml;
-use codex_core::config::edit::ConfigEditsBuilder;
-use codex_core::config_loader::load_config_as_toml;
-use codex_core::default_client::get_codex_user_agent;
-use codex_core::exec::ExecParams;
-use codex_core::exec_env::create_env;
-use codex_core::find_conversation_path_by_id_str;
-use codex_core::get_platform_sandbox;
-use codex_core::git_info::git_diff_to_remote;
-use codex_core::parse_cursor;
-use codex_core::protocol::ApplyPatchApprovalRequestEvent;
-use codex_core::protocol::Event;
-use codex_core::protocol::EventMsg;
-use codex_core::protocol::ExecApprovalRequestEvent;
-use codex_core::protocol::Op;
-use codex_core::protocol::ReviewDecision;
-use codex_core::read_head_for_summary;
-use codex_feedback::CodexFeedback;
-use codex_login::ServerOptions as LoginServerOptions;
-use codex_login::ShutdownHandle;
-use codex_login::run_login_server;
-use codex_protocol::ConversationId;
-use codex_protocol::config_types::ForcedLoginMethod;
-use codex_protocol::items::TurnItem;
-use codex_protocol::models::ResponseItem;
-use codex_protocol::protocol::GitInfo;
-use codex_protocol::protocol::RateLimitSnapshot as CoreRateLimitSnapshot;
-use codex_protocol::protocol::RolloutItem;
-use codex_protocol::protocol::SessionMetaLine;
-use codex_protocol::protocol::USER_MESSAGE_BEGIN;
-use codex_protocol::user_input::UserInput as CoreInputItem;
-use codex_utils_json_to_toml::json_to_toml;
+use codexist_app_server_protocol::Account;
+use codexist_app_server_protocol::AccountLoginCompletedNotification;
+use codexist_app_server_protocol::AccountRateLimitsUpdatedNotification;
+use codexist_app_server_protocol::AccountUpdatedNotification;
+use codexist_app_server_protocol::AddConversationListenerParams;
+use codexist_app_server_protocol::AddConversationSubscriptionResponse;
+use codexist_app_server_protocol::ApplyPatchApprovalParams;
+use codexist_app_server_protocol::ApplyPatchApprovalResponse;
+use codexist_app_server_protocol::ArchiveConversationParams;
+use codexist_app_server_protocol::ArchiveConversationResponse;
+use codexist_app_server_protocol::AskForApproval;
+use codexist_app_server_protocol::AuthMode;
+use codexist_app_server_protocol::AuthStatusChangeNotification;
+use codexist_app_server_protocol::CancelLoginAccountParams;
+use codexist_app_server_protocol::CancelLoginAccountResponse;
+use codexist_app_server_protocol::CancelLoginChatGptResponse;
+use codexist_app_server_protocol::ClientRequest;
+use codexist_app_server_protocol::ConversationGitInfo;
+use codexist_app_server_protocol::ConversationSummary;
+use codexist_app_server_protocol::ExecCommandApprovalParams;
+use codexist_app_server_protocol::ExecCommandApprovalResponse;
+use codexist_app_server_protocol::ExecOneOffCommandParams;
+use codexist_app_server_protocol::ExecOneOffCommandResponse;
+use codexist_app_server_protocol::FeedbackUploadParams;
+use codexist_app_server_protocol::FeedbackUploadResponse;
+use codexist_app_server_protocol::FuzzyFileSearchParams;
+use codexist_app_server_protocol::FuzzyFileSearchResponse;
+use codexist_app_server_protocol::GetAccountParams;
+use codexist_app_server_protocol::GetAccountRateLimitsResponse;
+use codexist_app_server_protocol::GetAccountResponse;
+use codexist_app_server_protocol::GetAuthStatusParams;
+use codexist_app_server_protocol::GetAuthStatusResponse;
+use codexist_app_server_protocol::GetConversationSummaryParams;
+use codexist_app_server_protocol::GetConversationSummaryResponse;
+use codexist_app_server_protocol::GetUserAgentResponse;
+use codexist_app_server_protocol::GetUserSavedConfigResponse;
+use codexist_app_server_protocol::GitDiffToRemoteResponse;
+use codexist_app_server_protocol::InputItem as WireInputItem;
+use codexist_app_server_protocol::InterruptConversationParams;
+use codexist_app_server_protocol::InterruptConversationResponse;
+use codexist_app_server_protocol::ItemCompletedNotification;
+use codexist_app_server_protocol::ItemStartedNotification;
+use codexist_app_server_protocol::JSONRPCErrorError;
+use codexist_app_server_protocol::ListConversationsParams;
+use codexist_app_server_protocol::ListConversationsResponse;
+use codexist_app_server_protocol::LoginAccountParams;
+use codexist_app_server_protocol::LoginApiKeyParams;
+use codexist_app_server_protocol::LoginApiKeyResponse;
+use codexist_app_server_protocol::LoginChatGptCompleteNotification;
+use codexist_app_server_protocol::LoginChatGptResponse;
+use codexist_app_server_protocol::LogoutAccountResponse;
+use codexist_app_server_protocol::LogoutChatGptResponse;
+use codexist_app_server_protocol::ModelListParams;
+use codexist_app_server_protocol::ModelListResponse;
+use codexist_app_server_protocol::NewConversationParams;
+use codexist_app_server_protocol::NewConversationResponse;
+use codexist_app_server_protocol::RemoveConversationListenerParams;
+use codexist_app_server_protocol::RemoveConversationSubscriptionResponse;
+use codexist_app_server_protocol::RequestId;
+use codexist_app_server_protocol::Result as JsonRpcResult;
+use codexist_app_server_protocol::ResumeConversationParams;
+use codexist_app_server_protocol::ResumeConversationResponse;
+use codexist_app_server_protocol::SandboxMode;
+use codexist_app_server_protocol::SendUserMessageParams;
+use codexist_app_server_protocol::SendUserMessageResponse;
+use codexist_app_server_protocol::SendUserTurnParams;
+use codexist_app_server_protocol::SendUserTurnResponse;
+use codexist_app_server_protocol::ServerNotification;
+use codexist_app_server_protocol::ServerRequestPayload;
+use codexist_app_server_protocol::SessionConfiguredNotification;
+use codexist_app_server_protocol::SetDefaultModelParams;
+use codexist_app_server_protocol::SetDefaultModelResponse;
+use codexist_app_server_protocol::Thread;
+use codexist_app_server_protocol::ThreadArchiveParams;
+use codexist_app_server_protocol::ThreadArchiveResponse;
+use codexist_app_server_protocol::ThreadItem;
+use codexist_app_server_protocol::ThreadListParams;
+use codexist_app_server_protocol::ThreadListResponse;
+use codexist_app_server_protocol::ThreadResumeParams;
+use codexist_app_server_protocol::ThreadResumeResponse;
+use codexist_app_server_protocol::ThreadStartParams;
+use codexist_app_server_protocol::ThreadStartResponse;
+use codexist_app_server_protocol::ThreadStartedNotification;
+use codexist_app_server_protocol::Turn;
+use codexist_app_server_protocol::TurnInterruptParams;
+use codexist_app_server_protocol::TurnInterruptResponse;
+use codexist_app_server_protocol::TurnStartParams;
+use codexist_app_server_protocol::TurnStartResponse;
+use codexist_app_server_protocol::TurnStartedNotification;
+use codexist_app_server_protocol::TurnStatus;
+use codexist_app_server_protocol::UserInfoResponse;
+use codexist_app_server_protocol::UserInput as V2UserInput;
+use codexist_app_server_protocol::UserSavedConfig;
+use codexist_backend_client::Client as BackendClient;
+use codexist_core::AuthManager;
+use codexist_core::CodexistConversation;
+use codexist_core::ConversationManager;
+use codexist_core::Cursor as RolloutCursor;
+use codexist_core::INTERACTIVE_SESSION_SOURCES;
+use codexist_core::InitialHistory;
+use codexist_core::NewConversation;
+use codexist_core::RolloutRecorder;
+use codexist_core::SessionMeta;
+use codexist_core::auth::CLIENT_ID;
+use codexist_core::auth::login_with_api_key;
+use codexist_core::config::Config;
+use codexist_core::config::ConfigOverrides;
+use codexist_core::config::ConfigToml;
+use codexist_core::config::edit::ConfigEditsBuilder;
+use codexist_core::config_loader::load_config_as_toml;
+use codexist_core::default_client::get_codexist_user_agent;
+use codexist_core::exec::ExecParams;
+use codexist_core::exec_env::create_env;
+use codexist_core::find_conversation_path_by_id_str;
+use codexist_core::get_platform_sandbox;
+use codexist_core::git_info::git_diff_to_remote;
+use codexist_core::parse_cursor;
+use codexist_core::protocol::ApplyPatchApprovalRequestEvent;
+use codexist_core::protocol::Event;
+use codexist_core::protocol::EventMsg;
+use codexist_core::protocol::ExecApprovalRequestEvent;
+use codexist_core::protocol::Op;
+use codexist_core::protocol::ReviewDecision;
+use codexist_core::read_head_for_summary;
+use codexist_feedback::CodexistFeedback;
+use codexist_login::ServerOptions as LoginServerOptions;
+use codexist_login::ShutdownHandle;
+use codexist_login::run_login_server;
+use codexist_protocol::ConversationId;
+use codexist_protocol::config_types::ForcedLoginMethod;
+use codexist_protocol::items::TurnItem;
+use codexist_protocol::models::ResponseItem;
+use codexist_protocol::protocol::GitInfo;
+use codexist_protocol::protocol::RateLimitSnapshot as CoreRateLimitSnapshot;
+use codexist_protocol::protocol::RolloutItem;
+use codexist_protocol::protocol::SessionMetaLine;
+use codexist_protocol::protocol::USER_MESSAGE_BEGIN;
+use codexist_protocol::user_input::UserInput as CoreInputItem;
+use codexist_utils_json_to_toml::json_to_toml;
 use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::io::Error as IoError;
@@ -178,19 +178,19 @@ impl ActiveLogin {
     }
 }
 
-/// Handles JSON-RPC messages for Codex conversations.
-pub(crate) struct CodexMessageProcessor {
+/// Handles JSON-RPC messages for Codexist conversations.
+pub(crate) struct CodexistMessageProcessor {
     auth_manager: Arc<AuthManager>,
     conversation_manager: Arc<ConversationManager>,
     outgoing: Arc<OutgoingMessageSender>,
-    codex_linux_sandbox_exe: Option<PathBuf>,
+    codexist_linux_sandbox_exe: Option<PathBuf>,
     config: Arc<Config>,
     conversation_listeners: HashMap<Uuid, oneshot::Sender<()>>,
     active_login: Arc<Mutex<Option<ActiveLogin>>>,
     // Queue of pending interrupt requests per conversation. We reply when TurnAborted arrives.
     pending_interrupts: PendingInterrupts,
     pending_fuzzy_searches: Arc<Mutex<HashMap<String, Arc<AtomicBool>>>>,
-    feedback: CodexFeedback,
+    feedback: CodexistFeedback,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -199,11 +199,11 @@ enum ApiVersion {
     V2,
 }
 
-impl CodexMessageProcessor {
+impl CodexistMessageProcessor {
     async fn conversation_from_thread_id(
         &self,
         thread_id: &str,
-    ) -> Result<(ConversationId, Arc<CodexConversation>), JSONRPCErrorError> {
+    ) -> Result<(ConversationId, Arc<CodexistConversation>), JSONRPCErrorError> {
         // Resolve conversation id from v2 thread id string.
         let conversation_id =
             ConversationId::from_string(thread_id).map_err(|err| JSONRPCErrorError {
@@ -228,15 +228,15 @@ impl CodexMessageProcessor {
         auth_manager: Arc<AuthManager>,
         conversation_manager: Arc<ConversationManager>,
         outgoing: Arc<OutgoingMessageSender>,
-        codex_linux_sandbox_exe: Option<PathBuf>,
+        codexist_linux_sandbox_exe: Option<PathBuf>,
         config: Arc<Config>,
-        feedback: CodexFeedback,
+        feedback: CodexistFeedback,
     ) -> Self {
         Self {
             auth_manager,
             conversation_manager,
             outgoing,
-            codex_linux_sandbox_exe,
+            codexist_linux_sandbox_exe,
             config,
             conversation_listeners: HashMap::new(),
             active_login: Arc::new(Mutex::new(None)),
@@ -436,7 +436,7 @@ impl CodexMessageProcessor {
         }
 
         match login_with_api_key(
-            &self.config.codex_home,
+            &self.config.codexist_home,
             &params.api_key,
             self.config.cli_auth_credentials_store_mode,
         ) {
@@ -475,7 +475,7 @@ impl CodexMessageProcessor {
     async fn login_api_key_v2(&mut self, request_id: RequestId, params: LoginApiKeyParams) {
         match self.login_api_key_common(&params).await {
             Ok(()) => {
-                let response = codex_app_server_protocol::LoginAccountResponse::ApiKey {};
+                let response = codexist_app_server_protocol::LoginAccountResponse::ApiKey {};
                 self.outgoing.send_response(request_id, response).await;
 
                 let payload_login_completed = AccountLoginCompletedNotification {
@@ -519,7 +519,7 @@ impl CodexMessageProcessor {
         Ok(LoginServerOptions {
             open_browser: false,
             ..LoginServerOptions::new(
-                config.codex_home.clone(),
+                config.codexist_home.clone(),
                 CLIENT_ID.to_string(),
                 config.forced_chatgpt_workspace_id.clone(),
                 config.cli_auth_credentials_store_mode,
@@ -690,7 +690,7 @@ impl CodexMessageProcessor {
                         }
                     });
 
-                    let response = codex_app_server_protocol::LoginAccountResponse::Chatgpt {
+                    let response = codexist_app_server_protocol::LoginAccountResponse::Chatgpt {
                         login_id: login_id.to_string(),
                         auth_url,
                     };
@@ -934,7 +934,7 @@ impl CodexMessageProcessor {
     }
 
     async fn get_user_agent(&self, request_id: RequestId) {
-        let user_agent = get_codex_user_agent();
+        let user_agent = get_codexist_user_agent();
         let response = GetUserAgentResponse { user_agent };
         self.outgoing.send_response(request_id, response).await;
     }
@@ -957,7 +957,7 @@ impl CodexMessageProcessor {
         let Some(auth) = self.auth_manager.auth() else {
             return Err(JSONRPCErrorError {
                 code: INVALID_REQUEST_ERROR_CODE,
-                message: "codex account authentication required to read rate limits".to_string(),
+                message: "codexist account authentication required to read rate limits".to_string(),
                 data: None,
             });
         };
@@ -983,13 +983,13 @@ impl CodexMessageProcessor {
             .await
             .map_err(|err| JSONRPCErrorError {
                 code: INTERNAL_ERROR_CODE,
-                message: format!("failed to fetch codex rate limits: {err}"),
+                message: format!("failed to fetch codexist rate limits: {err}"),
                 data: None,
             })
     }
 
     async fn get_user_saved_config(&self, request_id: RequestId) {
-        let toml_value = match load_config_as_toml(&self.config.codex_home).await {
+        let toml_value = match load_config_as_toml(&self.config.codexist_home).await {
             Ok(val) => val,
             Err(err) => {
                 let error = JSONRPCErrorError {
@@ -1037,7 +1037,7 @@ impl CodexMessageProcessor {
             reasoning_effort,
         } = params;
 
-        match ConfigEditsBuilder::new(&self.config.codex_home)
+        match ConfigEditsBuilder::new(&self.config.codexist_home)
             .with_profile(self.config.active_profile.as_deref())
             .set_model(model.as_deref(), reasoning_effort)
             .apply()
@@ -1089,24 +1089,24 @@ impl CodexMessageProcessor {
             .unwrap_or_else(|| self.config.sandbox_policy.clone());
 
         let sandbox_type = match &effective_policy {
-            codex_core::protocol::SandboxPolicy::DangerFullAccess => {
-                codex_core::exec::SandboxType::None
+            codexist_core::protocol::SandboxPolicy::DangerFullAccess => {
+                codexist_core::exec::SandboxType::None
             }
-            _ => get_platform_sandbox().unwrap_or(codex_core::exec::SandboxType::None),
+            _ => get_platform_sandbox().unwrap_or(codexist_core::exec::SandboxType::None),
         };
         tracing::debug!("Sandbox type: {sandbox_type:?}");
-        let codex_linux_sandbox_exe = self.config.codex_linux_sandbox_exe.clone();
+        let codexist_linux_sandbox_exe = self.config.codexist_linux_sandbox_exe.clone();
         let outgoing = self.outgoing.clone();
         let req_id = request_id;
         let sandbox_cwd = self.config.cwd.clone();
 
         tokio::spawn(async move {
-            match codex_core::exec::process_exec_tool_call(
+            match codexist_core::exec::process_exec_tool_call(
                 exec_params,
                 sandbox_type,
                 &effective_policy,
                 sandbox_cwd.as_path(),
-                &codex_linux_sandbox_exe,
+                &codexist_linux_sandbox_exe,
                 None,
             )
             .await
@@ -1153,7 +1153,7 @@ impl CodexMessageProcessor {
             approval_policy,
             sandbox_mode,
             model_provider,
-            codex_linux_sandbox_exe: self.codex_linux_sandbox_exe.clone(),
+            codexist_linux_sandbox_exe: self.codexist_linux_sandbox_exe.clone(),
             base_instructions,
             developer_instructions,
             compact_prompt,
@@ -1293,7 +1293,7 @@ impl CodexMessageProcessor {
         model: Option<String>,
         model_provider: Option<String>,
         cwd: Option<String>,
-        approval_policy: Option<codex_app_server_protocol::AskForApproval>,
+        approval_policy: Option<codexist_app_server_protocol::AskForApproval>,
         sandbox: Option<SandboxMode>,
         base_instructions: Option<String>,
         developer_instructions: Option<String>,
@@ -1303,9 +1303,9 @@ impl CodexMessageProcessor {
             model_provider,
             cwd: cwd.map(PathBuf::from),
             approval_policy: approval_policy
-                .map(codex_app_server_protocol::AskForApproval::to_core),
+                .map(codexist_app_server_protocol::AskForApproval::to_core),
             sandbox_mode: sandbox.map(SandboxMode::to_core),
-            codex_linux_sandbox_exe: self.codex_linux_sandbox_exe.clone(),
+            codexist_linux_sandbox_exe: self.codexist_linux_sandbox_exe.clone(),
             base_instructions,
             developer_instructions,
             ..Default::default()
@@ -1327,7 +1327,7 @@ impl CodexMessageProcessor {
         };
 
         let rollout_path = match find_conversation_path_by_id_str(
-            &self.config.codex_home,
+            &self.config.codexist_home,
             &conversation_id.to_string(),
         )
         .await
@@ -1480,7 +1480,7 @@ impl CodexMessageProcessor {
             };
 
             let path = match find_conversation_path_by_id_str(
-                &self.config.codex_home,
+                &self.config.codexist_home,
                 &existing_conversation_id.to_string(),
             )
             .await
@@ -1588,14 +1588,14 @@ impl CodexMessageProcessor {
         let path = match params {
             GetConversationSummaryParams::RolloutPath { rollout_path } => {
                 if rollout_path.is_relative() {
-                    self.config.codex_home.join(&rollout_path)
+                    self.config.codexist_home.join(&rollout_path)
                 } else {
                     rollout_path
                 }
             }
             GetConversationSummaryParams::ConversationId { conversation_id } => {
-                match codex_core::find_conversation_path_by_id_str(
-                    &self.config.codex_home,
+                match codexist_core::find_conversation_path_by_id_str(
+                    &self.config.codexist_home,
                     &conversation_id.to_string(),
                 )
                 .await
@@ -1686,7 +1686,7 @@ impl CodexMessageProcessor {
         let fallback_provider = self.config.model_provider_id.clone();
 
         let page = match RolloutRecorder::list_conversations(
-            &self.config.codex_home,
+            &self.config.codexist_home,
             page_size,
             cursor_ref,
             INTERACTIVE_SESSION_SOURCES,
@@ -1824,7 +1824,7 @@ impl CodexMessageProcessor {
                     approval_policy,
                     sandbox_mode,
                     model_provider,
-                    codex_linux_sandbox_exe: self.codex_linux_sandbox_exe.clone(),
+                    codexist_linux_sandbox_exe: self.codexist_linux_sandbox_exe.clone(),
                     base_instructions,
                     developer_instructions,
                     compact_prompt,
@@ -1862,7 +1862,7 @@ impl CodexMessageProcessor {
             }
         } else if let Some(conversation_id) = conversation_id {
             match find_conversation_path_by_id_str(
-                &self.config.codex_home,
+                &self.config.codexist_home,
                 &conversation_id.to_string(),
             )
             .await
@@ -2020,7 +2020,7 @@ impl CodexMessageProcessor {
         rollout_path: &Path,
     ) -> Result<(), JSONRPCErrorError> {
         // Verify rollout_path is under sessions dir.
-        let rollout_folder = self.config.codex_home.join(codex_core::SESSIONS_SUBDIR);
+        let rollout_folder = self.config.codexist_home.join(codexist_core::SESSIONS_SUBDIR);
 
         let canonical_sessions_dir = match tokio::fs::canonicalize(&rollout_folder).await {
             Ok(path) => path,
@@ -2136,8 +2136,8 @@ impl CodexMessageProcessor {
         let result: std::io::Result<()> = async {
             let archive_folder = self
                 .config
-                .codex_home
-                .join(codex_core::ARCHIVED_SESSIONS_SUBDIR);
+                .codexist_home
+                .join(codexist_core::ARCHIVED_SESSIONS_SUBDIR);
             tokio::fs::create_dir_all(&archive_folder).await?;
             tokio::fs::rename(&canonical_rollout_path, &archive_folder.join(&file_name)).await?;
             Ok(())
@@ -2479,7 +2479,7 @@ impl CodexMessageProcessor {
                         // JSON-serializing the `Event` as-is, but these should
                         // be migrated to be variants of `ServerNotification`
                         // instead.
-                        let method = format!("codex/event/{}", event.msg);
+                        let method = format!("codexist/event/{}", event.msg);
                         let mut params = match serde_json::to_value(event.clone()) {
                             Ok(serde_json::Value::Object(map)) => map,
                             Ok(_) => {
@@ -2654,7 +2654,7 @@ impl CodexMessageProcessor {
 async fn apply_bespoke_event_handling(
     event: Event,
     conversation_id: ConversationId,
-    conversation: Arc<CodexConversation>,
+    conversation: Arc<CodexistConversation>,
     outgoing: Arc<OutgoingMessageSender>,
     pending_interrupts: PendingInterrupts,
 ) {
@@ -2776,14 +2776,14 @@ async fn derive_config_from_params(
 async fn on_patch_approval_response(
     event_id: String,
     receiver: oneshot::Receiver<JsonRpcResult>,
-    codex: Arc<CodexConversation>,
+    codexist: Arc<CodexistConversation>,
 ) {
     let response = receiver.await;
     let value = match response {
         Ok(value) => value,
         Err(err) => {
             error!("request failed: {err:?}");
-            if let Err(submit_err) = codex
+            if let Err(submit_err) = codexist
                 .submit(Op::PatchApproval {
                     id: event_id.clone(),
                     decision: ReviewDecision::Denied,
@@ -2804,7 +2804,7 @@ async fn on_patch_approval_response(
             }
         });
 
-    if let Err(err) = codex
+    if let Err(err) = codexist
         .submit(Op::PatchApproval {
             id: event_id,
             decision: response.decision,
@@ -2818,7 +2818,7 @@ async fn on_patch_approval_response(
 async fn on_exec_approval_response(
     event_id: String,
     receiver: oneshot::Receiver<JsonRpcResult>,
-    conversation: Arc<CodexConversation>,
+    conversation: Arc<CodexistConversation>,
 ) {
     let response = receiver.await;
     let value = match response {
@@ -2829,7 +2829,7 @@ async fn on_exec_approval_response(
         }
     };
 
-    // Try to deserialize `value` and then make the appropriate call to `codex`.
+    // Try to deserialize `value` and then make the appropriate call to `codexist`.
     let response =
         serde_json::from_value::<ExecCommandApprovalResponse>(value).unwrap_or_else(|err| {
             error!("failed to deserialize ExecCommandApprovalResponse: {err}");
@@ -2920,7 +2920,7 @@ fn extract_conversation_summary(
     let preview = head
         .iter()
         .filter_map(|value| serde_json::from_value::<ResponseItem>(value.clone()).ok())
-        .find_map(|item| match codex_core::parse_turn_item(&item) {
+        .find_map(|item| match codexist_core::parse_turn_item(&item) {
             Some(TurnItem::UserMessage(user)) => Some(user.message()),
             _ => None,
         })?;
@@ -2996,7 +2996,7 @@ fn summary_to_thread(summary: ConversationSummary) -> Thread {
 mod tests {
     use super::*;
     use anyhow::Result;
-    use codex_protocol::protocol::SessionSource;
+    use codexist_protocol::protocol::SessionSource;
     use pretty_assertions::assert_eq;
     use serde_json::json;
     use tempfile::TempDir;
@@ -3012,7 +3012,7 @@ mod tests {
                 "id": conversation_id.to_string(),
                 "timestamp": timestamp,
                 "cwd": "/",
-                "originator": "codex",
+                "originator": "codexist",
                 "cli_version": "0.0.0",
                 "instructions": null,
                 "model_provider": "test-provider"
@@ -3059,9 +3059,9 @@ mod tests {
 
     #[tokio::test]
     async fn read_summary_from_rollout_returns_empty_preview_when_no_user_message() -> Result<()> {
-        use codex_protocol::protocol::RolloutItem;
-        use codex_protocol::protocol::RolloutLine;
-        use codex_protocol::protocol::SessionMetaLine;
+        use codexist_protocol::protocol::RolloutItem;
+        use codexist_protocol::protocol::RolloutLine;
+        use codexist_protocol::protocol::SessionMetaLine;
         use std::fs;
 
         let temp_dir = TempDir::new()?;

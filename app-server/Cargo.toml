@@ -1,14 +1,14 @@
 [package]
 edition = "2024"
-name = "codex-app-server"
+name = "codexist-app-server"
 version = { workspace = true }
 
 [[bin]]
-name = "codex-app-server"
+name = "codexist-app-server"
 path = "src/main.rs"
 
 [lib]
-name = "codex_app_server"
+name = "codexist_app_server"
 path = "src/lib.rs"
 
 [lints]
@@ -16,16 +16,16 @@ workspace = true
 
 [dependencies]
 anyhow = { workspace = true }
-codex-arg0 = { workspace = true }
-codex-common = { workspace = true, features = ["cli"] }
-codex-core = { workspace = true }
-codex-backend-client = { workspace = true }
-codex-file-search = { workspace = true }
-codex-login = { workspace = true }
-codex-protocol = { workspace = true }
-codex-app-server-protocol = { workspace = true }
-codex-feedback = { workspace = true }
-codex-utils-json-to-toml = { workspace = true }
+codexist-arg0 = { workspace = true }
+codexist-common = { workspace = true, features = ["cli"] }
+codexist-core = { workspace = true }
+codexist-backend-client = { workspace = true }
+codexist-file-search = { workspace = true }
+codexist-login = { workspace = true }
+codexist-protocol = { workspace = true }
+codexist-app-server-protocol = { workspace = true }
+codexist-feedback = { workspace = true }
+codexist-utils-json-to-toml = { workspace = true }
 chrono = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }

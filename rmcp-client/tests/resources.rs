@@ -2,7 +2,7 @@ use std::ffi::OsString;
 use std::path::PathBuf;
 use std::time::Duration;
 
-use codex_rmcp_client::RmcpClient;
+use codexist_rmcp_client::RmcpClient;
 use escargot::CargoBuild;
 use mcp_types::ClientCapabilities;
 use mcp_types::Implementation;
@@ -15,11 +15,11 @@ use mcp_types::ResourceTemplate;
 use mcp_types::TextResourceContents;
 use serde_json::json;
 
-const RESOURCE_URI: &str = "memo://codex/example-note";
+const RESOURCE_URI: &str = "memo://codexist/example-note";
 
 fn stdio_server_bin() -> anyhow::Result<PathBuf> {
     let build = CargoBuild::new()
-        .package("codex-rmcp-client")
+        .package("codexist-rmcp-client")
         .bin("test_stdio_server")
         .run()?;
     Ok(build.path().to_path_buf())
@@ -34,9 +34,9 @@ fn init_params() -> InitializeRequestParams {
             elicitation: Some(json!({})),
         },
         client_info: Implementation {
-            name: "codex-test".into(),
+            name: "codexist-test".into(),
             version: "0.0.0-test".into(),
-            title: Some("Codex rmcp resource test".into()),
+            title: Some("Codexist rmcp resource test".into()),
             user_agent: None,
         },
         protocol_version: mcp_types::MCP_SCHEMA_VERSION.to_string(),
@@ -88,12 +88,12 @@ async fn rmcp_client_can_list_and_read_resources() -> anyhow::Result<()> {
             resource_templates: vec![ResourceTemplate {
                 annotations: None,
                 description: Some(
-                    "Template for memo://codex/{slug} resources used in tests.".to_string()
+                    "Template for memo://codexist/{slug} resources used in tests.".to_string()
                 ),
                 mime_type: Some("text/plain".to_string()),
-                name: "codex-memo".to_string(),
-                title: Some("Codex Memo".to_string()),
-                uri_template: "memo://codex/{slug}".to_string(),
+                name: "codexist-memo".to_string(),
+                title: Some("Codexist Memo".to_string()),
+                uri_template: "memo://codexist/{slug}".to_string(),
             }],
         }
     );

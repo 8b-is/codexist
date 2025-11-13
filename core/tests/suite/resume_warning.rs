@@ -1,22 +1,22 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use codex_core::AuthManager;
-use codex_core::CodexAuth;
-use codex_core::ConversationManager;
-use codex_core::NewConversation;
-use codex_core::protocol::EventMsg;
-use codex_core::protocol::InitialHistory;
-use codex_core::protocol::ResumedHistory;
-use codex_core::protocol::RolloutItem;
-use codex_core::protocol::TurnContextItem;
-use codex_core::protocol::WarningEvent;
-use codex_protocol::ConversationId;
+use codexist_core::AuthManager;
+use codexist_core::CodexistAuth;
+use codexist_core::ConversationManager;
+use codexist_core::NewConversation;
+use codexist_core::protocol::EventMsg;
+use codexist_core::protocol::InitialHistory;
+use codexist_core::protocol::ResumedHistory;
+use codexist_core::protocol::RolloutItem;
+use codexist_core::protocol::TurnContextItem;
+use codexist_core::protocol::WarningEvent;
+use codexist_protocol::ConversationId;
 use core::time::Duration;
 use core_test_support::load_default_config_for_test;
 use core_test_support::wait_for_event;
 use tempfile::TempDir;
 
-fn resume_history(config: &codex_core::config::Config, previous_model: &str, rollout_path: &std::path::Path) -> InitialHistory {
+fn resume_history(config: &codexist_core::config::Config, previous_model: &str, rollout_path: &std::path::Path) -> InitialHistory {
     let turn_ctx = TurnContextItem {
         cwd: config.cwd.clone(),
         approval_policy: config.approval_policy,
@@ -47,8 +47,8 @@ async fn emits_warning_when_resumed_model_differs() {
 
     let initial_history = resume_history(&config, "previous-model", &rollout_path);
 
-    let conversation_manager = ConversationManager::with_auth(CodexAuth::from_api_key("test"));
-    let auth_manager = AuthManager::from_auth_for_testing(CodexAuth::from_api_key("test"));
+    let conversation_manager = ConversationManager::with_auth(CodexistAuth::from_api_key("test"));
+    let auth_manager = AuthManager::from_auth_for_testing(CodexistAuth::from_api_key("test"));
 
     // Act: resume the conversation.
     let NewConversation { conversation, .. } = conversation_manager

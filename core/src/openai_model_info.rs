@@ -50,8 +50,8 @@ pub(crate) fn get_model_info(model_family: &ModelFamily) -> Option<ModelInfo> {
         // https://platform.openai.com/docs/models/o4-mini
         "o4-mini" => Some(ModelInfo::new(200_000, 100_000)),
 
-        // https://platform.openai.com/docs/models/codex-mini-latest
-        "codex-mini-latest" => Some(ModelInfo::new(200_000, 100_000)),
+        // https://platform.openai.com/docs/models/codexist-mini-latest
+        "codexist-mini-latest" => Some(ModelInfo::new(200_000, 100_000)),
 
         // As of Jun 25, 2025, gpt-4.1 defaults to gpt-4.1-2025-04-14.
         // https://platform.openai.com/docs/models/gpt-4.1
@@ -70,7 +70,7 @@ pub(crate) fn get_model_info(model_family: &ModelFamily) -> Option<ModelInfo> {
         // https://platform.openai.com/docs/models/gpt-3.5-turbo
         "gpt-3.5-turbo" => Some(ModelInfo::new(16_385, 4_096)),
 
-        _ if slug.starts_with("gpt-5-codex") || slug.starts_with("gpt-5.1-codex") => {
+        _ if slug.starts_with("gpt-5-codexist") || slug.starts_with("gpt-5.1-codexist") => {
             Some(ModelInfo::new(CONTEXT_WINDOW_272K, MAX_OUTPUT_TOKENS_128K))
         }
 
@@ -78,7 +78,7 @@ pub(crate) fn get_model_info(model_family: &ModelFamily) -> Option<ModelInfo> {
             Some(ModelInfo::new(CONTEXT_WINDOW_272K, MAX_OUTPUT_TOKENS_128K))
         }
 
-        _ if slug.starts_with("codex-") => {
+        _ if slug.starts_with("codexist-") => {
             Some(ModelInfo::new(CONTEXT_WINDOW_272K, MAX_OUTPUT_TOKENS_128K))
         }
 

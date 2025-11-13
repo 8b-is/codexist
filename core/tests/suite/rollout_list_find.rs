@@ -3,14 +3,14 @@ use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
 
-use codex_core::find_conversation_path_by_id_str;
+use codexist_core::find_conversation_path_by_id_str;
 use tempfile::TempDir;
 use uuid::Uuid;
 
 /// Create sessions/YYYY/MM/DD and write a minimal rollout file containing the
 /// provided conversation id in the SessionMeta line. Returns the absolute path.
-fn write_minimal_rollout_with_id(codex_home: &Path, id: Uuid) -> PathBuf {
-    let sessions = codex_home.join("sessions/2024/01/01");
+fn write_minimal_rollout_with_id(codexist_home: &Path, id: Uuid) -> PathBuf {
+    let sessions = codexist_home.join("sessions/2024/01/01");
     std::fs::create_dir_all(&sessions).unwrap();
 
     let file = sessions.join(format!("rollout-2024-01-01T00-00-00-{id}.jsonl"));
@@ -52,15 +52,15 @@ async fn find_locates_rollout_file_by_id() {
 }
 
 #[tokio::test]
-async fn find_handles_gitignore_covering_codex_home_directory() {
+async fn find_handles_gitignore_covering_codexist_home_directory() {
     let repo = TempDir::new().unwrap();
-    let codex_home = repo.path().join(".codex");
-    std::fs::create_dir_all(&codex_home).unwrap();
-    std::fs::write(repo.path().join(".gitignore"), ".codex/**\n").unwrap();
+    let codexist_home = repo.path().join(".codexist");
+    std::fs::create_dir_all(&codexist_home).unwrap();
+    std::fs::write(repo.path().join(".gitignore"), ".codexist/**\n").unwrap();
     let id = Uuid::new_v4();
-    let expected = write_minimal_rollout_with_id(&codex_home, id);
+    let expected = write_minimal_rollout_with_id(&codexist_home, id);
 
-    let found = find_conversation_path_by_id_str(&codex_home, &id.to_string())
+    let found = find_conversation_path_by_id_str(&codexist_home, &id.to_string())
         .await
         .unwrap();
 

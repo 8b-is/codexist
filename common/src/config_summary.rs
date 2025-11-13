@@ -1,5 +1,5 @@
-use codex_core::WireApi;
-use codex_core::config::Config;
+use codexist_core::WireApi;
+use codexist_core::config::Config;
 
 use crate::sandbox_summary::summarize_sandbox_policy;
 

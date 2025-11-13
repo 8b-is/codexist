@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::path::PathBuf;
 
-use codex_core::bash::extract_bash_command;
+use codexist_core::bash::extract_bash_command;
 use dirs::home_dir;
 use shlex::try_join;
 

@@ -1,19 +1,19 @@
 use anyhow::Result;
 use app_test_support::McpProcess;
 use app_test_support::to_response;
-use codex_app_server_protocol::GetUserSavedConfigResponse;
-use codex_app_server_protocol::JSONRPCResponse;
-use codex_app_server_protocol::Profile;
-use codex_app_server_protocol::RequestId;
-use codex_app_server_protocol::SandboxSettings;
-use codex_app_server_protocol::Tools;
-use codex_app_server_protocol::UserSavedConfig;
-use codex_core::protocol::AskForApproval;
-use codex_protocol::config_types::ForcedLoginMethod;
-use codex_protocol::config_types::ReasoningEffort;
-use codex_protocol::config_types::ReasoningSummary;
-use codex_protocol::config_types::SandboxMode;
-use codex_protocol::config_types::Verbosity;
+use codexist_app_server_protocol::GetUserSavedConfigResponse;
+use codexist_app_server_protocol::JSONRPCResponse;
+use codexist_app_server_protocol::Profile;
+use codexist_app_server_protocol::RequestId;
+use codexist_app_server_protocol::SandboxSettings;
+use codexist_app_server_protocol::Tools;
+use codexist_app_server_protocol::UserSavedConfig;
+use codexist_core::protocol::AskForApproval;
+use codexist_protocol::config_types::ForcedLoginMethod;
+use codexist_protocol::config_types::ReasoningEffort;
+use codexist_protocol::config_types::ReasoningSummary;
+use codexist_protocol::config_types::SandboxMode;
+use codexist_protocol::config_types::Verbosity;
 use pretty_assertions::assert_eq;
 use std::collections::HashMap;
 use std::path::Path;
@@ -22,12 +22,12 @@ use tokio::time::timeout;
 
 const DEFAULT_READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
 
-fn create_config_toml(codex_home: &Path) -> std::io::Result<()> {
-    let config_toml = codex_home.join("config.toml");
+fn create_config_toml(codexist_home: &Path) -> std::io::Result<()> {
+    let config_toml = codexist_home.join("config.toml");
     std::fs::write(
         config_toml,
         r#"
-model = "gpt-5-codex"
+model = "gpt-5-codexist"
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"
 model_reasoning_summary = "detailed"
@@ -61,10 +61,10 @@ chatgpt_base_url = "https://api.chatgpt.com"
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn get_config_toml_parses_all_fields() -> Result<()> {
-    let codex_home = TempDir::new()?;
-    create_config_toml(codex_home.path())?;
+    let codexist_home = TempDir::new()?;
+    create_config_toml(codexist_home.path())?;
 
-    let mut mcp = McpProcess::new(codex_home.path()).await?;
+    let mut mcp = McpProcess::new(codexist_home.path()).await?;
     timeout(DEFAULT_READ_TIMEOUT, mcp.initialize()).await??;
 
     let request_id = mcp.send_get_user_saved_config_request().await?;
@@ -87,7 +87,7 @@ async fn get_config_toml_parses_all_fields() -> Result<()> {
             }),
             forced_chatgpt_workspace_id: Some("12345678-0000-0000-0000-000000000000".into()),
             forced_login_method: Some(ForcedLoginMethod::Chatgpt),
-            model: Some("gpt-5-codex".into()),
+            model: Some("gpt-5-codexist".into()),
             model_reasoning_effort: Some(ReasoningEffort::High),
             model_reasoning_summary: Some(ReasoningSummary::Detailed),
             model_verbosity: Some(Verbosity::Medium),
@@ -117,9 +117,9 @@ async fn get_config_toml_parses_all_fields() -> Result<()> {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn get_config_toml_empty() -> Result<()> {
-    let codex_home = TempDir::new()?;
+    let codexist_home = TempDir::new()?;
 
-    let mut mcp = McpProcess::new(codex_home.path()).await?;
+    let mut mcp = McpProcess::new(codexist_home.path()).await?;
     timeout(DEFAULT_READ_TIMEOUT, mcp.initialize()).await??;
 
     let request_id = mcp.send_get_user_saved_config_request().await?;

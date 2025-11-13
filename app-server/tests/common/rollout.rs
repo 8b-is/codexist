@@ -1,14 +1,14 @@
 use anyhow::Result;
-use codex_protocol::ConversationId;
-use codex_protocol::protocol::SessionMeta;
-use codex_protocol::protocol::SessionSource;
+use codexist_protocol::ConversationId;
+use codexist_protocol::protocol::SessionMeta;
+use codexist_protocol::protocol::SessionSource;
 use serde_json::json;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
 use uuid::Uuid;
 
-/// Create a minimal rollout file under `CODEX_HOME/sessions/YYYY/MM/DD/`.
+/// Create a minimal rollout file under `CODEXIST_HOME/sessions/YYYY/MM/DD/`.
 ///
 /// - `filename_ts` is the filename timestamp component in `YYYY-MM-DDThh-mm-ss` format.
 /// - `meta_rfc3339` is the envelope timestamp used in JSON lines.
@@ -17,7 +17,7 @@ use uuid::Uuid;
 ///
 /// Returns the generated conversation/session UUID as a string.
 pub fn create_fake_rollout(
-    codex_home: &Path,
+    codexist_home: &Path,
     filename_ts: &str,
     meta_rfc3339: &str,
     preview: &str,
@@ -31,7 +31,7 @@ pub fn create_fake_rollout(
     let year = &filename_ts[0..4];
     let month = &filename_ts[5..7];
     let day = &filename_ts[8..10];
-    let dir = codex_home.join("sessions").join(year).join(month).join(day);
+    let dir = codexist_home.join("sessions").join(year).join(month).join(day);
     fs::create_dir_all(&dir)?;
 
     let file_path = dir.join(format!("rollout-{filename_ts}-{uuid}.jsonl"));
@@ -41,7 +41,7 @@ pub fn create_fake_rollout(
         id: conversation_id,
         timestamp: meta_rfc3339.to_string(),
         cwd: PathBuf::from("/"),
-        originator: "codex".to_string(),
+        originator: "codexist".to_string(),
         cli_version: "0.0.0".to_string(),
         instructions: None,
         source: SessionSource::Cli,

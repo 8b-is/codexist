@@ -5,9 +5,9 @@ use std::io::ErrorKind;
 use std::io::Result as IoResult;
 use std::path::PathBuf;
 
-use codex_common::CliConfigOverrides;
-use codex_core::config::Config;
-use codex_core::config::ConfigOverrides;
+use codexist_common::CliConfigOverrides;
+use codexist_core::config::Config;
+use codexist_core::config::ConfigOverrides;
 
 use mcp_types::JSONRPCMessage;
 use tokio::io::AsyncBufReadExt;
@@ -20,8 +20,8 @@ use tracing::error;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 
-mod codex_tool_config;
-mod codex_tool_runner;
+mod codexist_tool_config;
+mod codexist_tool_runner;
 mod error_code;
 mod exec_approval;
 pub(crate) mod message_processor;
@@ -32,8 +32,8 @@ use crate::message_processor::MessageProcessor;
 use crate::outgoing_message::OutgoingMessage;
 use crate::outgoing_message::OutgoingMessageSender;
 
-pub use crate::codex_tool_config::CodexToolCallParam;
-pub use crate::codex_tool_config::CodexToolCallReplyParam;
+pub use crate::codexist_tool_config::CodexistToolCallParam;
+pub use crate::codexist_tool_config::CodexistToolCallReplyParam;
 pub use crate::exec_approval::ExecApprovalElicitRequestParams;
 pub use crate::exec_approval::ExecApprovalResponse;
 pub use crate::patch_approval::PatchApprovalElicitRequestParams;
@@ -45,7 +45,7 @@ pub use crate::patch_approval::PatchApprovalResponse;
 const CHANNEL_CAPACITY: usize = 128;
 
 pub async fn run_main(
-    codex_linux_sandbox_exe: Option<PathBuf>,
+    codexist_linux_sandbox_exe: Option<PathBuf>,
     cli_config_overrides: CliConfigOverrides,
 ) -> IoResult<()> {
     // Install a simple subscriber so `tracing` output is visible.  Users can
@@ -101,7 +101,7 @@ pub async fn run_main(
         let outgoing_message_sender = OutgoingMessageSender::new(outgoing_tx);
         let mut processor = MessageProcessor::new(
             outgoing_message_sender,
-            codex_linux_sandbox_exe,
+            codexist_linux_sandbox_exe,
             std::sync::Arc::new(config),
         );
         async move {

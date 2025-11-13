@@ -2,14 +2,14 @@ use crate::history_cell::CompositeHistoryCell;
 use crate::history_cell::HistoryCell;
 use crate::history_cell::PlainHistoryCell;
 use crate::history_cell::with_border_with_inner_width;
-use crate::version::CODEX_CLI_VERSION;
+use crate::version::CODEXIST_CLI_VERSION;
 use chrono::DateTime;
 use chrono::Local;
-use codex_common::create_config_summary_entries;
-use codex_core::config::Config;
-use codex_core::protocol::SandboxPolicy;
-use codex_core::protocol::TokenUsage;
-use codex_protocol::ConversationId;
+use codexist_common::create_config_summary_entries;
+use codexist_core::config::Config;
+use codexist_core::protocol::SandboxPolicy;
+use codexist_core::protocol::TokenUsage;
+use codexist_protocol::ConversationId;
 use ratatui::prelude::*;
 use ratatui::style::Stylize;
 use std::collections::BTreeSet;
@@ -33,7 +33,7 @@ use super::rate_limits::format_status_limit_summary;
 use super::rate_limits::render_status_limit_progress_bar;
 use crate::wrapping::RtOptions;
 use crate::wrapping::word_wrap_lines;
-use codex_core::AuthManager;
+use codexist_core::AuthManager;
 
 #[derive(Debug, Clone)]
 struct StatusContextWindowData {
@@ -271,9 +271,9 @@ impl HistoryCell for StatusHistoryCell {
         let mut lines: Vec<Line<'static>> = Vec::new();
         lines.push(Line::from(vec![
             Span::from(format!("{}>_ ", FieldFormatter::INDENT)).dim(),
-            Span::from("OpenAI Codex").bold(),
+            Span::from("8b.is/codexist").bold(),
             Span::from(" ").dim(),
-            Span::from(format!("(v{CODEX_CLI_VERSION})")).dim(),
+            Span::from(format!("(v{CODEXIST_CLI_VERSION})")).dim(),
         ]));
         lines.push(Line::from(Vec::<Span<'static>>::new()));
 
@@ -290,7 +290,7 @@ impl HistoryCell for StatusHistoryCell {
                 (None, None) => "ChatGPT".to_string(),
             },
             StatusAccountDisplay::ApiKey => {
-                "API key configured (run codex login to use ChatGPT)".to_string()
+                "API key configured (run codexist login to use ChatGPT)".to_string()
             }
         });
 
@@ -318,7 +318,7 @@ impl HistoryCell for StatusHistoryCell {
 
         let note_first_line = Line::from(vec![
             Span::from("Visit ").cyan(),
-            "https://chatgpt.com/codex/settings/usage"
+            "https://chatgpt.com/codexist/settings/usage"
                 .cyan()
                 .underlined(),
             Span::from(" for up-to-date").cyan(),

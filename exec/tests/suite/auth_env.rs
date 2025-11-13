@@ -3,12 +3,12 @@ use core_test_support::responses::ev_completed;
 use core_test_support::responses::mount_sse_once_match;
 use core_test_support::responses::sse;
 use core_test_support::responses::start_mock_server;
-use core_test_support::test_codex_exec::test_codex_exec;
+use core_test_support::test_codexist_exec::test_codexist_exec;
 use wiremock::matchers::header;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn exec_uses_codex_api_key_env_var() -> anyhow::Result<()> {
-    let test = test_codex_exec();
+async fn exec_uses_codexist_api_key_env_var() -> anyhow::Result<()> {
+    let test = test_codexist_exec();
     let server = start_mock_server().await;
 
     mount_sse_once_match(
@@ -22,7 +22,7 @@ async fn exec_uses_codex_api_key_env_var() -> anyhow::Result<()> {
         .arg("--skip-git-repo-check")
         .arg("-C")
         .arg(env!("CARGO_MANIFEST_DIR"))
-        .arg("echo testing codex api key")
+        .arg("echo testing codexist api key")
         .assert()
         .success();
 

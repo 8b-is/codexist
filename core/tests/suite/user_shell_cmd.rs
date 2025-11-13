@@ -1,10 +1,10 @@
-use codex_core::ConversationManager;
-use codex_core::NewConversation;
-use codex_core::protocol::EventMsg;
-use codex_core::protocol::ExecCommandEndEvent;
-use codex_core::protocol::ExecOutputStream;
-use codex_core::protocol::Op;
-use codex_core::protocol::TurnAbortReason;
+use codexist_core::ConversationManager;
+use codexist_core::NewConversation;
+use codexist_core::protocol::EventMsg;
+use codexist_core::protocol::ExecCommandEndEvent;
+use codexist_core::protocol::ExecOutputStream;
+use codexist_core::protocol::Op;
+use codexist_core::protocol::TurnAbortReason;
 use core_test_support::assert_regex_match;
 use core_test_support::load_default_config_for_test;
 use core_test_support::responses;
@@ -26,14 +26,14 @@ async fn user_shell_cmd_ls_and_cat_in_temp_dir() {
         .expect("write temp file");
 
     // Load config and pin cwd to the temp dir so ls/cat operate there.
-    let codex_home = TempDir::new().unwrap();
-    let mut config = load_default_config_for_test(&codex_home);
+    let codexist_home = TempDir::new().unwrap();
+    let mut config = load_default_config_for_test(&codexist_home);
     config.cwd = cwd.path().to_path_buf();
 
     let conversation_manager =
-        ConversationManager::with_auth(codex_core::CodexAuth::from_api_key("dummy"));
+        ConversationManager::with_auth(codexist_core::CodexistAuth::from_api_key("dummy"));
     let NewConversation {
-        conversation: codex,
+        conversation: codexist,
         ..
     } = conversation_manager
         .new_conversation(config)
@@ -42,11 +42,11 @@ async fn user_shell_cmd_ls_and_cat_in_temp_dir() {
 
     // 1) shell command should list the file
     let list_cmd = "ls".to_string();
-    codex
+    codexist
         .submit(Op::RunUserShellCommand { command: list_cmd })
         .await
         .unwrap();
-    let msg = wait_for_event(&codex, |ev| matches!(ev, EventMsg::ExecCommandEnd(_))).await;
+    let msg = wait_for_event(&codexist, |ev| matches!(ev, EventMsg::ExecCommandEnd(_))).await;
     let EventMsg::ExecCommandEnd(ExecCommandEndEvent {
         stdout, exit_code, ..
     }) = msg
@@ -61,11 +61,11 @@ async fn user_shell_cmd_ls_and_cat_in_temp_dir() {
 
     // 2) shell command should print the file contents verbatim
     let cat_cmd = format!("cat {file_name}");
-    codex
+    codexist
         .submit(Op::RunUserShellCommand { command: cat_cmd })
         .await
         .unwrap();
-    let msg = wait_for_event(&codex, |ev| matches!(ev, EventMsg::ExecCommandEnd(_))).await;
+    let msg = wait_for_event(&codexist, |ev| matches!(ev, EventMsg::ExecCommandEnd(_))).await;
     let EventMsg::ExecCommandEnd(ExecCommandEndEvent {
         mut stdout,
         exit_code,
@@ -85,12 +85,12 @@ async fn user_shell_cmd_ls_and_cat_in_temp_dir() {
 #[tokio::test]
 async fn user_shell_cmd_can_be_interrupted() {
     // Set up isolated config and conversation.
-    let codex_home = TempDir::new().unwrap();
-    let config = load_default_config_for_test(&codex_home);
+    let codexist_home = TempDir::new().unwrap();
+    let config = load_default_config_for_test(&codexist_home);
     let conversation_manager =
-        ConversationManager::with_auth(codex_core::CodexAuth::from_api_key("dummy"));
+        ConversationManager::with_auth(codexist_core::CodexistAuth::from_api_key("dummy"));
     let NewConversation {
-        conversation: codex,
+        conversation: codexist,
         ..
     } = conversation_manager
         .new_conversation(config)
@@ -99,17 +99,17 @@ async fn user_shell_cmd_can_be_interrupted() {
 
     // Start a long-running command and then interrupt it.
     let sleep_cmd = "sleep 5".to_string();
-    codex
+    codexist
         .submit(Op::RunUserShellCommand { command: sleep_cmd })
         .await
         .unwrap();
 
     // Wait until it has started (ExecCommandBegin), then interrupt.
-    let _ = wait_for_event(&codex, |ev| matches!(ev, EventMsg::ExecCommandBegin(_))).await;
-    codex.submit(Op::Interrupt).await.unwrap();
+    let _ = wait_for_event(&codexist, |ev| matches!(ev, EventMsg::ExecCommandBegin(_))).await;
+    codexist.submit(Op::Interrupt).await.unwrap();
 
     // Expect a TurnAborted(Interrupted) notification.
-    let msg = wait_for_event(&codex, |ev| matches!(ev, EventMsg::TurnAborted(_))).await;
+    let msg = wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TurnAborted(_))).await;
     let EventMsg::TurnAborted(ev) = msg else {
         unreachable!()
     };
@@ -119,21 +119,21 @@ async fn user_shell_cmd_can_be_interrupted() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn user_shell_command_history_is_persisted_and_shared_with_model() -> anyhow::Result<()> {
     let server = responses::start_mock_server().await;
-    let mut builder = core_test_support::test_codex::test_codex();
+    let mut builder = core_test_support::test_codexist::test_codexist();
     let test = builder.build(&server).await?;
 
     #[cfg(windows)]
-    let command = r#"$val = $env:CODEX_SANDBOX; if ([string]::IsNullOrEmpty($val)) { $val = 'not-set' } ; [System.Console]::Write($val)"#.to_string();
+    let command = r#"$val = $env:CODEXIST_SANDBOX; if ([string]::IsNullOrEmpty($val)) { $val = 'not-set' } ; [System.Console]::Write($val)"#.to_string();
     #[cfg(not(windows))]
-    let command = r#"sh -c "printf '%s' \"${CODEX_SANDBOX:-not-set}\"""#.to_string();
+    let command = r#"sh -c "printf '%s' \"${CODEXIST_SANDBOX:-not-set}\"""#.to_string();
 
-    test.codex
+    test.codexist
         .submit(Op::RunUserShellCommand {
             command: command.clone(),
         })
         .await?;
 
-    let begin_event = wait_for_event_match(&test.codex, |ev| match ev {
+    let begin_event = wait_for_event_match(&test.codexist, |ev| match ev {
         EventMsg::ExecCommandBegin(event) => Some(event.clone()),
         _ => None,
     })
@@ -147,7 +147,7 @@ async fn user_shell_command_history_is_persisted_and_shared_with_model() -> anyh
         begin_event.command
     );
 
-    let delta_event = wait_for_event_match(&test.codex, |ev| match ev {
+    let delta_event = wait_for_event_match(&test.codexist, |ev| match ev {
         EventMsg::ExecCommandOutputDelta(event) => Some(event.clone()),
         _ => None,
     })
@@ -157,7 +157,7 @@ async fn user_shell_command_history_is_persisted_and_shared_with_model() -> anyh
         String::from_utf8(delta_event.chunk.clone()).expect("user command chunk is valid utf-8");
     assert_eq!(chunk_text.trim(), "not-set");
 
-    let end_event = wait_for_event_match(&test.codex, |ev| match ev {
+    let end_event = wait_for_event_match(&test.codexist, |ev| match ev {
         EventMsg::ExecCommandEnd(event) => Some(event.clone()),
         _ => None,
     })
@@ -165,7 +165,7 @@ async fn user_shell_command_history_is_persisted_and_shared_with_model() -> anyh
     assert_eq!(end_event.exit_code, 0);
     assert_eq!(end_event.stdout.trim(), "not-set");
 
-    let _ = wait_for_event(&test.codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    let _ = wait_for_event(&test.codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     let responses = vec![responses::sse(vec![
         responses::ev_response_created("resp-1"),
@@ -196,7 +196,7 @@ async fn user_shell_command_history_is_persisted_and_shared_with_model() -> anyh
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn user_shell_command_output_is_truncated_in_history() -> anyhow::Result<()> {
     let server = responses::start_mock_server().await;
-    let mut builder = core_test_support::test_codex::test_codex();
+    let mut builder = core_test_support::test_codexist::test_codexist();
     let test = builder.build(&server).await?;
 
     #[cfg(windows)]
@@ -204,20 +204,20 @@ async fn user_shell_command_output_is_truncated_in_history() -> anyhow::Result<(
     #[cfg(not(windows))]
     let command = "seq 1 400".to_string();
 
-    test.codex
+    test.codexist
         .submit(Op::RunUserShellCommand {
             command: command.clone(),
         })
         .await?;
 
-    let end_event = wait_for_event_match(&test.codex, |ev| match ev {
+    let end_event = wait_for_event_match(&test.codexist, |ev| match ev {
         EventMsg::ExecCommandEnd(event) => Some(event.clone()),
         _ => None,
     })
     .await;
     assert_eq!(end_event.exit_code, 0);
 
-    let _ = wait_for_event(&test.codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    let _ = wait_for_event(&test.codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     let responses = vec![responses::sse(vec![
         responses::ev_response_created("resp-1"),

@@ -1,21 +1,21 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use crate::codex_tool_config::CodexToolCallParam;
-use crate::codex_tool_config::CodexToolCallReplyParam;
-use crate::codex_tool_config::create_tool_for_codex_tool_call_param;
-use crate::codex_tool_config::create_tool_for_codex_tool_call_reply_param;
+use crate::codexist_tool_config::CodexistToolCallParam;
+use crate::codexist_tool_config::CodexistToolCallReplyParam;
+use crate::codexist_tool_config::create_tool_for_codexist_tool_call_param;
+use crate::codexist_tool_config::create_tool_for_codexist_tool_call_reply_param;
 use crate::error_code::INVALID_REQUEST_ERROR_CODE;
 use crate::outgoing_message::OutgoingMessageSender;
-use codex_protocol::ConversationId;
-use codex_protocol::protocol::SessionSource;
+use codexist_protocol::ConversationId;
+use codexist_protocol::protocol::SessionSource;
 
-use codex_core::AuthManager;
-use codex_core::ConversationManager;
-use codex_core::config::Config;
-use codex_core::default_client::USER_AGENT_SUFFIX;
-use codex_core::default_client::get_codex_user_agent;
-use codex_core::protocol::Submission;
+use codexist_core::AuthManager;
+use codexist_core::ConversationManager;
+use codexist_core::config::Config;
+use codexist_core::default_client::USER_AGENT_SUFFIX;
+use codexist_core::default_client::get_codexist_user_agent;
+use codexist_core::protocol::Submission;
 use mcp_types::CallToolRequestParams;
 use mcp_types::CallToolResult;
 use mcp_types::ClientRequest as McpClientRequest;
@@ -39,9 +39,9 @@ use tokio::task;
 pub(crate) struct MessageProcessor {
     outgoing: Arc<OutgoingMessageSender>,
     initialized: bool,
-    codex_linux_sandbox_exe: Option<PathBuf>,
+    codexist_linux_sandbox_exe: Option<PathBuf>,
     conversation_manager: Arc<ConversationManager>,
-    running_requests_id_to_codex_uuid: Arc<Mutex<HashMap<RequestId, ConversationId>>>,
+    running_requests_id_to_codexist_uuid: Arc<Mutex<HashMap<RequestId, ConversationId>>>,
 }
 
 impl MessageProcessor {
@@ -49,12 +49,12 @@ impl MessageProcessor {
     /// `Sender` so handlers can enqueue messages to be written to stdout.
     pub(crate) fn new(
         outgoing: OutgoingMessageSender,
-        codex_linux_sandbox_exe: Option<PathBuf>,
+        codexist_linux_sandbox_exe: Option<PathBuf>,
         config: Arc<Config>,
     ) -> Self {
         let outgoing = Arc::new(outgoing);
         let auth_manager = AuthManager::shared(
-            config.codex_home.clone(),
+            config.codexist_home.clone(),
             false,
             config.cli_auth_credentials_store_mode,
         );
@@ -63,9 +63,9 @@ impl MessageProcessor {
         Self {
             outgoing,
             initialized: false,
-            codex_linux_sandbox_exe,
+            codexist_linux_sandbox_exe,
             conversation_manager,
-            running_requests_id_to_codex_uuid: Arc::new(Mutex::new(HashMap::new())),
+            running_requests_id_to_codexist_uuid: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -217,10 +217,10 @@ impl MessageProcessor {
             instructions: None,
             protocol_version: params.protocol_version.clone(),
             server_info: mcp_types::Implementation {
-                name: "codex-mcp-server".to_string(),
+                name: "codexist-mcp-server".to_string(),
                 version: env!("CARGO_PKG_VERSION").to_string(),
-                title: Some("Codex".to_string()),
-                user_agent: Some(get_codex_user_agent()),
+                title: Some("Codexist".to_string()),
+                user_agent: Some(get_codexist_user_agent()),
             },
         };
 
@@ -304,8 +304,8 @@ impl MessageProcessor {
         tracing::trace!("tools/list -> {params:?}");
         let result = ListToolsResult {
             tools: vec![
-                create_tool_for_codex_tool_call_param(),
-                create_tool_for_codex_tool_call_reply_param(),
+                create_tool_for_codexist_tool_call_param(),
+                create_tool_for_codexist_tool_call_reply_param(),
             ],
             next_cursor: None,
         };
@@ -323,9 +323,9 @@ impl MessageProcessor {
         let CallToolRequestParams { name, arguments } = params;
 
         match name.as_str() {
-            "codex" => self.handle_tool_call_codex(id, arguments).await,
-            "codex-reply" => {
-                self.handle_tool_call_codex_session_reply(id, arguments)
+            "codexist" => self.handle_tool_call_codexist(id, arguments).await,
+            "codexist-reply" => {
+                self.handle_tool_call_codexist_session_reply(id, arguments)
                     .await
             }
             _ => {
@@ -343,11 +343,11 @@ impl MessageProcessor {
             }
         }
     }
-    async fn handle_tool_call_codex(&self, id: RequestId, arguments: Option<serde_json::Value>) {
+    async fn handle_tool_call_codexist(&self, id: RequestId, arguments: Option<serde_json::Value>) {
         let (initial_prompt, config): (String, Config) = match arguments {
-            Some(json_val) => match serde_json::from_value::<CodexToolCallParam>(json_val) {
+            Some(json_val) => match serde_json::from_value::<CodexistToolCallParam>(json_val) {
                 Ok(tool_cfg) => match tool_cfg
-                    .into_config(self.codex_linux_sandbox_exe.clone())
+                    .into_config(self.codexist_linux_sandbox_exe.clone())
                     .await
                 {
                     Ok(cfg) => cfg,
@@ -356,7 +356,7 @@ impl MessageProcessor {
                             content: vec![ContentBlock::TextContent(TextContent {
                                 r#type: "text".to_owned(),
                                 text: format!(
-                                    "Failed to load Codex configuration from overrides: {e}"
+                                    "Failed to load Codexist configuration from overrides: {e}"
                                 ),
                                 annotations: None,
                             })],
@@ -372,7 +372,7 @@ impl MessageProcessor {
                     let result = CallToolResult {
                         content: vec![ContentBlock::TextContent(TextContent {
                             r#type: "text".to_owned(),
-                            text: format!("Failed to parse configuration for Codex tool: {e}"),
+                            text: format!("Failed to parse configuration for Codexist tool: {e}"),
                             annotations: None,
                         })],
                         is_error: Some(true),
@@ -388,7 +388,7 @@ impl MessageProcessor {
                     content: vec![ContentBlock::TextContent(TextContent {
                         r#type: "text".to_string(),
                         text:
-                            "Missing arguments for codex tool-call; the `prompt` field is required."
+                            "Missing arguments for codexist tool-call; the `prompt` field is required."
                                 .to_string(),
                         annotations: None,
                     })],
@@ -404,25 +404,25 @@ impl MessageProcessor {
         // Clone outgoing and server to move into async task.
         let outgoing = self.outgoing.clone();
         let conversation_manager = self.conversation_manager.clone();
-        let running_requests_id_to_codex_uuid = self.running_requests_id_to_codex_uuid.clone();
+        let running_requests_id_to_codexist_uuid = self.running_requests_id_to_codexist_uuid.clone();
 
-        // Spawn an async task to handle the Codex session so that we do not
+        // Spawn an async task to handle the Codexist session so that we do not
         // block the synchronous message-processing loop.
         task::spawn(async move {
-            // Run the Codex session and stream events back to the client.
-            crate::codex_tool_runner::run_codex_tool_session(
+            // Run the Codexist session and stream events back to the client.
+            crate::codexist_tool_runner::run_codexist_tool_session(
                 id,
                 initial_prompt,
                 config,
                 outgoing,
                 conversation_manager,
-                running_requests_id_to_codex_uuid,
+                running_requests_id_to_codexist_uuid,
             )
             .await;
         });
     }
 
-    async fn handle_tool_call_codex_session_reply(
+    async fn handle_tool_call_codexist_session_reply(
         &self,
         request_id: RequestId,
         arguments: Option<serde_json::Value>,
@@ -430,18 +430,18 @@ impl MessageProcessor {
         tracing::info!("tools/call -> params: {:?}", arguments);
 
         // parse arguments
-        let CodexToolCallReplyParam {
+        let CodexistToolCallReplyParam {
             conversation_id,
             prompt,
         } = match arguments {
-            Some(json_val) => match serde_json::from_value::<CodexToolCallReplyParam>(json_val) {
+            Some(json_val) => match serde_json::from_value::<CodexistToolCallReplyParam>(json_val) {
                 Ok(params) => params,
                 Err(e) => {
-                    tracing::error!("Failed to parse Codex tool call reply parameters: {e}");
+                    tracing::error!("Failed to parse Codexist tool call reply parameters: {e}");
                     let result = CallToolResult {
                         content: vec![ContentBlock::TextContent(TextContent {
                             r#type: "text".to_owned(),
-                            text: format!("Failed to parse configuration for Codex tool: {e}"),
+                            text: format!("Failed to parse configuration for Codexist tool: {e}"),
                             annotations: None,
                         })],
                         is_error: Some(true),
@@ -454,12 +454,12 @@ impl MessageProcessor {
             },
             None => {
                 tracing::error!(
-                    "Missing arguments for codex-reply tool-call; the `conversation_id` and `prompt` fields are required."
+                    "Missing arguments for codexist-reply tool-call; the `conversation_id` and `prompt` fields are required."
                 );
                 let result = CallToolResult {
                     content: vec![ContentBlock::TextContent(TextContent {
                         r#type: "text".to_owned(),
-                        text: "Missing arguments for codex-reply tool-call; the `conversation_id` and `prompt` fields are required.".to_owned(),
+                        text: "Missing arguments for codexist-reply tool-call; the `conversation_id` and `prompt` fields are required.".to_owned(),
                         annotations: None,
                     })],
                     is_error: Some(true),
@@ -491,9 +491,9 @@ impl MessageProcessor {
 
         // Clone outgoing to move into async task.
         let outgoing = self.outgoing.clone();
-        let running_requests_id_to_codex_uuid = self.running_requests_id_to_codex_uuid.clone();
+        let running_requests_id_to_codexist_uuid = self.running_requests_id_to_codexist_uuid.clone();
 
-        let codex = match self
+        let codexist = match self
             .conversation_manager
             .get_conversation(conversation_id)
             .await
@@ -519,15 +519,15 @@ impl MessageProcessor {
         tokio::spawn({
             let outgoing = outgoing.clone();
             let prompt = prompt.clone();
-            let running_requests_id_to_codex_uuid = running_requests_id_to_codex_uuid.clone();
+            let running_requests_id_to_codexist_uuid = running_requests_id_to_codexist_uuid.clone();
 
             async move {
-                crate::codex_tool_runner::run_codex_tool_session_reply(
-                    codex,
+                crate::codexist_tool_runner::run_codexist_tool_session_reply(
+                    codexist,
                     outgoing,
                     request_id,
                     prompt,
-                    running_requests_id_to_codex_uuid,
+                    running_requests_id_to_codexist_uuid,
                     conversation_id,
                 )
                 .await;
@@ -566,7 +566,7 @@ impl MessageProcessor {
 
         // Obtain the conversation id while holding the first lock, then release.
         let conversation_id = {
-            let map_guard = self.running_requests_id_to_codex_uuid.lock().await;
+            let map_guard = self.running_requests_id_to_codexist_uuid.lock().await;
             match map_guard.get(&request_id) {
                 Some(id) => *id,
                 None => {
@@ -577,8 +577,8 @@ impl MessageProcessor {
         };
         tracing::info!("conversation_id: {conversation_id}");
 
-        // Obtain the Codex conversation from the server.
-        let codex_arc = match self
+        // Obtain the Codexist conversation from the server.
+        let codexist_arc = match self
             .conversation_manager
             .get_conversation(conversation_id)
             .await
@@ -590,19 +590,19 @@ impl MessageProcessor {
             }
         };
 
-        // Submit interrupt to Codex.
-        let err = codex_arc
+        // Submit interrupt to Codexist.
+        let err = codexist_arc
             .submit_with_id(Submission {
                 id: request_id_string,
-                op: codex_core::protocol::Op::Interrupt,
+                op: codexist_core::protocol::Op::Interrupt,
             })
             .await;
         if let Err(e) = err {
-            tracing::error!("Failed to submit interrupt to Codex: {e}");
+            tracing::error!("Failed to submit interrupt to Codexist: {e}");
             return;
         }
         // unregister the id so we don't keep it in the map
-        self.running_requests_id_to_codex_uuid
+        self.running_requests_id_to_codexist_uuid
             .lock()
             .await
             .remove(&request_id);

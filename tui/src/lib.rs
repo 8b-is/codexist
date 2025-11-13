@@ -1,25 +1,25 @@
 // Forbid accidental stdout/stderr writes in the *library* portion of the TUI.
-// The standalone `codex-tui` binary prints a short help message before the
+// The standalone `codexist-tui` binary prints a short help message before the
 // alternate‑screen mode starts; that file opts‑out locally via `allow`.
 #![deny(clippy::print_stdout, clippy::print_stderr)]
 #![deny(clippy::disallowed_methods)]
 use additional_dirs::add_dir_warning_message;
 use app::App;
 pub use app::AppExitInfo;
-use codex_app_server_protocol::AuthMode;
-use codex_core::AuthManager;
-use codex_core::BUILT_IN_OSS_MODEL_PROVIDER_ID;
-use codex_core::CodexAuth;
-use codex_core::INTERACTIVE_SESSION_SOURCES;
-use codex_core::RolloutRecorder;
-use codex_core::auth::enforce_login_restrictions;
-use codex_core::config::Config;
-use codex_core::config::ConfigOverrides;
-use codex_core::find_conversation_path_by_id_str;
-use codex_core::get_platform_sandbox;
-use codex_core::protocol::AskForApproval;
-use codex_ollama::DEFAULT_OSS_MODEL;
-use codex_protocol::config_types::SandboxMode;
+use codexist_app_server_protocol::AuthMode;
+use codexist_core::AuthManager;
+use codexist_core::BUILT_IN_OSS_MODEL_PROVIDER_ID;
+use codexist_core::CodexistAuth;
+use codexist_core::INTERACTIVE_SESSION_SOURCES;
+use codexist_core::RolloutRecorder;
+use codexist_core::auth::enforce_login_restrictions;
+use codexist_core::config::Config;
+use codexist_core::config::ConfigOverrides;
+use codexist_core::find_conversation_path_by_id_str;
+use codexist_core::get_platform_sandbox;
+use codexist_core::protocol::AskForApproval;
+use codexist_ollama::DEFAULT_OSS_MODEL;
+use codexist_protocol::config_types::SandboxMode;
 use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
 use std::fs::OpenOptions;
 use std::path::PathBuf;
@@ -96,7 +96,7 @@ use std::io::Write as _;
 
 pub async fn run_main(
     mut cli: Cli,
-    codex_linux_sandbox_exe: Option<PathBuf>,
+    codexist_linux_sandbox_exe: Option<PathBuf>,
 ) -> std::io::Result<AppExitInfo> {
     let (sandbox_mode, approval_policy) = if cli.full_auto {
         (
@@ -151,7 +151,7 @@ pub async fn run_main(
         cwd,
         model_provider: model_provider_override,
         config_profile: cli.config_profile.clone(),
-        codex_linux_sandbox_exe,
+        codexist_linux_sandbox_exe,
         base_instructions: None,
         developer_instructions: None,
         compact_prompt: None,
@@ -162,7 +162,7 @@ pub async fn run_main(
         additional_writable_roots: additional_dirs,
     };
     let raw_overrides = cli.config_overrides.raw_overrides.clone();
-    let overrides_cli = codex_common::CliConfigOverrides { raw_overrides };
+    let overrides_cli = codexist_common::CliConfigOverrides { raw_overrides };
     let cli_kv_overrides = match overrides_cli.parse_overrides() {
         Ok(v) => v,
         #[allow(clippy::print_stderr)]
@@ -189,7 +189,7 @@ pub async fn run_main(
     }
 
     let active_profile = config.active_profile.clone();
-    let log_dir = codex_core::config::log_dir(&config)?;
+    let log_dir = codexist_core::config::log_dir(&config)?;
     std::fs::create_dir_all(&log_dir)?;
     // Open (or create) your log file, appending to it.
     let mut log_file_opts = OpenOptions::new();
@@ -198,22 +198,22 @@ pub async fn run_main(
     // Ensure the file is only readable and writable by the current user.
     // Doing the equivalent to `chmod 600` on Windows is quite a bit more code
     // and requires the Windows API crates, so we can reconsider that when
-    // Codex CLI is officially supported on Windows.
+    // Codexist CLI is officially supported on Windows.
     #[cfg(unix)]
     {
         use std::os::unix::fs::OpenOptionsExt;
         log_file_opts.mode(0o600);
     }
 
-    let log_file = log_file_opts.open(log_dir.join("codex-tui.log"))?;
+    let log_file = log_file_opts.open(log_dir.join("codexist-tui.log"))?;
 
     // Wrap file in non‑blocking writer.
     let (non_blocking, _guard) = non_blocking(log_file);
 
-    // use RUST_LOG env var, default to info for codex crates.
+    // use RUST_LOG env var, default to info for codexist crates.
     let env_filter = || {
         EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-            EnvFilter::new("codex_core=info,codex_tui=info,codex_rmcp_client=info")
+            EnvFilter::new("codexist_core=info,codexist_tui=info,codexist_rmcp_client=info")
         })
     };
 
@@ -223,7 +223,7 @@ pub async fn run_main(
         .with_span_events(tracing_subscriber::fmt::format::FmtSpan::CLOSE)
         .with_filter(env_filter());
 
-    let feedback = codex_feedback::CodexFeedback::new();
+    let feedback = codexist_feedback::CodexistFeedback::new();
     let targets = Targets::new().with_default(tracing::Level::TRACE);
 
     let feedback_layer = tracing_subscriber::fmt::layer()
@@ -233,12 +233,12 @@ pub async fn run_main(
         .with_filter(targets);
 
     if cli.oss {
-        codex_ollama::ensure_oss_ready(&config)
+        codexist_ollama::ensure_oss_ready(&config)
             .await
             .map_err(|e| std::io::Error::other(format!("OSS setup failed: {e}")))?;
     }
 
-    let otel = codex_core::otel_init::build_provider(&config, env!("CARGO_PKG_VERSION"));
+    let otel = codexist_core::otel_init::build_provider(&config, env!("CARGO_PKG_VERSION"));
 
     #[allow(clippy::print_stderr)]
     let otel = match otel {
@@ -251,7 +251,7 @@ pub async fn run_main(
 
     if let Some(provider) = otel.as_ref() {
         let otel_layer = OpenTelemetryTracingBridge::new(&provider.logger).with_filter(
-            tracing_subscriber::filter::filter_fn(codex_core::otel_init::codex_export_filter),
+            tracing_subscriber::filter::filter_fn(codexist_core::otel_init::codexist_export_filter),
         );
 
         let _ = tracing_subscriber::registry()
@@ -284,7 +284,7 @@ async fn run_ratatui_app(
     overrides: ConfigOverrides,
     cli_kv_overrides: Vec<(String, toml::Value)>,
     active_profile: Option<String>,
-    feedback: codex_feedback::CodexFeedback,
+    feedback: codexist_feedback::CodexistFeedback,
 ) -> color_eyre::Result<AppExitInfo> {
     color_eyre::install()?;
 
@@ -313,7 +313,7 @@ async fn run_ratatui_app(
                 UpdatePromptOutcome::RunUpdate(action) => {
                     crate::tui::restore()?;
                     return Ok(AppExitInfo {
-                        token_usage: codex_core::protocol::TokenUsage::default(),
+                        token_usage: codexist_core::protocol::TokenUsage::default(),
                         conversation_id: None,
                         update_action: Some(action),
                     });
@@ -326,7 +326,7 @@ async fn run_ratatui_app(
     session_log::maybe_init(&initial_config);
 
     let auth_manager = AuthManager::shared(
-        initial_config.codex_home.clone(),
+        initial_config.codexist_home.clone(),
         false,
         initial_config.cli_auth_credentials_store_mode,
     );
@@ -359,7 +359,7 @@ async fn run_ratatui_app(
             session_log::log_session_end();
             let _ = tui.terminal.clear();
             return Ok(AppExitInfo {
-                token_usage: codex_core::protocol::TokenUsage::default(),
+                token_usage: codexist_core::protocol::TokenUsage::default(),
                 conversation_id: None,
                 update_action: None,
             });
@@ -372,7 +372,7 @@ async fn run_ratatui_app(
                 tracing::error!("Failed to write WSL instructions: {err}");
             }
             return Ok(AppExitInfo {
-                token_usage: codex_core::protocol::TokenUsage::default(),
+                token_usage: codexist_core::protocol::TokenUsage::default(),
                 conversation_id: None,
                 update_action: None,
             });
@@ -394,7 +394,7 @@ async fn run_ratatui_app(
 
     // Determine resume behavior: explicit id, then resume last, then picker.
     let resume_selection = if let Some(id_str) = cli.resume_session_id.as_deref() {
-        match find_conversation_path_by_id_str(&config.codex_home, id_str).await? {
+        match find_conversation_path_by_id_str(&config.codexist_home, id_str).await? {
             Some(path) => resume_picker::ResumeSelection::Resume(path),
             None => {
                 error!("Error finding conversation path: {id_str}");
@@ -403,12 +403,12 @@ async fn run_ratatui_app(
                 let _ = tui.terminal.clear();
                 if let Err(err) = writeln!(
                     std::io::stdout(),
-                    "No saved session found with ID {id_str}. Run `codex resume` without an ID to choose from existing sessions."
+                    "No saved session found with ID {id_str}. Run `codexist resume` without an ID to choose from existing sessions."
                 ) {
                     error!("Failed to write resume error message: {err}");
                 }
                 return Ok(AppExitInfo {
-                    token_usage: codex_core::protocol::TokenUsage::default(),
+                    token_usage: codexist_core::protocol::TokenUsage::default(),
                     conversation_id: None,
                     update_action: None,
                 });
@@ -417,7 +417,7 @@ async fn run_ratatui_app(
     } else if cli.resume_last {
         let provider_filter = vec![config.model_provider_id.clone()];
         match RolloutRecorder::list_conversations(
-            &config.codex_home,
+            &config.codexist_home,
             1,
             None,
             INTERACTIVE_SESSION_SOURCES,
@@ -436,7 +436,7 @@ async fn run_ratatui_app(
     } else if cli.resume_picker {
         match resume_picker::run_resume_picker(
             &mut tui,
-            &config.codex_home,
+            &config.codexist_home,
             &config.model_provider_id,
         )
         .await?
@@ -445,7 +445,7 @@ async fn run_ratatui_app(
                 restore();
                 session_log::log_session_end();
                 return Ok(AppExitInfo {
-                    token_usage: codex_core::protocol::TokenUsage::default(),
+                    token_usage: codexist_core::protocol::TokenUsage::default(),
                     conversation_id: None,
                     update_action: None,
                 });
@@ -499,8 +499,8 @@ fn get_login_status(config: &Config) -> LoginStatus {
     if config.model_provider.requires_openai_auth {
         // Reading the OpenAI API key is an async operation because it may need
         // to refresh the token. Block on it.
-        let codex_home = config.codex_home.clone();
-        match CodexAuth::from_auth_storage(&codex_home, config.cli_auth_credentials_store_mode) {
+        let codexist_home = config.codexist_home.clone();
+        match CodexistAuth::from_auth_storage(&codexist_home, config.cli_auth_credentials_store_mode) {
             Ok(Some(auth)) => LoginStatus::AuthMode(auth.mode),
             Ok(None) => LoginStatus::NotAuthenticated,
             Err(err) => {
@@ -573,10 +573,10 @@ fn should_show_login_screen(login_status: LoginStatus, config: &Config) -> bool 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use codex_core::config::ConfigOverrides;
-    use codex_core::config::ConfigToml;
-    use codex_core::config::ProjectConfig;
-    use codex_core::set_windows_sandbox_enabled;
+    use codexist_core::config::ConfigOverrides;
+    use codexist_core::config::ConfigToml;
+    use codexist_core::config::ProjectConfig;
+    use codexist_core::set_windows_sandbox_enabled;
     use serial_test::serial;
     use tempfile::TempDir;
 

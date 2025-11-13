@@ -2,12 +2,12 @@
 
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
-use codex_core::protocol::AskForApproval;
-use codex_core::protocol::EventMsg;
-use codex_core::protocol::Op;
-use codex_core::protocol::SandboxPolicy;
-use codex_protocol::config_types::ReasoningSummary;
-use codex_protocol::user_input::UserInput;
+use codexist_core::protocol::AskForApproval;
+use codexist_core::protocol::EventMsg;
+use codexist_core::protocol::Op;
+use codexist_core::protocol::SandboxPolicy;
+use codexist_protocol::config_types::ReasoningSummary;
+use codexist_protocol::user_input::UserInput;
 use core_test_support::responses;
 use core_test_support::responses::ev_assistant_message;
 use core_test_support::responses::ev_completed;
@@ -16,8 +16,8 @@ use core_test_support::responses::ev_response_created;
 use core_test_support::responses::sse;
 use core_test_support::responses::start_mock_server;
 use core_test_support::skip_if_no_network;
-use core_test_support::test_codex::TestCodex;
-use core_test_support::test_codex::test_codex;
+use core_test_support::test_codexist::TestCodexist;
+use core_test_support::test_codexist::test_codexist;
 use core_test_support::wait_for_event;
 use image::GenericImageView;
 use image::ImageBuffer;
@@ -59,12 +59,12 @@ async fn user_turn_with_local_image_attaches_image() -> anyhow::Result<()> {
 
     let server = start_mock_server().await;
 
-    let TestCodex {
-        codex,
+    let TestCodexist {
+        codexist,
         cwd,
         session_configured,
         ..
-    } = test_codex().build(&server).await?;
+    } = test_codexist().build(&server).await?;
 
     let rel_path = "user-turn/example.png";
     let abs_path = cwd.path().join(rel_path);
@@ -83,7 +83,7 @@ async fn user_turn_with_local_image_attaches_image() -> anyhow::Result<()> {
 
     let session_model = session_configured.model.clone();
 
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::LocalImage {
                 path: abs_path.clone(),
@@ -98,7 +98,7 @@ async fn user_turn_with_local_image_attaches_image() -> anyhow::Result<()> {
         })
         .await?;
 
-    wait_for_event(&codex, |event| matches!(event, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |event| matches!(event, EventMsg::TaskComplete(_))).await;
 
     let body = mock.single_request().body_json();
     let image_message =
@@ -141,12 +141,12 @@ async fn view_image_tool_attaches_local_image() -> anyhow::Result<()> {
 
     let server = start_mock_server().await;
 
-    let TestCodex {
-        codex,
+    let TestCodexist {
+        codexist,
         cwd,
         session_configured,
         ..
-    } = test_codex().build(&server).await?;
+    } = test_codexist().build(&server).await?;
 
     let rel_path = "assets/example.png";
     let abs_path = cwd.path().join(rel_path);
@@ -174,7 +174,7 @@ async fn view_image_tool_attaches_local_image() -> anyhow::Result<()> {
 
     let session_model = session_configured.model.clone();
 
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "please add the screenshot".into(),
@@ -190,7 +190,7 @@ async fn view_image_tool_attaches_local_image() -> anyhow::Result<()> {
         .await?;
 
     let mut tool_event = None;
-    wait_for_event(&codex, |event| match event {
+    wait_for_event(&codexist, |event| match event {
         EventMsg::ViewImageToolCall(_) => {
             tool_event = Some(event.clone());
             false
@@ -253,12 +253,12 @@ async fn view_image_tool_errors_when_path_is_directory() -> anyhow::Result<()> {
 
     let server = start_mock_server().await;
 
-    let TestCodex {
-        codex,
+    let TestCodexist {
+        codexist,
         cwd,
         session_configured,
         ..
-    } = test_codex().build(&server).await?;
+    } = test_codexist().build(&server).await?;
 
     let rel_path = "assets";
     let abs_path = cwd.path().join(rel_path);
@@ -282,7 +282,7 @@ async fn view_image_tool_errors_when_path_is_directory() -> anyhow::Result<()> {
 
     let session_model = session_configured.model.clone();
 
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "please attach the folder".into(),
@@ -297,7 +297,7 @@ async fn view_image_tool_errors_when_path_is_directory() -> anyhow::Result<()> {
         })
         .await?;
 
-    wait_for_event(&codex, |event| matches!(event, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |event| matches!(event, EventMsg::TaskComplete(_))).await;
 
     let body_with_tool_output = mock.single_request().body_json();
     let output_item = mock.single_request().function_call_output(call_id);
@@ -319,12 +319,12 @@ async fn view_image_tool_placeholder_for_non_image_files() -> anyhow::Result<()>
 
     let server = start_mock_server().await;
 
-    let TestCodex {
-        codex,
+    let TestCodexist {
+        codexist,
         cwd,
         session_configured,
         ..
-    } = test_codex().build(&server).await?;
+    } = test_codexist().build(&server).await?;
 
     let rel_path = "assets/example.json";
     let abs_path = cwd.path().join(rel_path);
@@ -351,7 +351,7 @@ async fn view_image_tool_placeholder_for_non_image_files() -> anyhow::Result<()>
 
     let session_model = session_configured.model.clone();
 
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "please use the view_image tool to read the json file".into(),
@@ -366,7 +366,7 @@ async fn view_image_tool_placeholder_for_non_image_files() -> anyhow::Result<()>
         })
         .await?;
 
-    wait_for_event(&codex, |event| matches!(event, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |event| matches!(event, EventMsg::TaskComplete(_))).await;
 
     let request = mock.single_request();
     assert!(
@@ -382,7 +382,7 @@ async fn view_image_tool_placeholder_for_non_image_files() -> anyhow::Result<()>
             content.iter().find_map(|span| {
                 if span.get("type").and_then(Value::as_str) == Some("input_text") {
                     let text = span.get("text").and_then(Value::as_str)?;
-                    if text.contains("Codex could not read the local image at")
+                    if text.contains("Codexist could not read the local image at")
                         && text.contains("unsupported MIME type `application/json`")
                     {
                         return Some(text.to_string());
@@ -411,12 +411,12 @@ async fn view_image_tool_errors_when_file_missing() -> anyhow::Result<()> {
 
     let server = start_mock_server().await;
 
-    let TestCodex {
-        codex,
+    let TestCodexist {
+        codexist,
         cwd,
         session_configured,
         ..
-    } = test_codex().build(&server).await?;
+    } = test_codexist().build(&server).await?;
 
     let rel_path = "missing/example.png";
     let abs_path = cwd.path().join(rel_path);
@@ -439,7 +439,7 @@ async fn view_image_tool_errors_when_file_missing() -> anyhow::Result<()> {
 
     let session_model = session_configured.model.clone();
 
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "please attach the missing image".into(),
@@ -454,7 +454,7 @@ async fn view_image_tool_errors_when_file_missing() -> anyhow::Result<()> {
         })
         .await?;
 
-    wait_for_event(&codex, |event| matches!(event, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |event| matches!(event, EventMsg::TaskComplete(_))).await;
 
     let body_with_tool_output = mock.single_request().body_json();
     let output_item = mock.single_request().function_call_output(call_id);

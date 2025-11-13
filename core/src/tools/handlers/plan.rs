@@ -1,7 +1,7 @@
 use crate::client_common::tools::ResponsesApiTool;
 use crate::client_common::tools::ToolSpec;
-use crate::codex::Session;
-use crate::codex::TurnContext;
+use crate::codexist::Session;
+use crate::codexist::TurnContext;
 use crate::function_tool::FunctionCallError;
 use crate::tools::context::ToolInvocation;
 use crate::tools::context::ToolOutput;
@@ -10,8 +10,8 @@ use crate::tools::registry::ToolHandler;
 use crate::tools::registry::ToolKind;
 use crate::tools::spec::JsonSchema;
 use async_trait::async_trait;
-use codex_protocol::plan_tool::UpdatePlanArgs;
-use codex_protocol::protocol::EventMsg;
+use codexist_protocol::plan_tool::UpdatePlanArgs;
+use codexist_protocol::protocol::EventMsg;
 use std::collections::BTreeMap;
 use std::sync::LazyLock;
 

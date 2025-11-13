@@ -1,29 +1,29 @@
 use std::path::PathBuf;
 
-use crate::codex_message_processor::CodexMessageProcessor;
+use crate::codexist_message_processor::CodexistMessageProcessor;
 use crate::error_code::INVALID_REQUEST_ERROR_CODE;
 use crate::outgoing_message::OutgoingMessageSender;
-use codex_app_server_protocol::ClientInfo;
-use codex_app_server_protocol::ClientRequest;
-use codex_app_server_protocol::InitializeResponse;
+use codexist_app_server_protocol::ClientInfo;
+use codexist_app_server_protocol::ClientRequest;
+use codexist_app_server_protocol::InitializeResponse;
 
-use codex_app_server_protocol::JSONRPCError;
-use codex_app_server_protocol::JSONRPCErrorError;
-use codex_app_server_protocol::JSONRPCNotification;
-use codex_app_server_protocol::JSONRPCRequest;
-use codex_app_server_protocol::JSONRPCResponse;
-use codex_core::AuthManager;
-use codex_core::ConversationManager;
-use codex_core::config::Config;
-use codex_core::default_client::USER_AGENT_SUFFIX;
-use codex_core::default_client::get_codex_user_agent;
-use codex_feedback::CodexFeedback;
-use codex_protocol::protocol::SessionSource;
+use codexist_app_server_protocol::JSONRPCError;
+use codexist_app_server_protocol::JSONRPCErrorError;
+use codexist_app_server_protocol::JSONRPCNotification;
+use codexist_app_server_protocol::JSONRPCRequest;
+use codexist_app_server_protocol::JSONRPCResponse;
+use codexist_core::AuthManager;
+use codexist_core::ConversationManager;
+use codexist_core::config::Config;
+use codexist_core::default_client::USER_AGENT_SUFFIX;
+use codexist_core::default_client::get_codexist_user_agent;
+use codexist_feedback::CodexistFeedback;
+use codexist_protocol::protocol::SessionSource;
 use std::sync::Arc;
 
 pub(crate) struct MessageProcessor {
     outgoing: Arc<OutgoingMessageSender>,
-    codex_message_processor: CodexMessageProcessor,
+    codexist_message_processor: CodexistMessageProcessor,
     initialized: bool,
 }
 
@@ -32,13 +32,13 @@ impl MessageProcessor {
     /// `Sender` so handlers can enqueue messages to be written to stdout.
     pub(crate) fn new(
         outgoing: OutgoingMessageSender,
-        codex_linux_sandbox_exe: Option<PathBuf>,
+        codexist_linux_sandbox_exe: Option<PathBuf>,
         config: Arc<Config>,
-        feedback: CodexFeedback,
+        feedback: CodexistFeedback,
     ) -> Self {
         let outgoing = Arc::new(outgoing);
         let auth_manager = AuthManager::shared(
-            config.codex_home.clone(),
+            config.codexist_home.clone(),
             false,
             config.cli_auth_credentials_store_mode,
         );
@@ -46,18 +46,18 @@ impl MessageProcessor {
             auth_manager.clone(),
             SessionSource::VSCode,
         ));
-        let codex_message_processor = CodexMessageProcessor::new(
+        let codexist_message_processor = CodexistMessageProcessor::new(
             auth_manager,
             conversation_manager,
             outgoing.clone(),
-            codex_linux_sandbox_exe,
+            codexist_linux_sandbox_exe,
             config,
             feedback,
         );
 
         Self {
             outgoing,
-            codex_message_processor,
+            codexist_message_processor,
             initialized: false,
         }
     }
@@ -77,8 +77,8 @@ impl MessageProcessor {
             }
         };
 
-        let codex_request = match serde_json::from_value::<ClientRequest>(request_json) {
-            Ok(codex_request) => codex_request,
+        let codexist_request = match serde_json::from_value::<ClientRequest>(request_json) {
+            Ok(codexist_request) => codexist_request,
             Err(err) => {
                 let error = JSONRPCErrorError {
                     code: INVALID_REQUEST_ERROR_CODE,
@@ -90,8 +90,8 @@ impl MessageProcessor {
             }
         };
 
-        match codex_request {
-            // Handle Initialize internally so CodexMessageProcessor does not have to concern
+        match codexist_request {
+            // Handle Initialize internally so CodexistMessageProcessor does not have to concern
             // itself with the `initialized` bool.
             ClientRequest::Initialize { request_id, params } => {
                 if self.initialized {
@@ -113,7 +113,7 @@ impl MessageProcessor {
                         *suffix = Some(user_agent_suffix);
                     }
 
-                    let user_agent = get_codex_user_agent();
+                    let user_agent = get_codexist_user_agent();
                     let response = InitializeResponse { user_agent };
                     self.outgoing.send_response(request_id, response).await;
 
@@ -134,8 +134,8 @@ impl MessageProcessor {
             }
         }
 
-        self.codex_message_processor
-            .process_request(codex_request)
+        self.codexist_message_processor
+            .process_request(codexist_request)
             .await;
     }
 

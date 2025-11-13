@@ -9,7 +9,7 @@ use tokio::fs;
 use toml::Value as TomlValue;
 
 #[cfg(unix)]
-const CODEX_MANAGED_CONFIG_SYSTEM_PATH: &str = "/etc/codex/managed_config.toml";
+const CODEXIST_MANAGED_CONFIG_SYSTEM_PATH: &str = "/etc/codexist/managed_config.toml";
 
 #[derive(Debug)]
 pub(crate) struct LoadedConfigLayers {
@@ -43,8 +43,8 @@ pub(crate) struct LoaderOverrides {
 //
 // (*) Only available on macOS via managed device profiles.
 
-pub async fn load_config_as_toml(codex_home: &Path) -> io::Result<TomlValue> {
-    load_config_as_toml_with_overrides(codex_home, LoaderOverrides::default()).await
+pub async fn load_config_as_toml(codexist_home: &Path) -> io::Result<TomlValue> {
+    load_config_as_toml_with_overrides(codexist_home, LoaderOverrides::default()).await
 }
 
 fn default_empty_table() -> TomlValue {
@@ -52,22 +52,22 @@ fn default_empty_table() -> TomlValue {
 }
 
 pub(crate) async fn load_config_layers_with_overrides(
-    codex_home: &Path,
+    codexist_home: &Path,
     overrides: LoaderOverrides,
 ) -> io::Result<LoadedConfigLayers> {
-    load_config_layers_internal(codex_home, overrides).await
+    load_config_layers_internal(codexist_home, overrides).await
 }
 
 async fn load_config_as_toml_with_overrides(
-    codex_home: &Path,
+    codexist_home: &Path,
     overrides: LoaderOverrides,
 ) -> io::Result<TomlValue> {
-    let layers = load_config_layers_internal(codex_home, overrides).await?;
+    let layers = load_config_layers_internal(codexist_home, overrides).await?;
     Ok(apply_managed_layers(layers))
 }
 
 async fn load_config_layers_internal(
-    codex_home: &Path,
+    codexist_home: &Path,
     overrides: LoaderOverrides,
 ) -> io::Result<LoadedConfigLayers> {
     #[cfg(target_os = "macos")]
@@ -82,9 +82,9 @@ async fn load_config_layers_internal(
     } = overrides;
 
     let managed_config_path =
-        managed_config_path.unwrap_or_else(|| managed_config_default_path(codex_home));
+        managed_config_path.unwrap_or_else(|| managed_config_default_path(codexist_home));
 
-    let user_config_path = codex_home.join(CONFIG_TOML_FILE);
+    let user_config_path = codexist_home.join(CONFIG_TOML_FILE);
     let user_config = read_config_from_path(&user_config_path, true).await?;
     let managed_config = read_config_from_path(&managed_config_path, false).await?;
 
@@ -146,16 +146,16 @@ pub(crate) fn merge_toml_values(base: &mut TomlValue, overlay: &TomlValue) {
     }
 }
 
-fn managed_config_default_path(codex_home: &Path) -> PathBuf {
+fn managed_config_default_path(codexist_home: &Path) -> PathBuf {
     #[cfg(unix)]
     {
-        let _ = codex_home;
-        PathBuf::from(CODEX_MANAGED_CONFIG_SYSTEM_PATH)
+        let _ = codexist_home;
+        PathBuf::from(CODEXIST_MANAGED_CONFIG_SYSTEM_PATH)
     }
 
     #[cfg(not(unix))]
     {
-        codex_home.join("managed_config.toml")
+        codexist_home.join("managed_config.toml")
     }
 }
 

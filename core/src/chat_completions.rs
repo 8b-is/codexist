@@ -4,8 +4,8 @@ use crate::ModelProviderInfo;
 use crate::client_common::Prompt;
 use crate::client_common::ResponseEvent;
 use crate::client_common::ResponseStream;
-use crate::default_client::CodexHttpClient;
-use crate::error::CodexErr;
+use crate::default_client::CodexistHttpClient;
+use crate::error::CodexistErr;
 use crate::error::ConnectionFailedError;
 use crate::error::ResponseStreamFailed;
 use crate::error::Result;
@@ -15,13 +15,13 @@ use crate::model_family::ModelFamily;
 use crate::tools::spec::create_tools_json_for_chat_completions_api;
 use crate::util::backoff;
 use bytes::Bytes;
-use codex_otel::otel_event_manager::OtelEventManager;
-use codex_protocol::models::ContentItem;
-use codex_protocol::models::FunctionCallOutputContentItem;
-use codex_protocol::models::ReasoningItemContent;
-use codex_protocol::models::ResponseItem;
-use codex_protocol::protocol::SessionSource;
-use codex_protocol::protocol::SubAgentSource;
+use codexist_otel::otel_event_manager::OtelEventManager;
+use codexist_protocol::models::ContentItem;
+use codexist_protocol::models::FunctionCallOutputContentItem;
+use codexist_protocol::models::ReasoningItemContent;
+use codexist_protocol::models::ResponseItem;
+use codexist_protocol::protocol::SessionSource;
+use codexist_protocol::protocol::SubAgentSource;
 use eventsource_stream::Eventsource;
 use futures::Stream;
 use futures::StreamExt;
@@ -40,13 +40,13 @@ use tracing::trace;
 pub(crate) async fn stream_chat_completions(
     prompt: &Prompt,
     model_family: &ModelFamily,
-    client: &CodexHttpClient,
+    client: &CodexistHttpClient,
     provider: &ModelProviderInfo,
     otel_event_manager: &OtelEventManager,
     session_source: &SessionSource,
 ) -> Result<ResponseStream> {
     if prompt.output_schema.is_some() {
-        return Err(CodexErr::UnsupportedOperation(
+        return Err(CodexistErr::UnsupportedOperation(
             "output_schema is not supported for Chat Completions API".to_string(),
         ));
     }
@@ -374,7 +374,7 @@ pub(crate) async fn stream_chat_completions(
             Ok(resp) if resp.status().is_success() => {
                 let (tx_event, rx_event) = mpsc::channel::<Result<ResponseEvent>>(1600);
                 let stream = resp.bytes_stream().map_err(|e| {
-                    CodexErr::ResponseStreamFailed(ResponseStreamFailed {
+                    CodexistErr::ResponseStreamFailed(ResponseStreamFailed {
                         source: e,
                         request_id: None,
                     })
@@ -391,7 +391,7 @@ pub(crate) async fn stream_chat_completions(
                 let status = res.status();
                 if !(status == StatusCode::TOO_MANY_REQUESTS || status.is_server_error()) {
                     let body = (res.text().await).unwrap_or_default();
-                    return Err(CodexErr::UnexpectedStatus(UnexpectedResponseError {
+                    return Err(CodexistErr::UnexpectedStatus(UnexpectedResponseError {
                         status,
                         body,
                         request_id: None,
@@ -399,7 +399,7 @@ pub(crate) async fn stream_chat_completions(
                 }
 
                 if attempt > max_retries {
-                    return Err(CodexErr::RetryLimit(RetryLimitReachedError {
+                    return Err(CodexistErr::RetryLimit(RetryLimitReachedError {
                         status,
                         request_id: None,
                     }));
@@ -418,7 +418,7 @@ pub(crate) async fn stream_chat_completions(
             }
             Err(e) => {
                 if attempt > max_retries {
-                    return Err(CodexErr::ConnectionFailed(ConnectionFailedError {
+                    return Err(CodexistErr::ConnectionFailed(ConnectionFailedError {
                         source: e,
                     }));
                 }
@@ -485,7 +485,7 @@ async fn append_reasoning_text(
     }
 }
 /// Lightweight SSE processor for the Chat Completions streaming format. The
-/// output is mapped onto Codex's internal [`ResponseEvent`] so that the rest
+/// output is mapped onto Codexist's internal [`ResponseEvent`] so that the rest
 /// of the pipeline can stay agnostic of the underlying wire format.
 async fn process_chat_sse<S>(
     stream: S,
@@ -524,7 +524,7 @@ async fn process_chat_sse<S>(
             Ok(Some(Ok(ev))) => ev,
             Ok(Some(Err(e))) => {
                 let _ = tx_event
-                    .send(Err(CodexErr::Stream(e.to_string(), None)))
+                    .send(Err(CodexistErr::Stream(e.to_string(), None)))
                     .await;
                 return;
             }
@@ -540,7 +540,7 @@ async fn process_chat_sse<S>(
             }
             Err(_) => {
                 let _ = tx_event
-                    .send(Err(CodexErr::Stream(
+                    .send(Err(CodexistErr::Stream(
                         "idle timeout waiting for SSE".into(),
                         None,
                     )))
@@ -774,7 +774,7 @@ where
 
                     let is_assistant_message = matches!(
                         &item,
-                        codex_protocol::models::ResponseItem::Message { role, .. } if role == "assistant"
+                        codexist_protocol::models::ResponseItem::Message { role, .. } if role == "assistant"
                     );
 
                     if is_assistant_message {
@@ -784,12 +784,12 @@ where
                                 // seen any deltas; otherwise, deltas already built the
                                 // cumulative text and this would duplicate it.
                                 if this.cumulative.is_empty()
-                                    && let codex_protocol::models::ResponseItem::Message {
+                                    && let codexist_protocol::models::ResponseItem::Message {
                                         content,
                                         ..
                                     } = &item
                                     && let Some(text) = content.iter().find_map(|c| match c {
-                                        codex_protocol::models::ContentItem::OutputText {
+                                        codexist_protocol::models::ContentItem::OutputText {
                                             text,
                                         } => Some(text),
                                         _ => None,
@@ -832,11 +832,11 @@ where
                         && matches!(this.mode, AggregateMode::AggregatedOnly)
                     {
                         let aggregated_reasoning =
-                            codex_protocol::models::ResponseItem::Reasoning {
+                            codexist_protocol::models::ResponseItem::Reasoning {
                                 id: String::new(),
                                 summary: Vec::new(),
                                 content: Some(vec![
-                                    codex_protocol::models::ReasoningItemContent::ReasoningText {
+                                    codexist_protocol::models::ReasoningItemContent::ReasoningText {
                                         text: std::mem::take(&mut this.cumulative_reasoning),
                                     },
                                 ]),
@@ -853,10 +853,10 @@ where
                     // the streamed deltas into a terminal OutputItemDone so callers
                     // can persist/render the message once per turn.
                     if !this.cumulative.is_empty() {
-                        let aggregated_message = codex_protocol::models::ResponseItem::Message {
+                        let aggregated_message = codexist_protocol::models::ResponseItem::Message {
                             id: None,
                             role: "assistant".to_string(),
-                            content: vec![codex_protocol::models::ContentItem::OutputText {
+                            content: vec![codexist_protocol::models::ContentItem::OutputText {
                                 text: std::mem::take(&mut this.cumulative),
                             }],
                         };

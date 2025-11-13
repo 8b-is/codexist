@@ -5,7 +5,7 @@ Runtime: unified exec
 Handles approval + sandbox orchestration for unified exec requests, delegating to
 the session manager to spawn PTYs once an ExecEnv is prepared.
 */
-use crate::error::CodexErr;
+use crate::error::CodexistErr;
 use crate::error::SandboxErr;
 use crate::tools::runtimes::build_command_spec;
 use crate::tools::sandboxing::Approvable;
@@ -22,9 +22,9 @@ use crate::tools::sandboxing::with_cached_approval;
 use crate::unified_exec::UnifiedExecError;
 use crate::unified_exec::UnifiedExecSession;
 use crate::unified_exec::UnifiedExecSessionManager;
-use codex_protocol::protocol::AskForApproval;
-use codex_protocol::protocol::ReviewDecision;
-use codex_protocol::protocol::SandboxPolicy;
+use codexist_protocol::protocol::AskForApproval;
+use codexist_protocol::protocol::ReviewDecision;
+use codexist_protocol::protocol::SandboxPolicy;
 use futures::future::BoxFuture;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -166,13 +166,13 @@ impl<'a> ToolRuntime<UnifiedExecRequest, UnifiedExecSession> for UnifiedExecRunt
         .map_err(|_| ToolError::Rejected("missing command line for PTY".to_string()))?;
         let exec_env = attempt
             .env_for(&spec)
-            .map_err(|err| ToolError::Codex(err.into()))?;
+            .map_err(|err| ToolError::Codexist(err.into()))?;
         self.manager
             .open_session_with_exec_env(&exec_env)
             .await
             .map_err(|err| match err {
                 UnifiedExecError::SandboxDenied { output, .. } => {
-                    ToolError::Codex(CodexErr::Sandbox(SandboxErr::Denied {
+                    ToolError::Codexist(CodexistErr::Sandbox(SandboxErr::Denied {
                         output: Box::new(output),
                     }))
                 }

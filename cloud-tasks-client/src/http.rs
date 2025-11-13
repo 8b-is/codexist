@@ -13,8 +13,8 @@ use crate::api::TaskText;
 use chrono::DateTime;
 use chrono::Utc;
 
-use codex_backend_client as backend;
-use codex_backend_client::CodeTaskDetailsResponseExt;
+use codexist_backend_client as backend;
+use codexist_backend_client::CodeTaskDetailsResponseExt;
 
 #[derive(Clone)]
 pub struct HttpClient {
@@ -180,7 +180,7 @@ mod api {
 
             let url = match details_path(self.base_url, &id.0) {
                 Some(url) => url,
-                None => format!("{}/api/codex/tasks/{}", self.base_url, id.0),
+                None => format!("{}/api/codexist/tasks/{}", self.base_url, id.0),
             };
             Err(CloudTaskError::Http(format!(
                 "No assistant text messages in response. GET {url}; content-type={ct}; body={body}"
@@ -231,7 +231,7 @@ mod api {
                 "content": [{ "content_type": "text", "text": prompt }]
             }));
 
-            if let Ok(diff) = std::env::var("CODEX_STARTING_DIFF")
+            if let Ok(diff) = std::env::var("CODEXIST_STARTING_DIFF")
                 && !diff.is_empty()
             {
                 input_items.push(serde_json::json!({
@@ -362,13 +362,13 @@ mod api {
                 });
             }
 
-            let req = codex_git::ApplyGitRequest {
+            let req = codexist_git::ApplyGitRequest {
                 cwd: std::env::current_dir().unwrap_or_else(|_| std::env::temp_dir()),
                 diff: diff.clone(),
                 revert: false,
                 preflight,
             };
-            let r = codex_git::apply_git_patch(&req)
+            let r = codexist_git::apply_git_patch(&req)
                 .map_err(|e| CloudTaskError::Io(format!("git apply failed to run: {e}")))?;
 
             let status = if r.exit_code == 0 {
@@ -464,7 +464,7 @@ mod api {
     fn details_path(base_url: &str, id: &str) -> Option<String> {
         if base_url.contains("/backend-api") {
             Some(format!("{base_url}/wham/tasks/{id}"))
-        } else if base_url.contains("/api/codex") {
+        } else if base_url.contains("/api/codexist") {
             Some(format!("{base_url}/tasks/{id}"))
         } else {
             None
@@ -730,7 +730,7 @@ mod api {
     fn summarize_patch_for_logging(patch: &str) -> String {
         let trimmed = patch.trim_start();
         let kind = if trimmed.starts_with("*** Begin Patch") {
-            "codex-patch"
+            "codexist-patch"
         } else if trimmed.starts_with("diff --git ") || trimmed.contains("\n*** End Patch\n") {
             "git-diff"
         } else if trimmed.starts_with("@@ ") || trimmed.contains("\n@@ ") {

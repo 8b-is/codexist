@@ -2,9 +2,9 @@
 //!
 //! Assumes `apply_patch` verification/approval happened upstream. Reuses that
 //! decision to avoid re-prompting, builds the self-invocation command for
-//! `codex --codex-run-as-apply-patch`, and runs under the current
+//! `codexist --codexist-run-as-apply-patch`, and runs under the current
 //! `SandboxAttempt` with a minimal environment.
-use crate::CODEX_APPLY_PATCH_ARG1;
+use crate::CODEXIST_APPLY_PATCH_ARG1;
 use crate::exec::ExecToolCallOutput;
 use crate::sandboxing::CommandSpec;
 use crate::sandboxing::execute_env;
@@ -19,8 +19,8 @@ use crate::tools::sandboxing::ToolCtx;
 use crate::tools::sandboxing::ToolError;
 use crate::tools::sandboxing::ToolRuntime;
 use crate::tools::sandboxing::with_cached_approval;
-use codex_protocol::protocol::AskForApproval;
-use codex_protocol::protocol::ReviewDecision;
+use codexist_protocol::protocol::AskForApproval;
+use codexist_protocol::protocol::ReviewDecision;
 use futures::future::BoxFuture;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -31,7 +31,7 @@ pub struct ApplyPatchRequest {
     pub cwd: PathBuf,
     pub timeout_ms: Option<u64>,
     pub user_explicitly_approved: bool,
-    pub codex_exe: Option<PathBuf>,
+    pub codexist_exe: Option<PathBuf>,
 }
 
 impl ProvidesSandboxRetryData for ApplyPatchRequest {
@@ -56,16 +56,16 @@ impl ApplyPatchRuntime {
 
     fn build_command_spec(req: &ApplyPatchRequest) -> Result<CommandSpec, ToolError> {
         use std::env;
-        let exe = if let Some(path) = &req.codex_exe {
+        let exe = if let Some(path) = &req.codexist_exe {
             path.clone()
         } else {
             env::current_exe()
-                .map_err(|e| ToolError::Rejected(format!("failed to determine codex exe: {e}")))?
+                .map_err(|e| ToolError::Rejected(format!("failed to determine codexist exe: {e}")))?
         };
         let program = exe.to_string_lossy().to_string();
         Ok(CommandSpec {
             program,
-            args: vec![CODEX_APPLY_PATCH_ARG1.to_string(), req.patch.clone()],
+            args: vec![CODEXIST_APPLY_PATCH_ARG1.to_string(), req.patch.clone()],
             cwd: req.cwd.clone(),
             timeout_ms: req.timeout_ms,
             // Run apply_patch with a minimal environment for determinism and to avoid leaks.
@@ -154,10 +154,10 @@ impl ToolRuntime<ApplyPatchRequest, ExecToolCallOutput> for ApplyPatchRuntime {
         let spec = Self::build_command_spec(req)?;
         let env = attempt
             .env_for(&spec)
-            .map_err(|err| ToolError::Codex(err.into()))?;
+            .map_err(|err| ToolError::Codexist(err.into()))?;
         let out = execute_env(&env, attempt.policy, Self::stdout_stream(ctx))
             .await
-            .map_err(ToolError::Codex)?;
+            .map_err(ToolError::Codexist)?;
         Ok(out)
     }
 }

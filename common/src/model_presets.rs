@@ -1,5 +1,5 @@
-use codex_app_server_protocol::AuthMode;
-use codex_core::protocol_config_types::ReasoningEffort;
+use codexist_app_server_protocol::AuthMode;
+use codexist_core::protocol_config_types::ReasoningEffort;
 
 /// A reasoning effort option that can be surfaced for a model.
 #[derive(Debug, Clone, Copy)]
@@ -10,7 +10,7 @@ pub struct ReasoningEffortPreset {
     pub description: &'static str,
 }
 
-/// Metadata describing a Codex-supported model.
+/// Metadata describing a Codexist-supported model.
 #[derive(Debug, Clone, Copy)]
 pub struct ModelPreset {
     /// Stable identifier for the preset.
@@ -31,10 +31,10 @@ pub struct ModelPreset {
 
 const PRESETS: &[ModelPreset] = &[
     ModelPreset {
-        id: "gpt-5-codex",
-        model: "gpt-5-codex",
-        display_name: "gpt-5-codex",
-        description: "Optimized for codex.",
+        id: "gpt-5-codexist",
+        model: "gpt-5-codexist",
+        display_name: "gpt-5-codexist",
+        description: "Optimized for codexist.",
         default_reasoning_effort: ReasoningEffort::Medium,
         supported_reasoning_efforts: &[
             ReasoningEffortPreset {
@@ -53,10 +53,10 @@ const PRESETS: &[ModelPreset] = &[
         is_default: true,
     },
     ModelPreset {
-        id: "gpt-5-codex-mini",
-        model: "gpt-5-codex-mini",
-        display_name: "gpt-5-codex-mini",
-        description: "Optimized for codex. Cheaper, faster, but less capable.",
+        id: "gpt-5-codexist-mini",
+        model: "gpt-5-codexist-mini",
+        display_name: "gpt-5-codexist-mini",
+        description: "Optimized for codexist. Cheaper, faster, but less capable.",
         default_reasoning_effort: ReasoningEffort::Medium,
         supported_reasoning_efforts: &[
             ReasoningEffortPreset {
@@ -99,10 +99,10 @@ const PRESETS: &[ModelPreset] = &[
 ];
 
 pub fn builtin_model_presets(auth_mode: Option<AuthMode>) -> Vec<ModelPreset> {
-    let allow_codex_mini = matches!(auth_mode, Some(AuthMode::ChatGPT));
+    let allow_codexist_mini = matches!(auth_mode, Some(AuthMode::ChatGPT));
     PRESETS
         .iter()
-        .filter(|preset| allow_codex_mini || preset.id != "gpt-5-codex-mini")
+        .filter(|preset| allow_codexist_mini || preset.id != "gpt-5-codexist-mini")
         .copied()
         .collect()
 }

@@ -1,12 +1,12 @@
 #![cfg(not(target_os = "windows"))]
 
 use anyhow::Ok;
-use codex_core::protocol::EventMsg;
-use codex_core::protocol::ItemCompletedEvent;
-use codex_core::protocol::ItemStartedEvent;
-use codex_core::protocol::Op;
-use codex_protocol::items::TurnItem;
-use codex_protocol::user_input::UserInput;
+use codexist_core::protocol::EventMsg;
+use codexist_core::protocol::ItemCompletedEvent;
+use codexist_core::protocol::ItemStartedEvent;
+use codexist_core::protocol::Op;
+use codexist_protocol::items::TurnItem;
+use codexist_protocol::user_input::UserInput;
 use core_test_support::responses::ev_assistant_message;
 use core_test_support::responses::ev_completed;
 use core_test_support::responses::ev_message_item_added;
@@ -22,8 +22,8 @@ use core_test_support::responses::mount_sse_once_match;
 use core_test_support::responses::sse;
 use core_test_support::responses::start_mock_server;
 use core_test_support::skip_if_no_network;
-use core_test_support::test_codex::TestCodex;
-use core_test_support::test_codex::test_codex;
+use core_test_support::test_codexist::TestCodexist;
+use core_test_support::test_codexist::test_codexist;
 use core_test_support::wait_for_event_match;
 use pretty_assertions::assert_eq;
 use wiremock::matchers::any;
@@ -34,12 +34,12 @@ async fn user_message_item_is_emitted() -> anyhow::Result<()> {
 
     let server = start_mock_server().await;
 
-    let TestCodex { codex, .. } = test_codex().build(&server).await?;
+    let TestCodexist { codexist, .. } = test_codexist().build(&server).await?;
 
     let first_response = sse(vec![ev_response_created("resp-1"), ev_completed("resp-1")]);
     mount_sse_once_match(&server, any(), first_response).await;
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: (vec![UserInput::Text {
                 text: "please inspect sample.txt".into(),
@@ -47,7 +47,7 @@ async fn user_message_item_is_emitted() -> anyhow::Result<()> {
         })
         .await?;
 
-    let started_item = wait_for_event_match(&codex, |ev| match ev {
+    let started_item = wait_for_event_match(&codexist, |ev| match ev {
         EventMsg::ItemStarted(ItemStartedEvent {
             item: TurnItem::UserMessage(item),
             ..
@@ -55,7 +55,7 @@ async fn user_message_item_is_emitted() -> anyhow::Result<()> {
         _ => None,
     })
     .await;
-    let completed_item = wait_for_event_match(&codex, |ev| match ev {
+    let completed_item = wait_for_event_match(&codexist, |ev| match ev {
         EventMsg::ItemCompleted(ItemCompletedEvent {
             item: TurnItem::UserMessage(item),
             ..
@@ -86,7 +86,7 @@ async fn assistant_message_item_is_emitted() -> anyhow::Result<()> {
 
     let server = start_mock_server().await;
 
-    let TestCodex { codex, .. } = test_codex().build(&server).await?;
+    let TestCodexist { codexist, .. } = test_codexist().build(&server).await?;
 
     let first_response = sse(vec![
         ev_response_created("resp-1"),
@@ -95,7 +95,7 @@ async fn assistant_message_item_is_emitted() -> anyhow::Result<()> {
     ]);
     mount_sse_once_match(&server, any(), first_response).await;
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "please summarize results".into(),
@@ -103,7 +103,7 @@ async fn assistant_message_item_is_emitted() -> anyhow::Result<()> {
         })
         .await?;
 
-    let started = wait_for_event_match(&codex, |ev| match ev {
+    let started = wait_for_event_match(&codexist, |ev| match ev {
         EventMsg::ItemStarted(ItemStartedEvent {
             item: TurnItem::AgentMessage(item),
             ..
@@ -111,7 +111,7 @@ async fn assistant_message_item_is_emitted() -> anyhow::Result<()> {
         _ => None,
     })
     .await;
-    let completed = wait_for_event_match(&codex, |ev| match ev {
+    let completed = wait_for_event_match(&codexist, |ev| match ev {
         EventMsg::ItemCompleted(ItemCompletedEvent {
             item: TurnItem::AgentMessage(item),
             ..
@@ -121,7 +121,7 @@ async fn assistant_message_item_is_emitted() -> anyhow::Result<()> {
     .await;
 
     assert_eq!(started.id, completed.id);
-    let Some(codex_protocol::items::AgentMessageContent::Text { text }) = completed.content.first()
+    let Some(codexist_protocol::items::AgentMessageContent::Text { text }) = completed.content.first()
     else {
         panic!("expected agent message text content");
     };
@@ -136,7 +136,7 @@ async fn reasoning_item_is_emitted() -> anyhow::Result<()> {
 
     let server = start_mock_server().await;
 
-    let TestCodex { codex, .. } = test_codex().build(&server).await?;
+    let TestCodexist { codexist, .. } = test_codexist().build(&server).await?;
 
     let reasoning_item = ev_reasoning_item(
         "reasoning-1",
@@ -151,7 +151,7 @@ async fn reasoning_item_is_emitted() -> anyhow::Result<()> {
     ]);
     mount_sse_once_match(&server, any(), first_response).await;
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "explain your reasoning".into(),
@@ -159,7 +159,7 @@ async fn reasoning_item_is_emitted() -> anyhow::Result<()> {
         })
         .await?;
 
-    let started = wait_for_event_match(&codex, |ev| match ev {
+    let started = wait_for_event_match(&codexist, |ev| match ev {
         EventMsg::ItemStarted(ItemStartedEvent {
             item: TurnItem::Reasoning(item),
             ..
@@ -167,7 +167,7 @@ async fn reasoning_item_is_emitted() -> anyhow::Result<()> {
         _ => None,
     })
     .await;
-    let completed = wait_for_event_match(&codex, |ev| match ev {
+    let completed = wait_for_event_match(&codexist, |ev| match ev {
         EventMsg::ItemCompleted(ItemCompletedEvent {
             item: TurnItem::Reasoning(item),
             ..
@@ -195,7 +195,7 @@ async fn web_search_item_is_emitted() -> anyhow::Result<()> {
 
     let server = start_mock_server().await;
 
-    let TestCodex { codex, .. } = test_codex().build(&server).await?;
+    let TestCodexist { codexist, .. } = test_codexist().build(&server).await?;
 
     let web_search_added =
         ev_web_search_call_added("web-search-1", "in_progress", "weather seattle");
@@ -209,7 +209,7 @@ async fn web_search_item_is_emitted() -> anyhow::Result<()> {
     ]);
     mount_sse_once_match(&server, any(), first_response).await;
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "find the weather".into(),
@@ -217,7 +217,7 @@ async fn web_search_item_is_emitted() -> anyhow::Result<()> {
         })
         .await?;
 
-    let started = wait_for_event_match(&codex, |ev| match ev {
+    let started = wait_for_event_match(&codexist, |ev| match ev {
         EventMsg::ItemStarted(ItemStartedEvent {
             item: TurnItem::WebSearch(item),
             ..
@@ -225,7 +225,7 @@ async fn web_search_item_is_emitted() -> anyhow::Result<()> {
         _ => None,
     })
     .await;
-    let completed = wait_for_event_match(&codex, |ev| match ev {
+    let completed = wait_for_event_match(&codexist, |ev| match ev {
         EventMsg::ItemCompleted(ItemCompletedEvent {
             item: TurnItem::WebSearch(item),
             ..
@@ -246,11 +246,11 @@ async fn agent_message_content_delta_has_item_metadata() -> anyhow::Result<()> {
 
     let server = start_mock_server().await;
 
-    let TestCodex {
-        codex,
+    let TestCodexist {
+        codexist,
         session_configured,
         ..
-    } = test_codex().build(&server).await?;
+    } = test_codexist().build(&server).await?;
 
     let stream = sse(vec![
         ev_response_created("resp-1"),
@@ -261,7 +261,7 @@ async fn agent_message_content_delta_has_item_metadata() -> anyhow::Result<()> {
     ]);
     mount_sse_once_match(&server, any(), stream).await;
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "please stream text".into(),
@@ -269,7 +269,7 @@ async fn agent_message_content_delta_has_item_metadata() -> anyhow::Result<()> {
         })
         .await?;
 
-    let (started_turn_id, started_item) = wait_for_event_match(&codex, |ev| match ev {
+    let (started_turn_id, started_item) = wait_for_event_match(&codexist, |ev| match ev {
         EventMsg::ItemStarted(ItemStartedEvent {
             turn_id,
             item: TurnItem::AgentMessage(item),
@@ -279,17 +279,17 @@ async fn agent_message_content_delta_has_item_metadata() -> anyhow::Result<()> {
     })
     .await;
 
-    let delta_event = wait_for_event_match(&codex, |ev| match ev {
+    let delta_event = wait_for_event_match(&codexist, |ev| match ev {
         EventMsg::AgentMessageContentDelta(event) => Some(event.clone()),
         _ => None,
     })
     .await;
-    let legacy_delta = wait_for_event_match(&codex, |ev| match ev {
+    let legacy_delta = wait_for_event_match(&codexist, |ev| match ev {
         EventMsg::AgentMessageDelta(event) => Some(event.clone()),
         _ => None,
     })
     .await;
-    let completed_item = wait_for_event_match(&codex, |ev| match ev {
+    let completed_item = wait_for_event_match(&codexist, |ev| match ev {
         EventMsg::ItemCompleted(ItemCompletedEvent {
             item: TurnItem::AgentMessage(item),
             ..
@@ -315,7 +315,7 @@ async fn reasoning_content_delta_has_item_metadata() -> anyhow::Result<()> {
 
     let server = start_mock_server().await;
 
-    let TestCodex { codex, .. } = test_codex().build(&server).await?;
+    let TestCodexist { codexist, .. } = test_codexist().build(&server).await?;
 
     let stream = sse(vec![
         ev_response_created("resp-1"),
@@ -326,7 +326,7 @@ async fn reasoning_content_delta_has_item_metadata() -> anyhow::Result<()> {
     ]);
     mount_sse_once_match(&server, any(), stream).await;
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "reason through it".into(),
@@ -334,7 +334,7 @@ async fn reasoning_content_delta_has_item_metadata() -> anyhow::Result<()> {
         })
         .await?;
 
-    let reasoning_item = wait_for_event_match(&codex, |ev| match ev {
+    let reasoning_item = wait_for_event_match(&codexist, |ev| match ev {
         EventMsg::ItemStarted(ItemStartedEvent {
             item: TurnItem::Reasoning(item),
             ..
@@ -343,12 +343,12 @@ async fn reasoning_content_delta_has_item_metadata() -> anyhow::Result<()> {
     })
     .await;
 
-    let delta_event = wait_for_event_match(&codex, |ev| match ev {
+    let delta_event = wait_for_event_match(&codexist, |ev| match ev {
         EventMsg::ReasoningContentDelta(event) => Some(event.clone()),
         _ => None,
     })
     .await;
-    let legacy_delta = wait_for_event_match(&codex, |ev| match ev {
+    let legacy_delta = wait_for_event_match(&codexist, |ev| match ev {
         EventMsg::AgentReasoningDelta(event) => Some(event.clone()),
         _ => None,
     })
@@ -367,7 +367,7 @@ async fn reasoning_raw_content_delta_respects_flag() -> anyhow::Result<()> {
 
     let server = start_mock_server().await;
 
-    let TestCodex { codex, .. } = test_codex()
+    let TestCodexist { codexist, .. } = test_codexist()
         .with_config(|config| {
             config.show_raw_agent_reasoning = true;
         })
@@ -383,7 +383,7 @@ async fn reasoning_raw_content_delta_respects_flag() -> anyhow::Result<()> {
     ]);
     mount_sse_once_match(&server, any(), stream).await;
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "show raw reasoning".into(),
@@ -391,7 +391,7 @@ async fn reasoning_raw_content_delta_respects_flag() -> anyhow::Result<()> {
         })
         .await?;
 
-    let reasoning_item = wait_for_event_match(&codex, |ev| match ev {
+    let reasoning_item = wait_for_event_match(&codexist, |ev| match ev {
         EventMsg::ItemStarted(ItemStartedEvent {
             item: TurnItem::Reasoning(item),
             ..
@@ -400,12 +400,12 @@ async fn reasoning_raw_content_delta_respects_flag() -> anyhow::Result<()> {
     })
     .await;
 
-    let delta_event = wait_for_event_match(&codex, |ev| match ev {
+    let delta_event = wait_for_event_match(&codexist, |ev| match ev {
         EventMsg::ReasoningRawContentDelta(event) => Some(event.clone()),
         _ => None,
     })
     .await;
-    let legacy_delta = wait_for_event_match(&codex, |ev| match ev {
+    let legacy_delta = wait_for_event_match(&codexist, |ev| match ev {
         EventMsg::AgentReasoningRawContentDelta(event) => Some(event.clone()),
         _ => None,
     })

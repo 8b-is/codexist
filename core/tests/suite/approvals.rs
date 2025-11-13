@@ -1,17 +1,17 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use anyhow::Result;
-use codex_core::features::Feature;
-use codex_core::model_family::find_family_for_model;
-use codex_core::protocol::ApplyPatchApprovalRequestEvent;
-use codex_core::protocol::AskForApproval;
-use codex_core::protocol::EventMsg;
-use codex_core::protocol::ExecApprovalRequestEvent;
-use codex_core::protocol::Op;
-use codex_core::protocol::SandboxPolicy;
-use codex_protocol::config_types::ReasoningSummary;
-use codex_protocol::protocol::ReviewDecision;
-use codex_protocol::user_input::UserInput;
+use codexist_core::features::Feature;
+use codexist_core::model_family::find_family_for_model;
+use codexist_core::protocol::ApplyPatchApprovalRequestEvent;
+use codexist_core::protocol::AskForApproval;
+use codexist_core::protocol::EventMsg;
+use codexist_core::protocol::ExecApprovalRequestEvent;
+use codexist_core::protocol::Op;
+use codexist_core::protocol::SandboxPolicy;
+use codexist_protocol::config_types::ReasoningSummary;
+use codexist_protocol::protocol::ReviewDecision;
+use codexist_protocol::user_input::UserInput;
 use core_test_support::responses::ev_apply_patch_function_call;
 use core_test_support::responses::ev_assistant_message;
 use core_test_support::responses::ev_completed;
@@ -21,8 +21,8 @@ use core_test_support::responses::mount_sse_once;
 use core_test_support::responses::sse;
 use core_test_support::responses::start_mock_server;
 use core_test_support::skip_if_no_network;
-use core_test_support::test_codex::TestCodex;
-use core_test_support::test_codex::test_codex;
+use core_test_support::test_codexist::TestCodexist;
+use core_test_support::test_codexist::test_codexist;
 use core_test_support::wait_for_event;
 use pretty_assertions::assert_eq;
 use regex_lite::Regex;
@@ -44,7 +44,7 @@ enum TargetPath {
 }
 
 impl TargetPath {
-    fn resolve_for_patch(self, test: &TestCodex) -> (PathBuf, String) {
+    fn resolve_for_patch(self, test: &TestCodexist) -> (PathBuf, String) {
         match self {
             TargetPath::Workspace(name) => {
                 let path = test.cwd.path().join(name);
@@ -93,7 +93,7 @@ const DEFAULT_UNIFIED_EXEC_JUSTIFICATION: &str =
 impl ActionKind {
     async fn prepare(
         &self,
-        test: &TestCodex,
+        test: &TestCodexist,
         server: &MockServer,
         call_id: &str,
         with_escalated_permissions: bool,
@@ -263,7 +263,7 @@ enum Expectation {
 }
 
 impl Expectation {
-    fn verify(&self, test: &TestCodex, result: &CommandResult) -> Result<()> {
+    fn verify(&self, test: &TestCodexist, result: &CommandResult) -> Result<()> {
         match self {
             Expectation::FileCreated { target, content } => {
                 let (path, _) = target.resolve_for_patch(test);
@@ -441,14 +441,14 @@ struct CommandResult {
 }
 
 async fn submit_turn(
-    test: &TestCodex,
+    test: &TestCodexist,
     prompt: &str,
     approval_policy: AskForApproval,
     sandbox_policy: SandboxPolicy,
 ) -> Result<()> {
     let session_model = test.session_configured.model.clone();
 
-    test.codex
+    test.codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: prompt.into(),
@@ -499,10 +499,10 @@ fn parse_result(item: &Value) -> CommandResult {
 }
 
 async fn expect_exec_approval(
-    test: &TestCodex,
+    test: &TestCodexist,
     expected_command: &[String],
 ) -> ExecApprovalRequestEvent {
-    let event = wait_for_event(&test.codex, |event| {
+    let event = wait_for_event(&test.codexist, |event| {
         matches!(
             event,
             EventMsg::ExecApprovalRequest(_) | EventMsg::TaskComplete(_)
@@ -521,10 +521,10 @@ async fn expect_exec_approval(
 }
 
 async fn expect_patch_approval(
-    test: &TestCodex,
+    test: &TestCodexist,
     expected_call_id: &str,
 ) -> ApplyPatchApprovalRequestEvent {
-    let event = wait_for_event(&test.codex, |event| {
+    let event = wait_for_event(&test.codexist, |event| {
         matches!(
             event,
             EventMsg::ApplyPatchApprovalRequest(_) | EventMsg::TaskComplete(_)
@@ -542,8 +542,8 @@ async fn expect_patch_approval(
     }
 }
 
-async fn wait_for_completion_without_approval(test: &TestCodex) {
-    let event = wait_for_event(&test.codex, |event| {
+async fn wait_for_completion_without_approval(test: &TestCodexist) {
+    let event = wait_for_event(&test.codexist, |event| {
         matches!(
             event,
             EventMsg::ExecApprovalRequest(_) | EventMsg::TaskComplete(_)
@@ -560,8 +560,8 @@ async fn wait_for_completion_without_approval(test: &TestCodex) {
     }
 }
 
-async fn wait_for_completion(test: &TestCodex) {
-    wait_for_event(&test.codex, |event| {
+async fn wait_for_completion(test: &TestCodexist) {
+    wait_for_event(&test.codexist, |event| {
         matches!(event, EventMsg::TaskComplete(_))
     })
     .await;
@@ -819,7 +819,7 @@ fn scenarios() -> Vec<ScenarioSpec> {
             },
             with_escalated_permissions: false,
             features: vec![],
-            model_override: Some("gpt-5-codex"),
+            model_override: Some("gpt-5-codexist"),
             outcome: Outcome::Auto,
             expectation: Expectation::PatchApplied {
                 target: TargetPath::Workspace("apply_patch_function.txt"),
@@ -836,7 +836,7 @@ fn scenarios() -> Vec<ScenarioSpec> {
             },
             with_escalated_permissions: false,
             features: vec![Feature::ApplyPatchFreeform],
-            model_override: Some("gpt-5-codex"),
+            model_override: Some("gpt-5-codexist"),
             outcome: Outcome::Auto,
             expectation: Expectation::PatchApplied {
                 target: TargetPath::OutsideWorkspace("apply_patch_function_danger.txt"),
@@ -853,7 +853,7 @@ fn scenarios() -> Vec<ScenarioSpec> {
             },
             with_escalated_permissions: false,
             features: vec![],
-            model_override: Some("gpt-5-codex"),
+            model_override: Some("gpt-5-codexist"),
             outcome: Outcome::PatchApproval {
                 decision: ReviewDecision::Approved,
                 expected_reason: None,
@@ -873,7 +873,7 @@ fn scenarios() -> Vec<ScenarioSpec> {
             },
             with_escalated_permissions: false,
             features: vec![],
-            model_override: Some("gpt-5-codex"),
+            model_override: Some("gpt-5-codexist"),
             outcome: Outcome::PatchApproval {
                 decision: ReviewDecision::Denied,
                 expected_reason: None,
@@ -913,7 +913,7 @@ fn scenarios() -> Vec<ScenarioSpec> {
             },
             with_escalated_permissions: false,
             features: vec![],
-            model_override: Some("gpt-5-codex"),
+            model_override: Some("gpt-5-codexist"),
             outcome: Outcome::PatchApproval {
                 decision: ReviewDecision::Approved,
                 expected_reason: None,
@@ -933,7 +933,7 @@ fn scenarios() -> Vec<ScenarioSpec> {
             },
             with_escalated_permissions: false,
             features: vec![],
-            model_override: Some("gpt-5-codex"),
+            model_override: Some("gpt-5-codexist"),
             outcome: Outcome::Auto,
             expectation: Expectation::FileNotCreated {
                 target: TargetPath::OutsideWorkspace("apply_patch_function_never.txt"),
@@ -1205,7 +1205,7 @@ async fn run_scenario(scenario: &ScenarioSpec) -> Result<()> {
     let features = scenario.features.clone();
     let model_override = scenario.model_override;
 
-    let mut builder = test_codex().with_config(move |config| {
+    let mut builder = test_codexist().with_config(move |config| {
         config.approval_policy = approval_policy;
         config.sandbox_policy = sandbox_policy.clone();
         let model = model_override.unwrap_or("gpt-5");
@@ -1270,7 +1270,7 @@ async fn run_scenario(scenario: &ScenarioSpec) -> Result<()> {
                     scenario.name
                 );
             }
-            test.codex
+            test.codexist
                 .submit(Op::ExecApproval {
                     id: "0".into(),
                     decision: *decision,
@@ -1291,7 +1291,7 @@ async fn run_scenario(scenario: &ScenarioSpec) -> Result<()> {
                     scenario.name
                 );
             }
-            test.codex
+            test.codexist
                 .submit(Op::PatchApproval {
                     id: "0".into(),
                     decision: *decision,

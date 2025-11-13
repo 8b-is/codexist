@@ -20,8 +20,8 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
-use crate::codex::Session;
-use crate::codex::TurnContext;
+use crate::codexist::Session;
+use crate::codexist::TurnContext;
 use crate::function_tool::FunctionCallError;
 use crate::protocol::EventMsg;
 use crate::protocol::McpInvocation;
@@ -254,7 +254,7 @@ async fn handle_list_resources(
     let cursor = normalize_optional_string(cursor);
 
     let invocation = McpInvocation {
-        server: server.clone().unwrap_or_else(|| "codex".to_string()),
+        server: server.clone().unwrap_or_else(|| "codexist".to_string()),
         tool: "list_mcp_resources".to_string(),
         arguments: arguments.clone(),
     };
@@ -359,7 +359,7 @@ async fn handle_list_resource_templates(
     let cursor = normalize_optional_string(cursor);
 
     let invocation = McpInvocation {
-        server: server.clone().unwrap_or_else(|| "codex".to_string()),
+        server: server.clone().unwrap_or_else(|| "codexist".to_string()),
         tool: "list_mcp_resource_templates".to_string(),
         arguments: arguments.clone(),
     };

@@ -26,13 +26,13 @@ use super::popup_consts::standard_popup_hint_line;
 use super::textarea::TextArea;
 use super::textarea::TextAreaState;
 
-const BASE_ISSUE_URL: &str = "https://github.com/openai/codex/issues/new?template=2-bug-report.yml";
+const BASE_ISSUE_URL: &str = "https://github.com/openai/codexist/issues/new?template=2-bug-report.yml";
 
 /// Minimal input overlay to collect an optional feedback note, then upload
 /// both logs and rollout with classification + metadata.
 pub(crate) struct FeedbackNoteView {
     category: FeedbackCategory,
-    snapshot: codex_feedback::CodexLogSnapshot,
+    snapshot: codexist_feedback::CodexistLogSnapshot,
     rollout_path: Option<PathBuf>,
     app_event_tx: AppEventSender,
     include_logs: bool,
@@ -46,7 +46,7 @@ pub(crate) struct FeedbackNoteView {
 impl FeedbackNoteView {
     pub(crate) fn new(
         category: FeedbackCategory,
-        snapshot: codex_feedback::CodexLogSnapshot,
+        snapshot: codexist_feedback::CodexistLogSnapshot,
         rollout_path: Option<PathBuf>,
         app_event_tx: AppEventSender,
         include_logs: bool,
@@ -408,7 +408,7 @@ pub(crate) fn feedback_upload_consent_params(
         Line::from("Upload logs?".bold()).into(),
         Line::from("").into(),
         Line::from("The following files will be sent:".dim()).into(),
-        Line::from(vec!["  • ".into(), "codex-logs.log".into()]).into(),
+        Line::from(vec!["  • ".into(), "codexist-logs.log".into()]).into(),
     ];
     if let Some(path) = rollout_path.as_deref()
         && let Some(name) = path.file_name().map(|s| s.to_string_lossy().to_string())
@@ -422,7 +422,7 @@ pub(crate) fn feedback_upload_consent_params(
             super::SelectionItem {
                 name: "Yes".to_string(),
                 description: Some(
-                    "Share the current Codex session logs with the team for troubleshooting."
+                    "Share the current Codexist session logs with the team for troubleshooting."
                         .to_string(),
                 ),
                 actions: vec![yes_action],
@@ -483,7 +483,7 @@ mod tests {
     fn make_view(category: FeedbackCategory) -> FeedbackNoteView {
         let (tx_raw, _rx) = tokio::sync::mpsc::unbounded_channel::<AppEvent>();
         let tx = AppEventSender::new(tx_raw);
-        let snapshot = codex_feedback::CodexFeedback::new().snapshot(None);
+        let snapshot = codexist_feedback::CodexistFeedback::new().snapshot(None);
         FeedbackNoteView::new(category, snapshot, None, tx, true)
     }
 

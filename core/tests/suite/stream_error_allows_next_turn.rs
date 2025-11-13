@@ -1,12 +1,12 @@
-use codex_core::ModelProviderInfo;
-use codex_core::WireApi;
-use codex_core::protocol::EventMsg;
-use codex_core::protocol::Op;
-use codex_protocol::user_input::UserInput;
+use codexist_core::ModelProviderInfo;
+use codexist_core::WireApi;
+use codexist_core::protocol::EventMsg;
+use codexist_core::protocol::Op;
+use codexist_protocol::user_input::UserInput;
 use core_test_support::load_sse_fixture_with_id;
 use core_test_support::skip_if_no_network;
-use core_test_support::test_codex::TestCodex;
-use core_test_support::test_codex::test_codex;
+use core_test_support::test_codexist::TestCodexist;
+use core_test_support::test_codexist::test_codexist;
 use core_test_support::wait_for_event;
 use wiremock::Mock;
 use wiremock::MockServer;
@@ -75,7 +75,7 @@ async fn continue_after_stream_error() {
         requires_openai_auth: false,
     };
 
-    let TestCodex { codex, .. } = test_codex()
+    let TestCodexist { codexist, .. } = test_codexist()
         .with_config(move |config| {
             config.base_instructions = Some("You are a helpful assistant".to_string());
             config.model_provider = provider;
@@ -84,7 +84,7 @@ async fn continue_after_stream_error() {
         .await
         .unwrap();
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "first message".into(),
@@ -94,14 +94,14 @@ async fn continue_after_stream_error() {
         .unwrap();
 
     // Expect an Error followed by TaskComplete so the session is released.
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::Error(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::Error(_))).await;
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     // 2) Second turn: now send another prompt that should succeed using the
     // mock server SSE stream. If the agent failed to clear the running task on
     // error above, this submission would be rejected/queued indefinitely.
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "follow up".into(),
@@ -110,5 +110,5 @@ async fn continue_after_stream_error() {
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 }

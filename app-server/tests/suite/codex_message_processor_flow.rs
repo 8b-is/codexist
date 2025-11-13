@@ -4,31 +4,31 @@ use app_test_support::create_final_assistant_message_sse_response;
 use app_test_support::create_mock_chat_completions_server;
 use app_test_support::create_shell_sse_response;
 use app_test_support::to_response;
-use codex_app_server_protocol::AddConversationListenerParams;
-use codex_app_server_protocol::AddConversationSubscriptionResponse;
-use codex_app_server_protocol::ExecCommandApprovalParams;
-use codex_app_server_protocol::InputItem;
-use codex_app_server_protocol::JSONRPCNotification;
-use codex_app_server_protocol::JSONRPCResponse;
-use codex_app_server_protocol::NewConversationParams;
-use codex_app_server_protocol::NewConversationResponse;
-use codex_app_server_protocol::RemoveConversationListenerParams;
-use codex_app_server_protocol::RemoveConversationSubscriptionResponse;
-use codex_app_server_protocol::RequestId;
-use codex_app_server_protocol::SendUserMessageParams;
-use codex_app_server_protocol::SendUserMessageResponse;
-use codex_app_server_protocol::SendUserTurnParams;
-use codex_app_server_protocol::SendUserTurnResponse;
-use codex_app_server_protocol::ServerRequest;
-use codex_core::protocol::AskForApproval;
-use codex_core::protocol::SandboxPolicy;
-use codex_core::protocol_config_types::ReasoningEffort;
-use codex_core::protocol_config_types::ReasoningSummary;
-use codex_core::spawn::CODEX_SANDBOX_NETWORK_DISABLED_ENV_VAR;
-use codex_protocol::config_types::SandboxMode;
-use codex_protocol::parse_command::ParsedCommand;
-use codex_protocol::protocol::Event;
-use codex_protocol::protocol::EventMsg;
+use codexist_app_server_protocol::AddConversationListenerParams;
+use codexist_app_server_protocol::AddConversationSubscriptionResponse;
+use codexist_app_server_protocol::ExecCommandApprovalParams;
+use codexist_app_server_protocol::InputItem;
+use codexist_app_server_protocol::JSONRPCNotification;
+use codexist_app_server_protocol::JSONRPCResponse;
+use codexist_app_server_protocol::NewConversationParams;
+use codexist_app_server_protocol::NewConversationResponse;
+use codexist_app_server_protocol::RemoveConversationListenerParams;
+use codexist_app_server_protocol::RemoveConversationSubscriptionResponse;
+use codexist_app_server_protocol::RequestId;
+use codexist_app_server_protocol::SendUserMessageParams;
+use codexist_app_server_protocol::SendUserMessageResponse;
+use codexist_app_server_protocol::SendUserTurnParams;
+use codexist_app_server_protocol::SendUserTurnResponse;
+use codexist_app_server_protocol::ServerRequest;
+use codexist_core::protocol::AskForApproval;
+use codexist_core::protocol::SandboxPolicy;
+use codexist_core::protocol_config_types::ReasoningEffort;
+use codexist_core::protocol_config_types::ReasoningSummary;
+use codexist_core::spawn::CODEXIST_SANDBOX_NETWORK_DISABLED_ENV_VAR;
+use codexist_protocol::config_types::SandboxMode;
+use codexist_protocol::parse_command::ParsedCommand;
+use codexist_protocol::protocol::Event;
+use codexist_protocol::protocol::EventMsg;
 use pretty_assertions::assert_eq;
 use std::env;
 use std::path::Path;
@@ -38,18 +38,18 @@ use tokio::time::timeout;
 const DEFAULT_READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-async fn test_codex_jsonrpc_conversation_flow() -> Result<()> {
-    if env::var(CODEX_SANDBOX_NETWORK_DISABLED_ENV_VAR).is_ok() {
+async fn test_codexist_jsonrpc_conversation_flow() -> Result<()> {
+    if env::var(CODEXIST_SANDBOX_NETWORK_DISABLED_ENV_VAR).is_ok() {
         println!(
-            "Skipping test because it cannot execute when network is disabled in a Codex sandbox."
+            "Skipping test because it cannot execute when network is disabled in a Codexist sandbox."
         );
         return Ok(());
     }
 
     let tmp = TempDir::new()?;
-    // Temporary Codex home with config pointing at the mock server.
-    let codex_home = tmp.path().join("codex_home");
-    std::fs::create_dir(&codex_home)?;
+    // Temporary Codexist home with config pointing at the mock server.
+    let codexist_home = tmp.path().join("codexist_home");
+    std::fs::create_dir(&codexist_home)?;
     let working_directory = tmp.path().join("workdir");
     std::fs::create_dir(&working_directory)?;
 
@@ -65,10 +65,10 @@ async fn test_codex_jsonrpc_conversation_flow() -> Result<()> {
         create_final_assistant_message_sse_response("Enjoy your new git repo!")?,
     ];
     let server = create_mock_chat_completions_server(responses).await;
-    create_config_toml(&codex_home, &server.uri())?;
+    create_config_toml(&codexist_home, &server.uri())?;
 
     // Start MCP server and initialize.
-    let mut mcp = McpProcess::new(&codex_home).await?;
+    let mut mcp = McpProcess::new(&codexist_home).await?;
     timeout(DEFAULT_READ_TIMEOUT, mcp.initialize()).await??;
 
     // 1) newConversation
@@ -111,7 +111,7 @@ async fn test_codex_jsonrpc_conversation_flow() -> Result<()> {
     let send_user_id = mcp
         .send_send_user_message_request(SendUserMessageParams {
             conversation_id,
-            items: vec![codex_app_server_protocol::InputItem::Text {
+            items: vec![codexist_app_server_protocol::InputItem::Text {
                 text: "text".to_string(),
             }],
         })
@@ -127,7 +127,7 @@ async fn test_codex_jsonrpc_conversation_flow() -> Result<()> {
     // Note this also ensures that the final request to the server was made.
     let task_finished_notification: JSONRPCNotification = timeout(
         DEFAULT_READ_TIMEOUT,
-        mcp.read_stream_until_notification_message("codex/event/task_complete"),
+        mcp.read_stream_until_notification_message("codexist/event/task_complete"),
     )
     .await??;
     let serde_json::Value::Object(map) = task_finished_notification
@@ -160,16 +160,16 @@ async fn test_codex_jsonrpc_conversation_flow() -> Result<()> {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn test_send_user_turn_changes_approval_policy_behavior() -> Result<()> {
-    if env::var(CODEX_SANDBOX_NETWORK_DISABLED_ENV_VAR).is_ok() {
+    if env::var(CODEXIST_SANDBOX_NETWORK_DISABLED_ENV_VAR).is_ok() {
         println!(
-            "Skipping test because it cannot execute when network is disabled in a Codex sandbox."
+            "Skipping test because it cannot execute when network is disabled in a Codexist sandbox."
         );
         return Ok(());
     }
 
     let tmp = TempDir::new()?;
-    let codex_home = tmp.path().join("codex_home");
-    std::fs::create_dir(&codex_home)?;
+    let codexist_home = tmp.path().join("codexist_home");
+    std::fs::create_dir(&codexist_home)?;
     let working_directory = tmp.path().join("workdir");
     std::fs::create_dir(&working_directory)?;
 
@@ -199,10 +199,10 @@ async fn test_send_user_turn_changes_approval_policy_behavior() -> Result<()> {
         create_final_assistant_message_sse_response("done 2")?,
     ];
     let server = create_mock_chat_completions_server(responses).await;
-    create_config_toml(&codex_home, &server.uri())?;
+    create_config_toml(&codexist_home, &server.uri())?;
 
     // Start MCP server and initialize.
-    let mut mcp = McpProcess::new(&codex_home).await?;
+    let mut mcp = McpProcess::new(&codexist_home).await?;
     timeout(DEFAULT_READ_TIMEOUT, mcp.initialize()).await??;
 
     // 1) Start conversation with approval_policy=untrusted
@@ -240,7 +240,7 @@ async fn test_send_user_turn_changes_approval_policy_behavior() -> Result<()> {
     let send_user_id = mcp
         .send_send_user_message_request(SendUserMessageParams {
             conversation_id,
-            items: vec![codex_app_server_protocol::InputItem::Text {
+            items: vec![codexist_app_server_protocol::InputItem::Text {
                 text: "run python".to_string(),
             }],
         })
@@ -285,14 +285,14 @@ async fn test_send_user_turn_changes_approval_policy_behavior() -> Result<()> {
     // Approve so the first turn can complete
     mcp.send_response(
         request_id,
-        serde_json::json!({ "decision": codex_core::protocol::ReviewDecision::Approved }),
+        serde_json::json!({ "decision": codexist_core::protocol::ReviewDecision::Approved }),
     )
     .await?;
 
     // Wait for first TaskComplete
     let _ = timeout(
         DEFAULT_READ_TIMEOUT,
-        mcp.read_stream_until_notification_message("codex/event/task_complete"),
+        mcp.read_stream_until_notification_message("codexist/event/task_complete"),
     )
     .await??;
 
@@ -300,7 +300,7 @@ async fn test_send_user_turn_changes_approval_policy_behavior() -> Result<()> {
     let send_turn_id = mcp
         .send_send_user_turn_request(SendUserTurnParams {
             conversation_id,
-            items: vec![codex_app_server_protocol::InputItem::Text {
+            items: vec![codexist_app_server_protocol::InputItem::Text {
                 text: "run python again".to_string(),
             }],
             cwd: working_directory.clone(),
@@ -324,7 +324,7 @@ async fn test_send_user_turn_changes_approval_policy_behavior() -> Result<()> {
     // If any Request is seen while waiting for task_complete, the helper will error and the test fails.
     let _ = timeout(
         DEFAULT_READ_TIMEOUT,
-        mcp.read_stream_until_notification_message("codex/event/task_complete"),
+        mcp.read_stream_until_notification_message("codexist/event/task_complete"),
     )
     .await??;
 
@@ -335,16 +335,16 @@ async fn test_send_user_turn_changes_approval_policy_behavior() -> Result<()> {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn test_send_user_turn_updates_sandbox_and_cwd_between_turns() -> Result<()> {
-    if env::var(CODEX_SANDBOX_NETWORK_DISABLED_ENV_VAR).is_ok() {
+    if env::var(CODEXIST_SANDBOX_NETWORK_DISABLED_ENV_VAR).is_ok() {
         println!(
-            "Skipping test because it cannot execute when network is disabled in a Codex sandbox."
+            "Skipping test because it cannot execute when network is disabled in a Codexist sandbox."
         );
         return Ok(());
     }
 
     let tmp = TempDir::new()?;
-    let codex_home = tmp.path().join("codex_home");
-    std::fs::create_dir(&codex_home)?;
+    let codexist_home = tmp.path().join("codexist_home");
+    std::fs::create_dir(&codexist_home)?;
     let workspace_root = tmp.path().join("workspace");
     std::fs::create_dir(&workspace_root)?;
     let first_cwd = workspace_root.join("turn1");
@@ -377,9 +377,9 @@ async fn test_send_user_turn_updates_sandbox_and_cwd_between_turns() -> Result<(
         create_final_assistant_message_sse_response("done second")?,
     ];
     let server = create_mock_chat_completions_server(responses).await;
-    create_config_toml(&codex_home, &server.uri())?;
+    create_config_toml(&codexist_home, &server.uri())?;
 
-    let mut mcp = McpProcess::new(&codex_home).await?;
+    let mut mcp = McpProcess::new(&codexist_home).await?;
     timeout(DEFAULT_READ_TIMEOUT, mcp.initialize()).await??;
 
     let new_conv_id = mcp
@@ -439,7 +439,7 @@ async fn test_send_user_turn_updates_sandbox_and_cwd_between_turns() -> Result<(
     .await??;
     timeout(
         DEFAULT_READ_TIMEOUT,
-        mcp.read_stream_until_notification_message("codex/event/task_complete"),
+        mcp.read_stream_until_notification_message("codexist/event/task_complete"),
     )
     .await??;
 
@@ -465,7 +465,7 @@ async fn test_send_user_turn_updates_sandbox_and_cwd_between_turns() -> Result<(
 
     let exec_begin_notification = timeout(
         DEFAULT_READ_TIMEOUT,
-        mcp.read_stream_until_notification_message("codex/event/exec_command_begin"),
+        mcp.read_stream_until_notification_message("codexist/event/exec_command_begin"),
     )
     .await??;
     let params = exec_begin_notification
@@ -493,15 +493,15 @@ async fn test_send_user_turn_updates_sandbox_and_cwd_between_turns() -> Result<(
 
     timeout(
         DEFAULT_READ_TIMEOUT,
-        mcp.read_stream_until_notification_message("codex/event/task_complete"),
+        mcp.read_stream_until_notification_message("codexist/event/task_complete"),
     )
     .await??;
 
     Ok(())
 }
 
-fn create_config_toml(codex_home: &Path, server_uri: &str) -> std::io::Result<()> {
-    let config_toml = codex_home.join("config.toml");
+fn create_config_toml(codexist_home: &Path, server_uri: &str) -> std::io::Result<()> {
+    let config_toml = codexist_home.join("config.toml");
     std::fs::write(
         config_toml,
         format!(

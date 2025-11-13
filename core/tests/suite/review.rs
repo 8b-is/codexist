@@ -1,24 +1,24 @@
-use codex_core::CodexAuth;
-use codex_core::CodexConversation;
-use codex_core::ContentItem;
-use codex_core::ConversationManager;
-use codex_core::ModelProviderInfo;
-use codex_core::REVIEW_PROMPT;
-use codex_core::ResponseItem;
-use codex_core::built_in_model_providers;
-use codex_core::config::Config;
-use codex_core::protocol::ENVIRONMENT_CONTEXT_OPEN_TAG;
-use codex_core::protocol::EventMsg;
-use codex_core::protocol::ExitedReviewModeEvent;
-use codex_core::protocol::Op;
-use codex_core::protocol::ReviewCodeLocation;
-use codex_core::protocol::ReviewFinding;
-use codex_core::protocol::ReviewLineRange;
-use codex_core::protocol::ReviewOutputEvent;
-use codex_core::protocol::ReviewRequest;
-use codex_core::protocol::RolloutItem;
-use codex_core::protocol::RolloutLine;
-use codex_protocol::user_input::UserInput;
+use codexist_core::CodexistAuth;
+use codexist_core::CodexistConversation;
+use codexist_core::ContentItem;
+use codexist_core::ConversationManager;
+use codexist_core::ModelProviderInfo;
+use codexist_core::REVIEW_PROMPT;
+use codexist_core::ResponseItem;
+use codexist_core::built_in_model_providers;
+use codexist_core::config::Config;
+use codexist_core::protocol::ENVIRONMENT_CONTEXT_OPEN_TAG;
+use codexist_core::protocol::EventMsg;
+use codexist_core::protocol::ExitedReviewModeEvent;
+use codexist_core::protocol::Op;
+use codexist_core::protocol::ReviewCodeLocation;
+use codexist_core::protocol::ReviewFinding;
+use codexist_core::protocol::ReviewLineRange;
+use codexist_core::protocol::ReviewOutputEvent;
+use codexist_core::protocol::ReviewRequest;
+use codexist_core::protocol::RolloutItem;
+use codexist_core::protocol::RolloutLine;
+use codexist_protocol::user_input::UserInput;
 use core_test_support::load_default_config_for_test;
 use core_test_support::load_sse_fixture_with_id_from_str;
 use core_test_support::skip_if_no_network;
@@ -40,7 +40,7 @@ use wiremock::matchers::path;
 /// in that order when the model returns a structured review JSON payload.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn review_op_emits_lifecycle_and_review_output() {
-    // Skip under Codex sandbox network restrictions.
+    // Skip under Codexist sandbox network restrictions.
     skip_if_no_network!();
 
     // Start mock Responses API server. Return a single assistant message whose
@@ -73,11 +73,11 @@ async fn review_op_emits_lifecycle_and_review_output() {
     let review_json_escaped = serde_json::to_string(&review_json).unwrap();
     let sse_raw = sse_template.replace("__REVIEW__", &review_json_escaped);
     let server = start_responses_server_with_sse(&sse_raw, 1).await;
-    let codex_home = TempDir::new().unwrap();
-    let codex = new_conversation_for_server(&server, &codex_home, |_| {}).await;
+    let codexist_home = TempDir::new().unwrap();
+    let codexist = new_conversation_for_server(&server, &codexist_home, |_| {}).await;
 
     // Submit review request.
-    codex
+    codexist
         .submit(Op::Review {
             review_request: ReviewRequest {
                 prompt: "Please review my changes".to_string(),
@@ -88,8 +88,8 @@ async fn review_op_emits_lifecycle_and_review_output() {
         .unwrap();
 
     // Verify lifecycle: Entered -> Exited(Some(review)) -> TaskComplete.
-    let _entered = wait_for_event(&codex, |ev| matches!(ev, EventMsg::EnteredReviewMode(_))).await;
-    let closed = wait_for_event(&codex, |ev| matches!(ev, EventMsg::ExitedReviewMode(_))).await;
+    let _entered = wait_for_event(&codexist, |ev| matches!(ev, EventMsg::EnteredReviewMode(_))).await;
+    let closed = wait_for_event(&codexist, |ev| matches!(ev, EventMsg::ExitedReviewMode(_))).await;
     let review = match closed {
         EventMsg::ExitedReviewMode(ev) => ev
             .review_output
@@ -114,11 +114,11 @@ async fn review_op_emits_lifecycle_and_review_output() {
         overall_confidence_score: 0.8,
     };
     assert_eq!(expected, review);
-    let _complete = wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    let _complete = wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     // Also verify that a user message with the header and a formatted finding
     // was recorded back in the parent session's rollout.
-    let path = codex.rollout_path();
+    let path = codexist.rollout_path();
     let text = std::fs::read_to_string(&path).expect("read rollout file");
 
     let mut saw_header = false;
@@ -170,10 +170,10 @@ async fn review_op_with_plain_text_emits_review_fallback() {
         {"type":"response.completed", "response": {"id": "__ID__"}}
     ]"#;
     let server = start_responses_server_with_sse(sse_raw, 1).await;
-    let codex_home = TempDir::new().unwrap();
-    let codex = new_conversation_for_server(&server, &codex_home, |_| {}).await;
+    let codexist_home = TempDir::new().unwrap();
+    let codexist = new_conversation_for_server(&server, &codexist_home, |_| {}).await;
 
-    codex
+    codexist
         .submit(Op::Review {
             review_request: ReviewRequest {
                 prompt: "Plain text review".to_string(),
@@ -183,8 +183,8 @@ async fn review_op_with_plain_text_emits_review_fallback() {
         .await
         .unwrap();
 
-    let _entered = wait_for_event(&codex, |ev| matches!(ev, EventMsg::EnteredReviewMode(_))).await;
-    let closed = wait_for_event(&codex, |ev| matches!(ev, EventMsg::ExitedReviewMode(_))).await;
+    let _entered = wait_for_event(&codexist, |ev| matches!(ev, EventMsg::EnteredReviewMode(_))).await;
+    let closed = wait_for_event(&codexist, |ev| matches!(ev, EventMsg::ExitedReviewMode(_))).await;
     let review = match closed {
         EventMsg::ExitedReviewMode(ev) => ev
             .review_output
@@ -198,7 +198,7 @@ async fn review_op_with_plain_text_emits_review_fallback() {
         ..Default::default()
     };
     assert_eq!(expected, review);
-    let _complete = wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    let _complete = wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     server.verify().await;
 }
@@ -228,10 +228,10 @@ async fn review_filters_agent_message_related_events() {
         {"type":"response.completed", "response": {"id": "__ID__"}}
     ]"#;
     let server = start_responses_server_with_sse(sse_raw, 1).await;
-    let codex_home = TempDir::new().unwrap();
-    let codex = new_conversation_for_server(&server, &codex_home, |_| {}).await;
+    let codexist_home = TempDir::new().unwrap();
+    let codexist = new_conversation_for_server(&server, &codexist_home, |_| {}).await;
 
-    codex
+    codexist
         .submit(Op::Review {
             review_request: ReviewRequest {
                 prompt: "Filter streaming events".to_string(),
@@ -245,7 +245,7 @@ async fn review_filters_agent_message_related_events() {
     let mut saw_exited = false;
 
     // Drain until TaskComplete; assert filtered events never surface.
-    wait_for_event(&codex, |event| match event {
+    wait_for_event(&codexist, |event| match event {
         EventMsg::TaskComplete(_) => true,
         EventMsg::EnteredReviewMode(_) => {
             saw_entered = true;
@@ -263,7 +263,7 @@ async fn review_filters_agent_message_related_events() {
             panic!("unexpected AgentMessageDelta surfaced during review")
         }
         EventMsg::ItemCompleted(ev) => match &ev.item {
-            codex_protocol::items::TurnItem::AgentMessage(_) => {
+            codexist_protocol::items::TurnItem::AgentMessage(_) => {
                 panic!("unexpected ItemCompleted for TurnItem::AgentMessage surfaced during review")
             }
             _ => false,
@@ -312,10 +312,10 @@ async fn review_does_not_emit_agent_message_on_structured_output() {
     let review_json_escaped = serde_json::to_string(&review_json).unwrap();
     let sse_raw = sse_template.replace("__REVIEW__", &review_json_escaped);
     let server = start_responses_server_with_sse(&sse_raw, 1).await;
-    let codex_home = TempDir::new().unwrap();
-    let codex = new_conversation_for_server(&server, &codex_home, |_| {}).await;
+    let codexist_home = TempDir::new().unwrap();
+    let codexist = new_conversation_for_server(&server, &codexist_home, |_| {}).await;
 
-    codex
+    codexist
         .submit(Op::Review {
             review_request: ReviewRequest {
                 prompt: "check structured".to_string(),
@@ -328,7 +328,7 @@ async fn review_does_not_emit_agent_message_on_structured_output() {
     // Drain events until TaskComplete; ensure none are AgentMessage.
     let mut saw_entered = false;
     let mut saw_exited = false;
-    wait_for_event(&codex, |event| match event {
+    wait_for_event(&codexist, |event| match event {
         EventMsg::TaskComplete(_) => true,
         EventMsg::AgentMessage(_) => {
             panic!("unexpected AgentMessage during review with structured output")
@@ -360,15 +360,15 @@ async fn review_uses_custom_review_model_from_config() {
         {"type":"response.completed", "response": {"id": "__ID__"}}
     ]"#;
     let server = start_responses_server_with_sse(sse_raw, 1).await;
-    let codex_home = TempDir::new().unwrap();
+    let codexist_home = TempDir::new().unwrap();
     // Choose a review model different from the main model; ensure it is used.
-    let codex = new_conversation_for_server(&server, &codex_home, |cfg| {
+    let codexist = new_conversation_for_server(&server, &codexist_home, |cfg| {
         cfg.model = "gpt-4.1".to_string();
         cfg.review_model = "gpt-5".to_string();
     })
     .await;
 
-    codex
+    codexist
         .submit(Op::Review {
             review_request: ReviewRequest {
                 prompt: "use custom model".to_string(),
@@ -379,8 +379,8 @@ async fn review_uses_custom_review_model_from_config() {
         .unwrap();
 
     // Wait for completion
-    let _entered = wait_for_event(&codex, |ev| matches!(ev, EventMsg::EnteredReviewMode(_))).await;
-    let _closed = wait_for_event(&codex, |ev| {
+    let _entered = wait_for_event(&codexist, |ev| matches!(ev, EventMsg::EnteredReviewMode(_))).await;
+    let _closed = wait_for_event(&codexist, |ev| {
         matches!(
             ev,
             EventMsg::ExitedReviewMode(ExitedReviewModeEvent {
@@ -389,7 +389,7 @@ async fn review_uses_custom_review_model_from_config() {
         )
     })
     .await;
-    let _complete = wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    let _complete = wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     // Assert the request body model equals the configured review model
     let request = &server.received_requests().await.unwrap()[0];
@@ -415,14 +415,14 @@ async fn review_input_isolated_from_parent_history() {
     let server = start_responses_server_with_sse(sse_raw, 1).await;
 
     // Seed a parent session history via resume file with both user + assistant items.
-    let codex_home = TempDir::new().unwrap();
-    let mut config = load_default_config_for_test(&codex_home);
+    let codexist_home = TempDir::new().unwrap();
+    let mut config = load_default_config_for_test(&codexist_home);
     config.model_provider = ModelProviderInfo {
         base_url: Some(format!("{}/v1", server.uri())),
         ..built_in_model_providers()["openai"].clone()
     };
 
-    let session_file = codex_home.path().join("resume.jsonl");
+    let session_file = codexist_home.path().join("resume.jsonl");
     {
         let mut f = tokio::fs::File::create(&session_file).await.unwrap();
         let convo_id = Uuid::new_v4();
@@ -445,10 +445,10 @@ async fn review_input_isolated_from_parent_history() {
             .unwrap();
 
         // Prior user message (enveloped response_item)
-        let user = codex_protocol::models::ResponseItem::Message {
+        let user = codexist_protocol::models::ResponseItem::Message {
             id: None,
             role: "user".to_string(),
-            content: vec![codex_protocol::models::ContentItem::InputText {
+            content: vec![codexist_protocol::models::ContentItem::InputText {
                 text: "parent: earlier user message".to_string(),
             }],
         };
@@ -463,10 +463,10 @@ async fn review_input_isolated_from_parent_history() {
             .unwrap();
 
         // Prior assistant message (enveloped response_item)
-        let assistant = codex_protocol::models::ResponseItem::Message {
+        let assistant = codexist_protocol::models::ResponseItem::Message {
             id: None,
             role: "assistant".to_string(),
-            content: vec![codex_protocol::models::ContentItem::OutputText {
+            content: vec![codexist_protocol::models::ContentItem::OutputText {
                 text: "parent: assistant reply".to_string(),
             }],
         };
@@ -480,12 +480,12 @@ async fn review_input_isolated_from_parent_history() {
             .await
             .unwrap();
     }
-    let codex =
-        resume_conversation_for_server(&server, &codex_home, session_file.clone(), |_| {}).await;
+    let codexist =
+        resume_conversation_for_server(&server, &codexist_home, session_file.clone(), |_| {}).await;
 
     // Submit review request; it must start fresh (no parent history in `input`).
     let review_prompt = "Please review only this".to_string();
-    codex
+    codexist
         .submit(Op::Review {
             review_request: ReviewRequest {
                 prompt: review_prompt.clone(),
@@ -495,8 +495,8 @@ async fn review_input_isolated_from_parent_history() {
         .await
         .unwrap();
 
-    let _entered = wait_for_event(&codex, |ev| matches!(ev, EventMsg::EnteredReviewMode(_))).await;
-    let _closed = wait_for_event(&codex, |ev| {
+    let _entered = wait_for_event(&codexist, |ev| matches!(ev, EventMsg::EnteredReviewMode(_))).await;
+    let _closed = wait_for_event(&codexist, |ev| {
         matches!(
             ev,
             EventMsg::ExitedReviewMode(ExitedReviewModeEvent {
@@ -505,7 +505,7 @@ async fn review_input_isolated_from_parent_history() {
         )
     })
     .await;
-    let _complete = wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    let _complete = wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     // Assert the request `input` contains the environment context followed by the user review prompt.
     let request = &server.received_requests().await.unwrap()[0];
@@ -544,7 +544,7 @@ async fn review_input_isolated_from_parent_history() {
     assert_eq!(instructions, REVIEW_PROMPT);
 
     // Also verify that a user interruption note was recorded in the rollout.
-    let path = codex.rollout_path();
+    let path = codexist.rollout_path();
     let text = std::fs::read_to_string(&path).expect("read rollout file");
     let mut saw_interruption_message = false;
     for line in text.lines() {
@@ -593,11 +593,11 @@ async fn review_history_does_not_leak_into_parent_session() {
         {"type":"response.completed", "response": {"id": "__ID__"}}
     ]"#;
     let server = start_responses_server_with_sse(sse_raw, 2).await;
-    let codex_home = TempDir::new().unwrap();
-    let codex = new_conversation_for_server(&server, &codex_home, |_| {}).await;
+    let codexist_home = TempDir::new().unwrap();
+    let codexist = new_conversation_for_server(&server, &codexist_home, |_| {}).await;
 
     // 1) Run a review turn that produces an assistant message (isolated in child).
-    codex
+    codexist
         .submit(Op::Review {
             review_request: ReviewRequest {
                 prompt: "Start a review".to_string(),
@@ -606,8 +606,8 @@ async fn review_history_does_not_leak_into_parent_session() {
         })
         .await
         .unwrap();
-    let _entered = wait_for_event(&codex, |ev| matches!(ev, EventMsg::EnteredReviewMode(_))).await;
-    let _closed = wait_for_event(&codex, |ev| {
+    let _entered = wait_for_event(&codexist, |ev| matches!(ev, EventMsg::EnteredReviewMode(_))).await;
+    let _closed = wait_for_event(&codexist, |ev| {
         matches!(
             ev,
             EventMsg::ExitedReviewMode(ExitedReviewModeEvent {
@@ -616,11 +616,11 @@ async fn review_history_does_not_leak_into_parent_session() {
         )
     })
     .await;
-    let _complete = wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    let _complete = wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     // 2) Continue in the parent session; request input must not include any review items.
     let followup = "back to parent".to_string();
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: followup.clone(),
@@ -628,7 +628,7 @@ async fn review_history_does_not_leak_into_parent_session() {
         })
         .await
         .unwrap();
-    let _complete = wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    let _complete = wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     // Inspect the second request (parent turn) input contents.
     // Parent turns include session initial messages (user_instructions, environment_context).
@@ -684,9 +684,9 @@ async fn start_responses_server_with_sse(sse_raw: &str, expected_requests: usize
 #[expect(clippy::expect_used)]
 async fn new_conversation_for_server<F>(
     server: &MockServer,
-    codex_home: &TempDir,
+    codexist_home: &TempDir,
     mutator: F,
-) -> Arc<CodexConversation>
+) -> Arc<CodexistConversation>
 where
     F: FnOnce(&mut Config),
 {
@@ -694,11 +694,11 @@ where
         base_url: Some(format!("{}/v1", server.uri())),
         ..built_in_model_providers()["openai"].clone()
     };
-    let mut config = load_default_config_for_test(codex_home);
+    let mut config = load_default_config_for_test(codexist_home);
     config.model_provider = model_provider;
     mutator(&mut config);
     let conversation_manager =
-        ConversationManager::with_auth(CodexAuth::from_api_key("Test API Key"));
+        ConversationManager::with_auth(CodexistAuth::from_api_key("Test API Key"));
     conversation_manager
         .new_conversation(config)
         .await
@@ -710,10 +710,10 @@ where
 #[expect(clippy::expect_used)]
 async fn resume_conversation_for_server<F>(
     server: &MockServer,
-    codex_home: &TempDir,
+    codexist_home: &TempDir,
     resume_path: std::path::PathBuf,
     mutator: F,
-) -> Arc<CodexConversation>
+) -> Arc<CodexistConversation>
 where
     F: FnOnce(&mut Config),
 {
@@ -721,13 +721,13 @@ where
         base_url: Some(format!("{}/v1", server.uri())),
         ..built_in_model_providers()["openai"].clone()
     };
-    let mut config = load_default_config_for_test(codex_home);
+    let mut config = load_default_config_for_test(codexist_home);
     config.model_provider = model_provider;
     mutator(&mut config);
     let conversation_manager =
-        ConversationManager::with_auth(CodexAuth::from_api_key("Test API Key"));
+        ConversationManager::with_auth(CodexistAuth::from_api_key("Test API Key"));
     let auth_manager =
-        codex_core::AuthManager::from_auth_for_testing(CodexAuth::from_api_key("Test API Key"));
+        codexist_core::AuthManager::from_auth_for_testing(CodexistAuth::from_api_key("Test API Key"));
     conversation_manager
         .resume_conversation_from_rollout(config, resume_path, auth_manager)
         .await

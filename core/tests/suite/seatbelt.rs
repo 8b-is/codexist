@@ -7,10 +7,10 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::path::PathBuf;
 
-use codex_core::protocol::SandboxPolicy;
-use codex_core::seatbelt::spawn_command_under_seatbelt;
-use codex_core::spawn::CODEX_SANDBOX_ENV_VAR;
-use codex_core::spawn::StdioPolicy;
+use codexist_core::protocol::SandboxPolicy;
+use codexist_core::seatbelt::spawn_command_under_seatbelt;
+use codexist_core::spawn::CODEXIST_SANDBOX_ENV_VAR;
+use codexist_core::spawn::StdioPolicy;
 use tempfile::TempDir;
 
 struct TestScenario {
@@ -29,8 +29,8 @@ struct TestExpectations {
 
 impl TestScenario {
     async fn run_test(&self, policy: &SandboxPolicy, expectations: TestExpectations) {
-        if std::env::var(CODEX_SANDBOX_ENV_VAR) == Ok("seatbelt".to_string()) {
-            eprintln!("{CODEX_SANDBOX_ENV_VAR} is set to 'seatbelt', skipping test.");
+        if std::env::var(CODEXIST_SANDBOX_ENV_VAR) == Ok("seatbelt".to_string()) {
+            eprintln!("{CODEXIST_SANDBOX_ENV_VAR} is set to 'seatbelt', skipping test.");
             return;
         }
 
@@ -164,8 +164,8 @@ async fn read_only_forbids_all_writes() {
 /// OpenDirectory libinfo, this would fail with `KeyError: getpwuid(): uid not found`.
 #[tokio::test]
 async fn python_getpwuid_works_under_seatbelt() {
-    if std::env::var(CODEX_SANDBOX_ENV_VAR) == Ok("seatbelt".to_string()) {
-        eprintln!("{CODEX_SANDBOX_ENV_VAR} is set to 'seatbelt', skipping test.");
+    if std::env::var(CODEXIST_SANDBOX_ENV_VAR) == Ok("seatbelt".to_string()) {
+        eprintln!("{CODEXIST_SANDBOX_ENV_VAR} is set to 'seatbelt', skipping test.");
         return;
     }
 
@@ -205,8 +205,8 @@ async fn python_getpwuid_works_under_seatbelt() {
 
 #[tokio::test]
 async fn java_home_finds_runtime_under_seatbelt() {
-    if std::env::var(CODEX_SANDBOX_ENV_VAR) == Ok("seatbelt".to_string()) {
-        eprintln!("{CODEX_SANDBOX_ENV_VAR} is set to 'seatbelt', skipping test.");
+    if std::env::var(CODEXIST_SANDBOX_ENV_VAR) == Ok("seatbelt".to_string()) {
+        eprintln!("{CODEXIST_SANDBOX_ENV_VAR} is set to 'seatbelt', skipping test.");
         return;
     }
 
@@ -235,7 +235,7 @@ async fn java_home_finds_runtime_under_seatbelt() {
 
     let mut env: HashMap<String, String> = std::env::vars().collect();
     env.remove("JAVA_HOME");
-    env.remove(CODEX_SANDBOX_ENV_VAR);
+    env.remove(CODEXIST_SANDBOX_ENV_VAR);
 
     let child = spawn_command_under_seatbelt(
         vec![java_home_path.to_string_lossy().to_string()],

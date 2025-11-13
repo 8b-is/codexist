@@ -5,13 +5,13 @@ expression: sanitized
 /status
 
 ╭────────────────────────────────────────────╮
-│  >_ OpenAI Codex (v0.0.0)                  │
+│  >_ 8b.is/codexist (v0.0.0)                  │
 │                                            │
-│ Visit https://chatgpt.com/codex/settings/  │
+│ Visit https://chatgpt.com/codexist/settings/  │
 │ usage for up-to-date                       │
 │ information on rate limits and credits     │
 │                                            │
-│  Model:            gpt-5-codex (reasoning  │
+│  Model:            gpt-5-codexist (reasoning  │
 │  Directory: [[workspace]]                  │
 │  Approval:         on-request              │
 │  Sandbox:          read-only               │

@@ -1,8 +1,8 @@
 //! Session-wide mutable state.
 
-use codex_protocol::models::ResponseItem;
+use codexist_protocol::models::ResponseItem;
 
-use crate::codex::SessionConfiguration;
+use crate::codexist::SessionConfiguration;
 use crate::context_manager::ContextManager;
 use crate::protocol::RateLimitSnapshot;
 use crate::protocol::TokenUsage;

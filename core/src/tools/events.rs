@@ -1,6 +1,6 @@
-use crate::codex::Session;
-use crate::codex::TurnContext;
-use crate::error::CodexErr;
+use crate::codexist::Session;
+use crate::codexist::TurnContext;
+use crate::error::CodexistErr;
 use crate::error::SandboxErr;
 use crate::exec::ExecToolCallOutput;
 use crate::function_tool::FunctionCallError;
@@ -286,14 +286,14 @@ impl ToolEmitter {
                 };
                 (event, result)
             }
-            Err(ToolError::Codex(CodexErr::Sandbox(SandboxErr::Timeout { output })))
-            | Err(ToolError::Codex(CodexErr::Sandbox(SandboxErr::Denied { output }))) => {
+            Err(ToolError::Codexist(CodexistErr::Sandbox(SandboxErr::Timeout { output })))
+            | Err(ToolError::Codexist(CodexistErr::Sandbox(SandboxErr::Denied { output }))) => {
                 let response = super::format_exec_output_for_model(&output);
                 let event = ToolEventStage::Failure(ToolEventFailure::Output(*output));
                 let result = Err(FunctionCallError::RespondToModel(response));
                 (event, result)
             }
-            Err(ToolError::Codex(err)) => {
+            Err(ToolError::Codexist(err)) => {
                 let message = format!("execution error: {err:?}");
                 let event = ToolEventStage::Failure(ToolEventFailure::Message(message.clone()));
                 let result = Err(FunctionCallError::RespondToModel(message));

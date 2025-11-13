@@ -20,8 +20,8 @@ use crate::tools::sandboxing::ToolCtx;
 use crate::tools::sandboxing::ToolError;
 use crate::tools::sandboxing::ToolRuntime;
 use crate::tools::sandboxing::with_cached_approval;
-use codex_protocol::protocol::AskForApproval;
-use codex_protocol::protocol::ReviewDecision;
+use codexist_protocol::protocol::AskForApproval;
+use codexist_protocol::protocol::ReviewDecision;
 use futures::future::BoxFuture;
 use std::path::PathBuf;
 
@@ -150,10 +150,10 @@ impl ToolRuntime<ShellRequest, ExecToolCallOutput> for ShellRuntime {
         )?;
         let env = attempt
             .env_for(&spec)
-            .map_err(|err| ToolError::Codex(err.into()))?;
+            .map_err(|err| ToolError::Codexist(err.into()))?;
         let out = execute_env(&env, attempt.policy, Self::stdout_stream(ctx))
             .await
-            .map_err(ToolError::Codex)?;
+            .map_err(ToolError::Codexist)?;
         Ok(out)
     }
 }

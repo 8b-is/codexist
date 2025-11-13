@@ -15,7 +15,7 @@ use tokio::io::AsyncReadExt;
 use tokio::io::BufReader;
 use tokio::process::Child;
 
-use crate::error::CodexErr;
+use crate::error::CodexistErr;
 use crate::error::Result;
 use crate::error::SandboxErr;
 use crate::protocol::Event;
@@ -89,7 +89,7 @@ pub async fn process_exec_tool_call(
     sandbox_type: SandboxType,
     sandbox_policy: &SandboxPolicy,
     sandbox_cwd: &Path,
-    codex_linux_sandbox_exe: &Option<PathBuf>,
+    codexist_linux_sandbox_exe: &Option<PathBuf>,
     stdout_stream: Option<StdoutStream>,
 ) -> Result<ExecToolCallOutput> {
     let ExecParams {
@@ -103,7 +103,7 @@ pub async fn process_exec_tool_call(
     } = params;
 
     let (program, args) = command.split_first().ok_or_else(|| {
-        CodexErr::Io(io::Error::new(
+        CodexistErr::Io(io::Error::new(
             io::ErrorKind::InvalidInput,
             "command args are empty",
         ))
@@ -126,9 +126,9 @@ pub async fn process_exec_tool_call(
             sandbox_policy,
             sandbox_type,
             sandbox_cwd,
-            codex_linux_sandbox_exe.as_ref(),
+            codexist_linux_sandbox_exe.as_ref(),
         )
-        .map_err(CodexErr::from)?;
+        .map_err(CodexistErr::from)?;
 
     // Route through the sandboxing module for a single, unified execution path.
     crate::sandboxing::execute_env(&exec_env, sandbox_policy, stdout_stream).await
@@ -171,8 +171,8 @@ async fn exec_windows_sandbox(
     params: ExecParams,
     sandbox_policy: &SandboxPolicy,
 ) -> Result<RawExecToolCallOutput> {
-    use crate::config::find_codex_home;
-    use codex_windows_sandbox::run_windows_sandbox_capture;
+    use crate::config::find_codexist_home;
+    use codexist_windows_sandbox::run_windows_sandbox_capture;
 
     let ExecParams {
         command,
@@ -189,7 +189,7 @@ async fn exec_windows_sandbox(
     };
 
     let sandbox_cwd = cwd.clone();
-    let logs_base_dir = find_codex_home().ok();
+    let logs_base_dir = find_codexist_home().ok();
     let spawn_res = tokio::task::spawn_blocking(move || {
         run_windows_sandbox_capture(
             policy_str,
@@ -206,12 +206,12 @@ async fn exec_windows_sandbox(
     let capture = match spawn_res {
         Ok(Ok(v)) => v,
         Ok(Err(err)) => {
-            return Err(CodexErr::Io(io::Error::other(format!(
+            return Err(CodexistErr::Io(io::Error::other(format!(
                 "windows sandbox: {err}"
             ))));
         }
         Err(join_err) => {
-            return Err(CodexErr::Io(io::Error::other(format!(
+            return Err(CodexistErr::Io(io::Error::other(format!(
                 "windows sandbox join error: {join_err}"
             ))));
         }
@@ -245,7 +245,7 @@ async fn exec_windows_sandbox(
 }
 
 fn finalize_exec_result(
-    raw_output_result: std::result::Result<RawExecToolCallOutput, CodexErr>,
+    raw_output_result: std::result::Result<RawExecToolCallOutput, CodexistErr>,
     sandbox_type: SandboxType,
     duration: Duration,
 ) -> Result<ExecToolCallOutput> {
@@ -260,7 +260,7 @@ fn finalize_exec_result(
                     if signal == TIMEOUT_CODE {
                         timed_out = true;
                     } else {
-                        return Err(CodexErr::Sandbox(SandboxErr::Signal(signal)));
+                        return Err(CodexistErr::Sandbox(SandboxErr::Signal(signal)));
                     }
                 }
             }
@@ -283,13 +283,13 @@ fn finalize_exec_result(
             };
 
             if timed_out {
-                return Err(CodexErr::Sandbox(SandboxErr::Timeout {
+                return Err(CodexistErr::Sandbox(SandboxErr::Timeout {
                     output: Box::new(exec_output),
                 }));
             }
 
             if is_likely_sandbox_denied(sandbox_type, &exec_output) {
-                return Err(CodexErr::Sandbox(SandboxErr::Denied {
+                return Err(CodexistErr::Sandbox(SandboxErr::Denied {
                     output: Box::new(exec_output),
                 }));
             }
@@ -304,17 +304,17 @@ fn finalize_exec_result(
 }
 
 pub(crate) mod errors {
-    use super::CodexErr;
+    use super::CodexistErr;
     use crate::sandboxing::SandboxTransformError;
 
-    impl From<SandboxTransformError> for CodexErr {
+    impl From<SandboxTransformError> for CodexistErr {
         fn from(err: SandboxTransformError) -> Self {
             match err {
                 SandboxTransformError::MissingLinuxSandboxExecutable => {
-                    CodexErr::LandlockSandboxExecutableNotProvided
+                    CodexistErr::LandlockSandboxExecutableNotProvided
                 }
                 #[cfg(not(target_os = "macos"))]
-                SandboxTransformError::SeatbeltUnavailable => CodexErr::UnsupportedOperation(
+                SandboxTransformError::SeatbeltUnavailable => CodexistErr::UnsupportedOperation(
                     "seatbelt sandbox is only available on macOS".to_string(),
                 ),
             }
@@ -453,7 +453,7 @@ async fn exec(
     } = params;
 
     let (program, args) = command.split_first().ok_or_else(|| {
-        CodexErr::Io(io::Error::new(
+        CodexistErr::Io(io::Error::new(
             io::ErrorKind::InvalidInput,
             "command args are empty",
         ))
@@ -484,12 +484,12 @@ async fn consume_truncated_output(
     // we treat it as an exceptional I/O error
 
     let stdout_reader = child.stdout.take().ok_or_else(|| {
-        CodexErr::Io(io::Error::other(
+        CodexistErr::Io(io::Error::other(
             "stdout pipe was unexpectedly not available",
         ))
     })?;
     let stderr_reader = child.stderr.take().ok_or_else(|| {
-        CodexErr::Io(io::Error::other(
+        CodexistErr::Io(io::Error::other(
             "stderr pipe was unexpectedly not available",
         ))
     })?;

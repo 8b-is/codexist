@@ -1,11 +1,11 @@
 [package]
 edition = "2024"
-name = "codex-otel"
+name = "codexist-otel"
 version = { workspace = true }
 
 [lib]
 doctest = false
-name = "codex_otel"
+name = "codexist_otel"
 path = "src/lib.rs"
 
 [lints]
@@ -19,8 +19,8 @@ otel = ["opentelemetry", "opentelemetry_sdk", "opentelemetry-otlp", "tonic"]
 
 [dependencies]
 chrono = { workspace = true }
-codex-app-server-protocol = { workspace = true }
-codex-protocol = { workspace = true }
+codexist-app-server-protocol = { workspace = true }
+codexist-protocol = { workspace = true }
 eventsource-stream = { workspace = true }
 opentelemetry = { workspace = true, features = ["logs"], optional = true }
 opentelemetry-otlp = { workspace = true, features = [

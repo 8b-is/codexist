@@ -1,11 +1,11 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use codex_core::CodexConversation;
-use codex_core::protocol::Op;
-use codex_core::protocol::ReviewDecision;
-use codex_core::protocol::SandboxCommandAssessment;
-use codex_protocol::parse_command::ParsedCommand;
+use codexist_core::CodexistConversation;
+use codexist_core::protocol::Op;
+use codexist_core::protocol::ReviewDecision;
+use codexist_core::protocol::SandboxCommandAssessment;
+use codexist_protocol::parse_command::ParsedCommand;
 use mcp_types::ElicitRequest;
 use mcp_types::ElicitRequestParamsRequestedSchema;
 use mcp_types::JSONRPCErrorError;
@@ -16,7 +16,7 @@ use serde::Serialize;
 use serde_json::json;
 use tracing::error;
 
-use crate::codex_tool_runner::INVALID_PARAMS_ERROR_CODE;
+use crate::codexist_tool_runner::INVALID_PARAMS_ERROR_CODE;
 
 /// Conforms to [`mcp_types::ElicitRequestParams`] so that it can be used as the
 /// `params` field of an [`ElicitRequest`].
@@ -30,16 +30,16 @@ pub struct ExecApprovalElicitRequestParams {
     pub requested_schema: ElicitRequestParamsRequestedSchema,
 
     // These are additional fields the client can use to
-    // correlate the request with the codex tool call.
-    pub codex_elicitation: String,
-    pub codex_mcp_tool_call_id: String,
-    pub codex_event_id: String,
-    pub codex_call_id: String,
-    pub codex_command: Vec<String>,
-    pub codex_cwd: PathBuf,
-    pub codex_parsed_cmd: Vec<ParsedCommand>,
+    // correlate the request with the codexist tool call.
+    pub codexist_elicitation: String,
+    pub codexist_mcp_tool_call_id: String,
+    pub codexist_event_id: String,
+    pub codexist_call_id: String,
+    pub codexist_command: Vec<String>,
+    pub codexist_cwd: PathBuf,
+    pub codexist_parsed_cmd: Vec<ParsedCommand>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub codex_risk: Option<SandboxCommandAssessment>,
+    pub codexist_risk: Option<SandboxCommandAssessment>,
 }
 
 // TODO(mbolin): ExecApprovalResponse does not conform to ElicitResult. See:
@@ -56,18 +56,18 @@ pub(crate) async fn handle_exec_approval_request(
     command: Vec<String>,
     cwd: PathBuf,
     outgoing: Arc<crate::outgoing_message::OutgoingMessageSender>,
-    codex: Arc<CodexConversation>,
+    codexist: Arc<CodexistConversation>,
     request_id: RequestId,
     tool_call_id: String,
     event_id: String,
     call_id: String,
-    codex_parsed_cmd: Vec<ParsedCommand>,
-    codex_risk: Option<SandboxCommandAssessment>,
+    codexist_parsed_cmd: Vec<ParsedCommand>,
+    codexist_risk: Option<SandboxCommandAssessment>,
 ) {
     let escaped_command =
         shlex::try_join(command.iter().map(String::as_str)).unwrap_or_else(|_| command.join(" "));
     let message = format!(
-        "Allow Codex to run `{escaped_command}` in `{cwd}`?",
+        "Allow Codexist to run `{escaped_command}` in `{cwd}`?",
         cwd = cwd.to_string_lossy()
     );
 
@@ -78,14 +78,14 @@ pub(crate) async fn handle_exec_approval_request(
             properties: json!({}),
             required: None,
         },
-        codex_elicitation: "exec-approval".to_string(),
-        codex_mcp_tool_call_id: tool_call_id.clone(),
-        codex_event_id: event_id.clone(),
-        codex_call_id: call_id,
-        codex_command: command,
-        codex_cwd: cwd,
-        codex_parsed_cmd,
-        codex_risk,
+        codexist_elicitation: "exec-approval".to_string(),
+        codexist_mcp_tool_call_id: tool_call_id.clone(),
+        codexist_event_id: event_id.clone(),
+        codexist_call_id: call_id,
+        codexist_command: command,
+        codexist_cwd: cwd,
+        codexist_parsed_cmd,
+        codexist_risk,
     };
     let params_json = match serde_json::to_value(&params) {
         Ok(value) => value,
@@ -114,10 +114,10 @@ pub(crate) async fn handle_exec_approval_request(
 
     // Listen for the response on a separate task so we don't block the main agent loop.
     {
-        let codex = codex.clone();
+        let codexist = codexist.clone();
         let event_id = event_id.clone();
         tokio::spawn(async move {
-            on_exec_approval_response(event_id, on_response, codex).await;
+            on_exec_approval_response(event_id, on_response, codexist).await;
         });
     }
 }
@@ -125,7 +125,7 @@ pub(crate) async fn handle_exec_approval_request(
 async fn on_exec_approval_response(
     event_id: String,
     receiver: tokio::sync::oneshot::Receiver<mcp_types::Result>,
-    codex: Arc<CodexConversation>,
+    codexist: Arc<CodexistConversation>,
 ) {
     let response = receiver.await;
     let value = match response {
@@ -136,7 +136,7 @@ async fn on_exec_approval_response(
         }
     };
 
-    // Try to deserialize `value` and then make the appropriate call to `codex`.
+    // Try to deserialize `value` and then make the appropriate call to `codexist`.
     let response = serde_json::from_value::<ExecApprovalResponse>(value).unwrap_or_else(|err| {
         error!("failed to deserialize ExecApprovalResponse: {err}");
         // If we cannot deserialize the response, we deny the request to be
@@ -146,7 +146,7 @@ async fn on_exec_approval_response(
         }
     });
 
-    if let Err(err) = codex
+    if let Err(err) = codexist
         .submit(Op::ExecApproval {
             id: event_id,
             decision: response.decision,

@@ -1,16 +1,16 @@
 //! Verifies that the agent retries when the SSE stream terminates before
 //! delivering a `response.completed` event.
 
-use codex_core::ModelProviderInfo;
-use codex_core::WireApi;
-use codex_core::protocol::EventMsg;
-use codex_core::protocol::Op;
-use codex_protocol::user_input::UserInput;
+use codexist_core::ModelProviderInfo;
+use codexist_core::WireApi;
+use codexist_core::protocol::EventMsg;
+use codexist_core::protocol::Op;
+use codexist_protocol::user_input::UserInput;
 use core_test_support::load_sse_fixture;
 use core_test_support::load_sse_fixture_with_id;
 use core_test_support::skip_if_no_network;
-use core_test_support::test_codex::TestCodex;
-use core_test_support::test_codex::test_codex;
+use core_test_support::test_codexist::TestCodexist;
+use core_test_support::test_codexist::test_codexist;
 use core_test_support::wait_for_event;
 use wiremock::Mock;
 use wiremock::MockServer;
@@ -83,7 +83,7 @@ async fn retries_on_early_close() {
         requires_openai_auth: false,
     };
 
-    let TestCodex { codex, .. } = test_codex()
+    let TestCodexist { codexist, .. } = test_codexist()
         .with_config(move |config| {
             config.model_provider = model_provider;
         })
@@ -91,7 +91,7 @@ async fn retries_on_early_close() {
         .await
         .unwrap();
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello".into(),
@@ -101,5 +101,5 @@ async fn retries_on_early_close() {
         .unwrap();
 
     // Wait until TaskComplete (should succeed after retry).
-    wait_for_event(&codex, |event| matches!(event, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |event| matches!(event, EventMsg::TaskComplete(_))).await;
 }

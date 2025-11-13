@@ -11,7 +11,7 @@ use tokio::process::ChildStdout;
 
 use anyhow::Context;
 use assert_cmd::prelude::*;
-use codex_mcp_server::CodexToolCallParam;
+use codexist_mcp_server::CodexistToolCallParam;
 
 use mcp_types::CallToolRequestParams;
 use mcp_types::ClientCapabilities;
@@ -42,8 +42,8 @@ pub struct McpProcess {
 }
 
 impl McpProcess {
-    pub async fn new(codex_home: &Path) -> anyhow::Result<Self> {
-        Self::new_with_env(codex_home, &[]).await
+    pub async fn new(codexist_home: &Path) -> anyhow::Result<Self> {
+        Self::new_with_env(codexist_home, &[]).await
     }
 
     /// Creates a new MCP process, allowing tests to override or remove
@@ -52,12 +52,12 @@ impl McpProcess {
     /// Pass a tuple of (key, Some(value)) to set/override, or (key, None) to
     /// remove a variable from the child's environment.
     pub async fn new_with_env(
-        codex_home: &Path,
+        codexist_home: &Path,
         env_overrides: &[(&str, Option<&str>)],
     ) -> anyhow::Result<Self> {
         // Use assert_cmd to locate the binary path and then switch to tokio::process::Command
-        let std_cmd = StdCommand::cargo_bin("codex-mcp-server")
-            .context("should find binary for codex-mcp-server")?;
+        let std_cmd = StdCommand::cargo_bin("codexist-mcp-server")
+            .context("should find binary for codexist-mcp-server")?;
 
         let program = std_cmd.get_program().to_owned();
 
@@ -66,7 +66,7 @@ impl McpProcess {
         cmd.stdin(Stdio::piped());
         cmd.stdout(Stdio::piped());
         cmd.stderr(Stdio::piped());
-        cmd.env("CODEX_HOME", codex_home);
+        cmd.env("CODEXIST_HOME", codexist_home);
         cmd.env("RUST_LOG", "debug");
 
         for (k, v) in env_overrides {
@@ -83,7 +83,7 @@ impl McpProcess {
         let mut process = cmd
             .kill_on_drop(true)
             .spawn()
-            .context("codex-mcp-server proc should start")?;
+            .context("codexist-mcp-server proc should start")?;
         let stdin = process
             .stdin
             .take()
@@ -144,11 +144,11 @@ impl McpProcess {
         let initialized = self.read_jsonrpc_message().await?;
         let os_info = os_info::get();
         let user_agent = format!(
-            "codex_cli_rs/0.0.0 ({} {}; {}) {} (elicitation test; 0.0.0)",
+            "codexist_cli_rs/0.0.0 ({} {}; {}) {} (elicitation test; 0.0.0)",
             os_info.os_type(),
             os_info.version(),
             os_info.architecture().unwrap_or("unknown"),
-            codex_core::terminal::user_agent()
+            codexist_core::terminal::user_agent()
         );
         assert_eq!(
             JSONRPCMessage::Response(JSONRPCResponse {
@@ -161,8 +161,8 @@ impl McpProcess {
                         },
                     },
                     "serverInfo": {
-                        "name": "codex-mcp-server",
-                        "title": "Codex",
+                        "name": "codexist-mcp-server",
+                        "title": "Codexist",
                         "version": "0.0.0",
                         "user_agent": user_agent
                     },
@@ -185,17 +185,17 @@ impl McpProcess {
 
     /// Returns the id used to make the request so it can be used when
     /// correlating notifications.
-    pub async fn send_codex_tool_call(
+    pub async fn send_codexist_tool_call(
         &mut self,
-        params: CodexToolCallParam,
+        params: CodexistToolCallParam,
     ) -> anyhow::Result<i64> {
-        let codex_tool_call_params = CallToolRequestParams {
-            name: "codex".to_string(),
+        let codexist_tool_call_params = CallToolRequestParams {
+            name: "codexist".to_string(),
             arguments: Some(serde_json::to_value(params)?),
         };
         self.send_request(
             mcp_types::CallToolRequest::METHOD,
-            Some(serde_json::to_value(codex_tool_call_params)?),
+            Some(serde_json::to_value(codexist_tool_call_params)?),
         )
         .await
     }
@@ -298,7 +298,7 @@ impl McpProcess {
     }
 
     /// Reads notifications until a legacy TaskComplete event is observed:
-    /// Method "codex/event" with params.msg.type == "task_complete".
+    /// Method "codexist/event" with params.msg.type == "task_complete".
     pub async fn read_stream_until_legacy_task_complete_notification(
         &mut self,
     ) -> anyhow::Result<JSONRPCNotification> {
@@ -308,7 +308,7 @@ impl McpProcess {
             let message = self.read_jsonrpc_message().await?;
             match message {
                 JSONRPCMessage::Notification(notification) => {
-                    let is_match = if notification.method == "codex/event" {
+                    let is_match = if notification.method == "codexist/event" {
                         if let Some(params) = &notification.params {
                             params
                                 .get("msg")

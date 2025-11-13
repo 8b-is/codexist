@@ -3,51 +3,51 @@ use std::collections::VecDeque;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use codex_core::config::Config;
-use codex_core::config::types::Notifications;
-use codex_core::git_info::current_branch_name;
-use codex_core::git_info::local_git_branches;
-use codex_core::project_doc::DEFAULT_PROJECT_DOC_FILENAME;
-use codex_core::protocol::AgentMessageDeltaEvent;
-use codex_core::protocol::AgentMessageEvent;
-use codex_core::protocol::AgentReasoningDeltaEvent;
-use codex_core::protocol::AgentReasoningEvent;
-use codex_core::protocol::AgentReasoningRawContentDeltaEvent;
-use codex_core::protocol::AgentReasoningRawContentEvent;
-use codex_core::protocol::ApplyPatchApprovalRequestEvent;
-use codex_core::protocol::BackgroundEventEvent;
-use codex_core::protocol::DeprecationNoticeEvent;
-use codex_core::protocol::ErrorEvent;
-use codex_core::protocol::Event;
-use codex_core::protocol::EventMsg;
-use codex_core::protocol::ExecApprovalRequestEvent;
-use codex_core::protocol::ExecCommandBeginEvent;
-use codex_core::protocol::ExecCommandEndEvent;
-use codex_core::protocol::ExitedReviewModeEvent;
-use codex_core::protocol::ListCustomPromptsResponseEvent;
-use codex_core::protocol::McpListToolsResponseEvent;
-use codex_core::protocol::McpToolCallBeginEvent;
-use codex_core::protocol::McpToolCallEndEvent;
-use codex_core::protocol::Op;
-use codex_core::protocol::PatchApplyBeginEvent;
-use codex_core::protocol::RateLimitSnapshot;
-use codex_core::protocol::ReviewRequest;
-use codex_core::protocol::StreamErrorEvent;
-use codex_core::protocol::TaskCompleteEvent;
-use codex_core::protocol::TokenUsage;
-use codex_core::protocol::TokenUsageInfo;
-use codex_core::protocol::TurnAbortReason;
-use codex_core::protocol::TurnDiffEvent;
-use codex_core::protocol::UndoCompletedEvent;
-use codex_core::protocol::UndoStartedEvent;
-use codex_core::protocol::UserMessageEvent;
-use codex_core::protocol::ViewImageToolCallEvent;
-use codex_core::protocol::WarningEvent;
-use codex_core::protocol::WebSearchBeginEvent;
-use codex_core::protocol::WebSearchEndEvent;
-use codex_protocol::ConversationId;
-use codex_protocol::parse_command::ParsedCommand;
-use codex_protocol::user_input::UserInput;
+use codexist_core::config::Config;
+use codexist_core::config::types::Notifications;
+use codexist_core::git_info::current_branch_name;
+use codexist_core::git_info::local_git_branches;
+use codexist_core::project_doc::DEFAULT_PROJECT_DOC_FILENAME;
+use codexist_core::protocol::AgentMessageDeltaEvent;
+use codexist_core::protocol::AgentMessageEvent;
+use codexist_core::protocol::AgentReasoningDeltaEvent;
+use codexist_core::protocol::AgentReasoningEvent;
+use codexist_core::protocol::AgentReasoningRawContentDeltaEvent;
+use codexist_core::protocol::AgentReasoningRawContentEvent;
+use codexist_core::protocol::ApplyPatchApprovalRequestEvent;
+use codexist_core::protocol::BackgroundEventEvent;
+use codexist_core::protocol::DeprecationNoticeEvent;
+use codexist_core::protocol::ErrorEvent;
+use codexist_core::protocol::Event;
+use codexist_core::protocol::EventMsg;
+use codexist_core::protocol::ExecApprovalRequestEvent;
+use codexist_core::protocol::ExecCommandBeginEvent;
+use codexist_core::protocol::ExecCommandEndEvent;
+use codexist_core::protocol::ExitedReviewModeEvent;
+use codexist_core::protocol::ListCustomPromptsResponseEvent;
+use codexist_core::protocol::McpListToolsResponseEvent;
+use codexist_core::protocol::McpToolCallBeginEvent;
+use codexist_core::protocol::McpToolCallEndEvent;
+use codexist_core::protocol::Op;
+use codexist_core::protocol::PatchApplyBeginEvent;
+use codexist_core::protocol::RateLimitSnapshot;
+use codexist_core::protocol::ReviewRequest;
+use codexist_core::protocol::StreamErrorEvent;
+use codexist_core::protocol::TaskCompleteEvent;
+use codexist_core::protocol::TokenUsage;
+use codexist_core::protocol::TokenUsageInfo;
+use codexist_core::protocol::TurnAbortReason;
+use codexist_core::protocol::TurnDiffEvent;
+use codexist_core::protocol::UndoCompletedEvent;
+use codexist_core::protocol::UndoStartedEvent;
+use codexist_core::protocol::UserMessageEvent;
+use codexist_core::protocol::ViewImageToolCallEvent;
+use codexist_core::protocol::WarningEvent;
+use codexist_core::protocol::WebSearchBeginEvent;
+use codexist_core::protocol::WebSearchEndEvent;
+use codexist_protocol::ConversationId;
+use codexist_protocol::parse_command::ParsedCommand;
+use codexist_protocol::user_input::UserInput;
 use crossterm::event::KeyCode;
 use crossterm::event::KeyEvent;
 use crossterm::event::KeyEventKind;
@@ -109,17 +109,17 @@ use crate::streaming::controller::StreamController;
 use std::path::Path;
 
 use chrono::Local;
-use codex_common::approval_presets::ApprovalPreset;
-use codex_common::approval_presets::builtin_approval_presets;
-use codex_common::model_presets::ModelPreset;
-use codex_common::model_presets::builtin_model_presets;
-use codex_core::AuthManager;
-use codex_core::ConversationManager;
-use codex_core::protocol::AskForApproval;
-use codex_core::protocol::SandboxPolicy;
-use codex_core::protocol_config_types::ReasoningEffort as ReasoningEffortConfig;
-use codex_file_search::FileMatch;
-use codex_protocol::plan_tool::UpdatePlanArgs;
+use codexist_common::approval_presets::ApprovalPreset;
+use codexist_common::approval_presets::builtin_approval_presets;
+use codexist_common::model_presets::ModelPreset;
+use codexist_common::model_presets::builtin_model_presets;
+use codexist_core::AuthManager;
+use codexist_core::ConversationManager;
+use codexist_core::protocol::AskForApproval;
+use codexist_core::protocol::SandboxPolicy;
+use codexist_core::protocol_config_types::ReasoningEffort as ReasoningEffortConfig;
+use codexist_file_search::FileMatch;
+use codexist_protocol::plan_tool::UpdatePlanArgs;
 use strum::IntoEnumIterator;
 
 const USER_SHELL_COMMAND_HELP_TITLE: &str = "Prefix a command with ! to run it locally";
@@ -132,7 +132,7 @@ struct RunningCommand {
 }
 
 const RATE_LIMIT_WARNING_THRESHOLDS: [f64; 3] = [75.0, 90.0, 95.0];
-const NUDGE_MODEL_SLUG: &str = "gpt-5-codex-mini";
+const NUDGE_MODEL_SLUG: &str = "gpt-5-codexist-mini";
 const RATE_LIMIT_SWITCH_PROMPT_THRESHOLD: f64 = 90.0;
 
 #[derive(Default)]
@@ -229,7 +229,7 @@ pub(crate) struct ChatWidgetInit {
     pub(crate) initial_images: Vec<PathBuf>,
     pub(crate) enhanced_keys_supported: bool,
     pub(crate) auth_manager: Arc<AuthManager>,
-    pub(crate) feedback: codex_feedback::CodexFeedback,
+    pub(crate) feedback: codexist_feedback::CodexistFeedback,
 }
 
 #[derive(Default)]
@@ -242,7 +242,7 @@ enum RateLimitSwitchPromptState {
 
 pub(crate) struct ChatWidget {
     app_event_tx: AppEventSender,
-    codex_op_tx: UnboundedSender<Op>,
+    codexist_op_tx: UnboundedSender<Op>,
     bottom_pane: BottomPane,
     active_cell: Option<Box<dyn HistoryCell>>,
     config: Config,
@@ -285,7 +285,7 @@ pub(crate) struct ChatWidget {
 
     last_rendered_width: std::cell::Cell<Option<usize>>,
     // Feedback sink for /feedback
-    feedback: codex_feedback::CodexFeedback,
+    feedback: codexist_feedback::CodexistFeedback,
     // Current session rollout path (if known)
     current_rollout_path: Option<PathBuf>,
 }
@@ -336,7 +336,7 @@ impl ChatWidget {
     }
 
     // --- Small event handlers ---
-    fn on_session_configured(&mut self, event: codex_core::protocol::SessionConfiguredEvent) {
+    fn on_session_configured(&mut self, event: codexist_core::protocol::SessionConfiguredEvent) {
         self.bottom_pane
             .set_history_metadata(event.history_log_id, event.history_entry_count);
         self.conversation_id = Some(event.session_id);
@@ -352,7 +352,7 @@ impl ChatWidget {
         if let Some(messages) = initial_messages {
             self.replay_initial_messages(messages);
         }
-        // Ask codex-core to enumerate custom prompts for this session.
+        // Ask codexist-core to enumerate custom prompts for this session.
         self.submit_op(Op::ListCustomPrompts);
         if let Some(user_message) = self.initial_user_message.take() {
             self.submit_user_message(user_message);
@@ -638,7 +638,7 @@ impl ChatWidget {
 
     fn on_exec_command_output_delta(
         &mut self,
-        _ev: codex_core::protocol::ExecCommandOutputDeltaEvent,
+        _ev: codexist_core::protocol::ExecCommandOutputDeltaEvent,
     ) {
         // TODO: Handle streaming exec output if/when implemented
     }
@@ -659,7 +659,7 @@ impl ChatWidget {
         self.request_redraw();
     }
 
-    fn on_patch_apply_end(&mut self, event: codex_core::protocol::PatchApplyEndEvent) {
+    fn on_patch_apply_end(&mut self, event: codexist_core::protocol::PatchApplyEndEvent) {
         let ev2 = event.clone();
         self.defer_or_handle(
             |q| q.push_patch_end(event),
@@ -696,9 +696,9 @@ impl ChatWidget {
 
     fn on_get_history_entry_response(
         &mut self,
-        event: codex_core::protocol::GetHistoryEntryResponseEvent,
+        event: codexist_core::protocol::GetHistoryEntryResponseEvent,
     ) {
-        let codex_core::protocol::GetHistoryEntryResponseEvent {
+        let codexist_core::protocol::GetHistoryEntryResponseEvent {
             offset,
             log_id,
             entry,
@@ -874,7 +874,7 @@ impl ChatWidget {
 
     pub(crate) fn handle_patch_apply_end_now(
         &mut self,
-        event: codex_core::protocol::PatchApplyEndEvent,
+        event: codexist_core::protocol::PatchApplyEndEvent,
     ) {
         // If the patch was successful, just let the "Edited" block stand.
         // Otherwise, add a failure block.
@@ -1012,12 +1012,12 @@ impl ChatWidget {
         } = common;
         let mut rng = rand::rng();
         let placeholder = EXAMPLE_PROMPTS[rng.random_range(0..EXAMPLE_PROMPTS.len())].to_string();
-        let codex_op_tx = spawn_agent(config.clone(), app_event_tx.clone(), conversation_manager);
+        let codexist_op_tx = spawn_agent(config.clone(), app_event_tx.clone(), conversation_manager);
 
         Self {
             app_event_tx: app_event_tx.clone(),
             frame_requester: frame_requester.clone(),
-            codex_op_tx,
+            codexist_op_tx,
             bottom_pane: BottomPane::new(BottomPaneParams {
                 frame_requester,
                 app_event_tx,
@@ -1062,8 +1062,8 @@ impl ChatWidget {
     /// Create a ChatWidget attached to an existing conversation (e.g., a fork).
     pub(crate) fn new_from_existing(
         common: ChatWidgetInit,
-        conversation: std::sync::Arc<codex_core::CodexConversation>,
-        session_configured: codex_core::protocol::SessionConfiguredEvent,
+        conversation: std::sync::Arc<codexist_core::CodexistConversation>,
+        session_configured: codexist_core::protocol::SessionConfiguredEvent,
     ) -> Self {
         let ChatWidgetInit {
             config,
@@ -1078,13 +1078,13 @@ impl ChatWidget {
         let mut rng = rand::rng();
         let placeholder = EXAMPLE_PROMPTS[rng.random_range(0..EXAMPLE_PROMPTS.len())].to_string();
 
-        let codex_op_tx =
+        let codexist_op_tx =
             spawn_agent_from_existing(conversation, session_configured, app_event_tx.clone());
 
         Self {
             app_event_tx: app_event_tx.clone(),
             frame_requester: frame_requester.clone(),
-            codex_op_tx,
+            codexist_op_tx,
             bottom_pane: BottomPane::new(BottomPaneParams {
                 frame_requester,
                 app_event_tx,
@@ -1250,7 +1250,7 @@ impl ChatWidget {
             }
             SlashCommand::Compact => {
                 self.clear_token_usage();
-                self.app_event_tx.send(AppEvent::CodexOp(Op::Compact));
+                self.app_event_tx.send(AppEvent::CodexistOp(Op::Compact));
             }
             SlashCommand::Review => {
                 self.open_review_popup();
@@ -1265,8 +1265,8 @@ impl ChatWidget {
                 self.request_exit();
             }
             SlashCommand::Logout => {
-                if let Err(e) = codex_core::auth::logout(
-                    &self.config.codex_home,
+                if let Err(e) = codexist_core::auth::logout(
+                    &self.config.codexist_home,
                     self.config.cli_auth_credentials_store_mode,
                 ) {
                     tracing::error!("failed to logout: {e}");
@@ -1274,7 +1274,7 @@ impl ChatWidget {
                 self.request_exit();
             }
             SlashCommand::Undo => {
-                self.app_event_tx.send(AppEvent::CodexOp(Op::Undo));
+                self.app_event_tx.send(AppEvent::CodexistOp(Op::Undo));
             }
             SlashCommand::Diff => {
                 self.add_diff_in_progress();
@@ -1313,13 +1313,13 @@ impl ChatWidget {
                 }
             }
             SlashCommand::TestApproval => {
-                use codex_core::protocol::EventMsg;
+                use codexist_core::protocol::EventMsg;
                 use std::collections::HashMap;
 
-                use codex_core::protocol::ApplyPatchApprovalRequestEvent;
-                use codex_core::protocol::FileChange;
+                use codexist_core::protocol::ApplyPatchApprovalRequestEvent;
+                use codexist_core::protocol::FileChange;
 
-                self.app_event_tx.send(AppEvent::CodexEvent(Event {
+                self.app_event_tx.send(AppEvent::CodexistEvent(Event {
                     id: "1".to_string(),
                     // msg: EventMsg::ExecApprovalRequest(ExecApprovalRequestEvent {
                     //     call_id: "1".to_string(),
@@ -1437,7 +1437,7 @@ impl ChatWidget {
             items.push(UserInput::LocalImage { path });
         }
 
-        self.codex_op_tx
+        self.codexist_op_tx
             .send(Op::UserInput { items })
             .unwrap_or_else(|e| {
                 tracing::error!("failed to send message: {e}");
@@ -1445,7 +1445,7 @@ impl ChatWidget {
 
         // Persist the text to cross-session message history.
         if !text.is_empty() {
-            self.codex_op_tx
+            self.codexist_op_tx
                 .send(Op::AddToHistory { text: text.clone() })
                 .unwrap_or_else(|e| {
                     tracing::error!("failed to send AddHistory op: {e}");
@@ -1474,7 +1474,7 @@ impl ChatWidget {
         }
     }
 
-    pub(crate) fn handle_codex_event(&mut self, event: Event) {
+    pub(crate) fn handle_codexist_event(&mut self, event: Event) {
         let Event { id, msg } = event;
         self.dispatch_event_msg(Some(id), msg, false);
     }
@@ -1490,7 +1490,7 @@ impl ChatWidget {
             | EventMsg::AgentReasoningDelta(_)
             | EventMsg::ExecCommandOutputDelta(_) => {}
             _ => {
-                tracing::trace!("handle_codex_event: {:?}", msg);
+                tracing::trace!("handle_codexist_event: {:?}", msg);
             }
         }
 
@@ -1611,7 +1611,7 @@ impl ChatWidget {
                 }
             } else {
                 let message_text =
-                    codex_core::review_format::format_review_findings_block(&output.findings, None);
+                    codexist_core::review_format::format_review_findings_block(&output.findings, None);
                 let mut message_lines: Vec<ratatui::text::Line<'static>> = Vec::new();
                 append_markdown(&message_text, None, &mut message_lines);
                 let body_cell = AgentMessageCell::new(message_lines, true);
@@ -1757,7 +1757,7 @@ impl ChatWidget {
         let default_effort: ReasoningEffortConfig = preset.default_reasoning_effort;
 
         let switch_actions: Vec<SelectionAction> = vec![Box::new(move |tx| {
-            tx.send(AppEvent::CodexOp(Op::OverrideTurnContext {
+            tx.send(AppEvent::CodexistOp(Op::OverrideTurnContext {
                 cwd: None,
                 approval_policy: None,
                 sandbox_policy: None,
@@ -1855,7 +1855,7 @@ impl ChatWidget {
 
         self.bottom_pane.show_selection_view(SelectionViewParams {
             title: Some("Select Model and Effort".to_string()),
-            subtitle: Some("Switch the model for this and future Codex CLI sessions".to_string()),
+            subtitle: Some("Switch the model for this and future Codexist CLI sessions".to_string()),
             footer_hint: Some("Press enter to select reasoning effort, or esc to dismiss.".into()),
             items,
             ..Default::default()
@@ -1934,7 +1934,7 @@ impl ChatWidget {
 
             let warning = "⚠ High reasoning effort can quickly consume Plus plan rate limits.";
             let show_warning =
-                preset.model.starts_with("gpt-5-codex") && effort == ReasoningEffortConfig::High;
+                preset.model.starts_with("gpt-5-codexist") && effort == ReasoningEffortConfig::High;
             let selected_description = show_warning.then(|| {
                 description
                     .as_ref()
@@ -1944,7 +1944,7 @@ impl ChatWidget {
             let model_for_action = model_slug.clone();
             let effort_for_action = choice.stored;
             let actions: Vec<SelectionAction> = vec![Box::new(move |tx| {
-                tx.send(AppEvent::CodexOp(Op::OverrideTurnContext {
+                tx.send(AppEvent::CodexistOp(Op::OverrideTurnContext {
                     cwd: None,
                     approval_policy: None,
                     sandbox_policy: None,
@@ -1993,7 +1993,7 @@ impl ChatWidget {
 
     fn apply_model_and_effort(&self, model: String, effort: Option<ReasoningEffortConfig>) {
         self.app_event_tx
-            .send(AppEvent::CodexOp(Op::OverrideTurnContext {
+            .send(AppEvent::CodexistOp(Op::OverrideTurnContext {
                 cwd: None,
                 approval_policy: None,
                 sandbox_policy: None,
@@ -2032,10 +2032,10 @@ impl ChatWidget {
 
             let mut header = ColumnRenderable::new();
             header.push(line![
-                "Codex forced your settings back to Read Only on this Windows machine.".bold()
+                "Codexist forced your settings back to Read Only on this Windows machine.".bold()
             ]);
             header.push(line![
-                "To re-enable Auto mode, run Codex inside Windows Subsystem for Linux (WSL) or enable Full Access manually.".dim()
+                "To re-enable Auto mode, run Codexist inside Windows Subsystem for Linux (WSL) or enable Full Access manually.".dim()
                 ]);
             Box::new(header)
         } else {
@@ -2050,7 +2050,7 @@ impl ChatWidget {
             let description_text = preset.description;
             let description = if cfg!(target_os = "windows")
                 && preset.id == "auto"
-                && codex_core::get_platform_sandbox().is_none()
+                && codexist_core::get_platform_sandbox().is_none()
             {
                 Some(format!(
                     "{description_text}\nRequires Windows Subsystem for Linux (WSL). Show installation instructions..."
@@ -2074,7 +2074,7 @@ impl ChatWidget {
             } else if preset.id == "auto" {
                 #[cfg(target_os = "windows")]
                 {
-                    if codex_core::get_platform_sandbox().is_none() {
+                    if codexist_core::get_platform_sandbox().is_none() {
                         vec![Box::new(|tx| {
                             tx.send(AppEvent::ShowWindowsAutoModeInstructions);
                         })]
@@ -2093,10 +2093,10 @@ impl ChatWidget {
                             env_map.insert(k, v);
                         }
                         let (sample_paths, extra_count, failed_scan) =
-                            match codex_windows_sandbox::preflight_audit_everyone_writable(
+                            match codexist_windows_sandbox::preflight_audit_everyone_writable(
                                 &self.config.cwd,
                                 &env_map,
-                                Some(self.config.codex_home.as_path()),
+                                Some(self.config.codexist_home.as_path()),
                             ) {
                                 Ok(paths) if !paths.is_empty() => {
                                     fn normalize_windows_path_for_display(
@@ -2166,7 +2166,7 @@ impl ChatWidget {
     ) -> Vec<SelectionAction> {
         vec![Box::new(move |tx| {
             let sandbox_clone = sandbox.clone();
-            tx.send(AppEvent::CodexOp(Op::OverrideTurnContext {
+            tx.send(AppEvent::CodexistOp(Op::OverrideTurnContext {
                 cwd: None,
                 approval_policy: Some(approval),
                 sandbox_policy: Some(sandbox_clone.clone()),
@@ -2186,10 +2186,10 @@ impl ChatWidget {
         for (k, v) in std::env::vars() {
             env_map.insert(k, v);
         }
-        match codex_windows_sandbox::preflight_audit_everyone_writable(
+        match codexist_windows_sandbox::preflight_audit_everyone_writable(
             &self.config.cwd,
             &env_map,
-            Some(self.config.codex_home.as_path()),
+            Some(self.config.codexist_home.as_path()),
         ) {
             Ok(paths) => !paths.is_empty(),
             Err(_) => true,
@@ -2202,7 +2202,7 @@ impl ChatWidget {
         let mut header_children: Vec<Box<dyn Renderable>> = Vec::new();
         let title_line = Line::from("Enable full access?").bold();
         let info_line = Line::from(vec![
-            "When Codex runs with full access, it can edit any file on your computer and run commands with network, without your approval. "
+            "When Codexist runs with full access, it can edit any file on your computer and run commands with network, without your approval. "
                 .into(),
             "Exercise caution when enabling full access. This significantly increases the risk of data loss, leaks, or unexpected behavior."
                 .fg(Color::Red),
@@ -2380,7 +2380,7 @@ impl ChatWidget {
         header.push(line![
             "Auto mode requires Windows Subsystem for Linux (WSL2).".bold()
         ]);
-        header.push(line!["Run Codex inside WSL to enable sandboxed commands."]);
+        header.push(line!["Run Codexist inside WSL to enable sandboxed commands."]);
         header.push(line![""]);
         header.push(Paragraph::new(WSL_INSTRUCTIONS).wrap(Wrap { trim: false }));
 
@@ -2518,11 +2518,11 @@ impl ChatWidget {
     pub(crate) fn clear_esc_backtrack_hint(&mut self) {
         self.bottom_pane.clear_esc_backtrack_hint();
     }
-    /// Forward an `Op` directly to codex.
+    /// Forward an `Op` directly to codexist.
     pub(crate) fn submit_op(&self, op: Op) {
         // Record outbound operation for session replay fidelity.
         crate::session_log::log_outbound_op(&op);
-        if let Err(e) = self.codex_op_tx.send(op) {
+        if let Err(e) = self.codexist_op_tx.send(op) {
             tracing::error!("failed to submit op: {e}");
         }
     }
@@ -2564,7 +2564,7 @@ impl ChatWidget {
             name: "Review uncommitted changes".to_string(),
             actions: vec![Box::new(
                 move |tx: &AppEventSender| {
-                    tx.send(AppEvent::CodexOp(Op::Review {
+                    tx.send(AppEvent::CodexistOp(Op::Review {
                         review_request: ReviewRequest {
                             prompt: "Review the current code changes (staged, unstaged, and untracked files) and provide prioritized findings.".to_string(),
                             user_facing_hint: "current changes".to_string(),
@@ -2618,7 +2618,7 @@ impl ChatWidget {
             items.push(SelectionItem {
                 name: format!("{current_branch} -> {branch}"),
                 actions: vec![Box::new(move |tx3: &AppEventSender| {
-                    tx3.send(AppEvent::CodexOp(Op::Review {
+                    tx3.send(AppEvent::CodexistOp(Op::Review {
                         review_request: ReviewRequest {
                             prompt: format!(
                                 "Review the code changes against the base branch '{branch}'. Start by finding the merge diff between the current branch and {branch}'s upstream e.g. (`git merge-base HEAD \"$(git rev-parse --abbrev-ref \"{branch}@{{upstream}}\")\"`), then run `git diff` against that SHA to see what changes we would merge into the {branch} branch. Provide prioritized, actionable findings."
@@ -2644,7 +2644,7 @@ impl ChatWidget {
     }
 
     pub(crate) async fn show_review_commit_picker(&mut self, cwd: &Path) {
-        let commits = codex_core::git_info::recent_commits(cwd, 100).await;
+        let commits = codexist_core::git_info::recent_commits(cwd, 100).await;
 
         let mut items: Vec<SelectionItem> = Vec::with_capacity(commits.len());
         for entry in commits {
@@ -2660,7 +2660,7 @@ impl ChatWidget {
                     let prompt = format!(
                         "Review the code changes introduced by commit {sha} (\"{subject}\"). Provide prioritized, actionable findings."
                     );
-                    tx3.send(AppEvent::CodexOp(Op::Review {
+                    tx3.send(AppEvent::CodexistOp(Op::Review {
                         review_request: ReviewRequest {
                             prompt,
                             user_facing_hint: hint,
@@ -2694,7 +2694,7 @@ impl ChatWidget {
                 if trimmed.is_empty() {
                     return;
                 }
-                tx.send(AppEvent::CodexOp(Op::Review {
+                tx.send(AppEvent::CodexistOp(Op::Review {
                     review_request: ReviewRequest {
                         prompt: trimmed.clone(),
                         user_facing_hint: trimmed,
@@ -2778,7 +2778,7 @@ impl Notification {
             }
             Notification::EditApprovalRequested { cwd, changes } => {
                 format!(
-                    "Codex wants to edit {}",
+                    "Codexist wants to edit {}",
                     if changes.len() == 1 {
                         #[allow(clippy::unwrap_used)]
                         display_path_for(changes.first().unwrap(), cwd)
@@ -2866,7 +2866,7 @@ fn extract_first_bold(s: &str) -> Option<String> {
 #[cfg(test)]
 pub(crate) fn show_review_commit_picker_with_entries(
     chat: &mut ChatWidget,
-    entries: Vec<codex_core::git_info::CommitLogEntry>,
+    entries: Vec<codexist_core::git_info::CommitLogEntry>,
 ) {
     let mut items: Vec<SelectionItem> = Vec::with_capacity(entries.len());
     for entry in entries {
@@ -2882,7 +2882,7 @@ pub(crate) fn show_review_commit_picker_with_entries(
                 let prompt = format!(
                     "Review the code changes introduced by commit {sha} (\"{subject}\"). Provide prioritized, actionable findings."
                 );
-                tx3.send(AppEvent::CodexOp(Op::Review {
+                tx3.send(AppEvent::CodexistOp(Op::Review {
                     review_request: ReviewRequest {
                         prompt,
                         user_facing_hint: hint,

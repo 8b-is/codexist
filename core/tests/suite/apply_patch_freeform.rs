@@ -5,15 +5,15 @@ use core_test_support::responses::ev_apply_patch_custom_tool_call;
 use pretty_assertions::assert_eq;
 use std::fs;
 
-use codex_core::config::Config;
-use codex_core::features::Feature;
-use codex_core::model_family::find_family_for_model;
-use codex_core::protocol::AskForApproval;
-use codex_core::protocol::EventMsg;
-use codex_core::protocol::Op;
-use codex_core::protocol::SandboxPolicy;
-use codex_protocol::config_types::ReasoningSummary;
-use codex_protocol::user_input::UserInput;
+use codexist_core::config::Config;
+use codexist_core::features::Feature;
+use codexist_core::model_family::find_family_for_model;
+use codexist_core::protocol::AskForApproval;
+use codexist_core::protocol::EventMsg;
+use codexist_core::protocol::Op;
+use codexist_core::protocol::SandboxPolicy;
+use codexist_protocol::config_types::ReasoningSummary;
+use codexist_protocol::user_input::UserInput;
 use core_test_support::assert_regex_match;
 use core_test_support::responses::ev_assistant_message;
 use core_test_support::responses::ev_completed;
@@ -21,17 +21,17 @@ use core_test_support::responses::ev_response_created;
 use core_test_support::responses::mount_sse_sequence;
 use core_test_support::responses::sse;
 use core_test_support::skip_if_no_network;
-use core_test_support::test_codex::TestCodexHarness;
+use core_test_support::test_codexist::TestCodexistHarness;
 use core_test_support::wait_for_event;
 
-async fn apply_patch_harness() -> Result<TestCodexHarness> {
+async fn apply_patch_harness() -> Result<TestCodexistHarness> {
     apply_patch_harness_with(|_| {}).await
 }
 
 async fn apply_patch_harness_with(
     configure: impl FnOnce(&mut Config) + Send + 'static,
-) -> Result<TestCodexHarness> {
-    TestCodexHarness::with_config(|config| {
+) -> Result<TestCodexistHarness> {
+    TestCodexistHarness::with_config(|config| {
         config.include_apply_patch_tool = true;
         configure(config);
     })
@@ -39,7 +39,7 @@ async fn apply_patch_harness_with(
 }
 
 async fn mount_apply_patch(
-    harness: &TestCodexHarness,
+    harness: &TestCodexistHarness,
     call_id: &str,
     patch: &str,
     assistant_msg: &str,
@@ -224,7 +224,7 @@ async fn apply_patch_cli_move_without_content_change_has_no_turn_diff() -> Resul
 
     let harness = apply_patch_harness().await?;
     let test = harness.test();
-    let codex = test.codex.clone();
+    let codexist = test.codexist.clone();
     let cwd = test.cwd.clone();
 
     let original = harness.path("old/name.txt");
@@ -237,7 +237,7 @@ async fn apply_patch_cli_move_without_content_change_has_no_turn_diff() -> Resul
     mount_apply_patch(&harness, call_id, patch, "ok").await;
 
     let model = test.session_configured.model.clone();
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "rename without content change".into(),
@@ -253,7 +253,7 @@ async fn apply_patch_cli_move_without_content_change_has_no_turn_diff() -> Resul
         .await?;
 
     let mut saw_turn_diff = false;
-    wait_for_event(&codex, |event| match event {
+    wait_for_event(&codexist, |event| match event {
         EventMsg::TurnDiff(_) => {
             saw_turn_diff = true;
             false
@@ -567,7 +567,7 @@ async fn apply_patch_shell_failure_propagates_error_and_skips_diff() -> Result<(
     })
     .await?;
     let test = harness.test();
-    let codex = test.codex.clone();
+    let codexist = test.codexist.clone();
     let cwd = test.cwd.clone();
 
     let target = cwd.path().join("invalid.txt");
@@ -590,7 +590,7 @@ async fn apply_patch_shell_failure_propagates_error_and_skips_diff() -> Result<(
     mount_sse_sequence(harness.server(), bodies).await;
 
     let model = test.session_configured.model.clone();
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "apply patch via shell".into(),
@@ -606,7 +606,7 @@ async fn apply_patch_shell_failure_propagates_error_and_skips_diff() -> Result<(
         .await?;
 
     let mut saw_turn_diff = false;
-    wait_for_event(&codex, |event| match event {
+    wait_for_event(&codexist, |event| match event {
         EventMsg::TurnDiff(_) => {
             saw_turn_diff = true;
             false
@@ -710,7 +710,7 @@ async fn apply_patch_emits_turn_diff_event_with_unified_diff() -> Result<()> {
 
     let harness = apply_patch_harness().await?;
     let test = harness.test();
-    let codex = test.codex.clone();
+    let codexist = test.codexist.clone();
     let cwd = test.cwd.clone();
 
     let call_id = "apply-diff-event";
@@ -728,7 +728,7 @@ async fn apply_patch_emits_turn_diff_event_with_unified_diff() -> Result<()> {
     mount_sse_sequence(harness.server(), vec![first, second]).await;
 
     let model = test.session_configured.model.clone();
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "emit diff".into(),
@@ -744,7 +744,7 @@ async fn apply_patch_emits_turn_diff_event_with_unified_diff() -> Result<()> {
         .await?;
 
     let mut saw_turn_diff = None;
-    wait_for_event(&codex, |event| match event {
+    wait_for_event(&codexist, |event| match event {
         EventMsg::TurnDiff(ev) => {
             saw_turn_diff = Some(ev.unified_diff.clone());
             false
@@ -768,7 +768,7 @@ async fn apply_patch_turn_diff_for_rename_with_content_change() -> Result<()> {
 
     let harness = apply_patch_harness().await?;
     let test = harness.test();
-    let codex = test.codex.clone();
+    let codexist = test.codexist.clone();
     let cwd = test.cwd.clone();
 
     // Seed original file
@@ -790,7 +790,7 @@ async fn apply_patch_turn_diff_for_rename_with_content_change() -> Result<()> {
     mount_sse_sequence(harness.server(), vec![first, second]).await;
 
     let model = test.session_configured.model.clone();
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "rename with change".into(),
@@ -806,7 +806,7 @@ async fn apply_patch_turn_diff_for_rename_with_content_change() -> Result<()> {
         .await?;
 
     let mut last_diff: Option<String> = None;
-    wait_for_event(&codex, |event| match event {
+    wait_for_event(&codexist, |event| match event {
         EventMsg::TurnDiff(ev) => {
             last_diff = Some(ev.unified_diff.clone());
             false
@@ -833,7 +833,7 @@ async fn apply_patch_aggregates_diff_across_multiple_tool_calls() -> Result<()> 
 
     let harness = apply_patch_harness().await?;
     let test = harness.test();
-    let codex = test.codex.clone();
+    let codexist = test.codexist.clone();
     let cwd = test.cwd.clone();
 
     let call1 = "agg-1";
@@ -858,7 +858,7 @@ async fn apply_patch_aggregates_diff_across_multiple_tool_calls() -> Result<()> 
     mount_sse_sequence(harness.server(), vec![s1, s2, s3]).await;
 
     let model = test.session_configured.model.clone();
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "aggregate diffs".into(),
@@ -874,7 +874,7 @@ async fn apply_patch_aggregates_diff_across_multiple_tool_calls() -> Result<()> 
         .await?;
 
     let mut last_diff: Option<String> = None;
-    wait_for_event(&codex, |event| match event {
+    wait_for_event(&codexist, |event| match event {
         EventMsg::TurnDiff(ev) => {
             last_diff = Some(ev.unified_diff.clone());
             false
@@ -898,7 +898,7 @@ async fn apply_patch_aggregates_diff_preserves_success_after_failure() -> Result
 
     let harness = apply_patch_harness().await?;
     let test = harness.test();
-    let codex = test.codex.clone();
+    let codexist = test.codexist.clone();
     let cwd = test.cwd.clone();
 
     let call_success = "agg-success";
@@ -926,7 +926,7 @@ async fn apply_patch_aggregates_diff_preserves_success_after_failure() -> Result
     mount_sse_sequence(harness.server(), responses).await;
 
     let model = test.session_configured.model.clone();
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "apply patch twice with failure".into(),
@@ -942,7 +942,7 @@ async fn apply_patch_aggregates_diff_preserves_success_after_failure() -> Result
         .await?;
 
     let mut last_diff: Option<String> = None;
-    wait_for_event(&codex, |event| match event {
+    wait_for_event(&codexist, |event| match event {
         EventMsg::TurnDiff(ev) => {
             last_diff = Some(ev.unified_diff.clone());
             false

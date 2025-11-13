@@ -1,7 +1,7 @@
 /*
- * codex-backend
+ * codexist-backend
  *
- * codex-backend
+ * codexist-backend
  *
  * The version of the OpenAPI document: 0.0.1
  *

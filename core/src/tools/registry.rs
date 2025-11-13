@@ -8,8 +8,8 @@ use crate::tools::context::ToolInvocation;
 use crate::tools::context::ToolOutput;
 use crate::tools::context::ToolPayload;
 use async_trait::async_trait;
-use codex_protocol::models::ResponseInputItem;
-use codex_utils_readiness::Readiness;
+use codexist_protocol::models::ResponseInputItem;
+use codexist_utils_readiness::Readiness;
 use tracing::warn;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]

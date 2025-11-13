@@ -1,29 +1,29 @@
-use codex_common::elapsed::format_duration;
-use codex_common::elapsed::format_elapsed;
-use codex_core::config::Config;
-use codex_core::protocol::AgentMessageEvent;
-use codex_core::protocol::AgentReasoningRawContentEvent;
-use codex_core::protocol::BackgroundEventEvent;
-use codex_core::protocol::DeprecationNoticeEvent;
-use codex_core::protocol::ErrorEvent;
-use codex_core::protocol::Event;
-use codex_core::protocol::EventMsg;
-use codex_core::protocol::ExecCommandBeginEvent;
-use codex_core::protocol::ExecCommandEndEvent;
-use codex_core::protocol::FileChange;
-use codex_core::protocol::McpInvocation;
-use codex_core::protocol::McpToolCallBeginEvent;
-use codex_core::protocol::McpToolCallEndEvent;
-use codex_core::protocol::PatchApplyBeginEvent;
-use codex_core::protocol::PatchApplyEndEvent;
-use codex_core::protocol::SessionConfiguredEvent;
-use codex_core::protocol::StreamErrorEvent;
-use codex_core::protocol::TaskCompleteEvent;
-use codex_core::protocol::TurnAbortReason;
-use codex_core::protocol::TurnDiffEvent;
-use codex_core::protocol::WarningEvent;
-use codex_core::protocol::WebSearchEndEvent;
-use codex_protocol::num_format::format_with_separators;
+use codexist_common::elapsed::format_duration;
+use codexist_common::elapsed::format_elapsed;
+use codexist_core::config::Config;
+use codexist_core::protocol::AgentMessageEvent;
+use codexist_core::protocol::AgentReasoningRawContentEvent;
+use codexist_core::protocol::BackgroundEventEvent;
+use codexist_core::protocol::DeprecationNoticeEvent;
+use codexist_core::protocol::ErrorEvent;
+use codexist_core::protocol::Event;
+use codexist_core::protocol::EventMsg;
+use codexist_core::protocol::ExecCommandBeginEvent;
+use codexist_core::protocol::ExecCommandEndEvent;
+use codexist_core::protocol::FileChange;
+use codexist_core::protocol::McpInvocation;
+use codexist_core::protocol::McpToolCallBeginEvent;
+use codexist_core::protocol::McpToolCallEndEvent;
+use codexist_core::protocol::PatchApplyBeginEvent;
+use codexist_core::protocol::PatchApplyEndEvent;
+use codexist_core::protocol::SessionConfiguredEvent;
+use codexist_core::protocol::StreamErrorEvent;
+use codexist_core::protocol::TaskCompleteEvent;
+use codexist_core::protocol::TurnAbortReason;
+use codexist_core::protocol::TurnDiffEvent;
+use codexist_core::protocol::WarningEvent;
+use codexist_core::protocol::WebSearchEndEvent;
+use codexist_protocol::num_format::format_with_separators;
 use owo_colors::OwoColorize;
 use owo_colors::Style;
 use shlex::try_join;
@@ -31,12 +31,12 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::Instant;
 
-use crate::event_processor::CodexStatus;
+use crate::event_processor::CodexistStatus;
 use crate::event_processor::EventProcessor;
 use crate::event_processor::handle_last_message;
-use codex_common::create_config_summary_entries;
-use codex_protocol::plan_tool::StepStatus;
-use codex_protocol::plan_tool::UpdatePlanArgs;
+use codexist_common::create_config_summary_entries;
+use codexist_protocol::plan_tool::StepStatus;
+use codexist_protocol::plan_tool::UpdatePlanArgs;
 
 /// This should be configurable. When used in CI, users may not want to impose
 /// a limit so they can see the full transcript.
@@ -61,7 +61,7 @@ pub(crate) struct EventProcessorWithHumanOutput {
     show_agent_reasoning: bool,
     show_raw_agent_reasoning: bool,
     last_message_path: Option<PathBuf>,
-    last_total_token_usage: Option<codex_core::protocol::TokenUsageInfo>,
+    last_total_token_usage: Option<codexist_core::protocol::TokenUsageInfo>,
     final_message: Option<String>,
 }
 
@@ -136,7 +136,7 @@ impl EventProcessor for EventProcessorWithHumanOutput {
         const VERSION: &str = env!("CARGO_PKG_VERSION");
         ts_msg!(
             self,
-            "OpenAI Codex v{} (research preview)\n--------",
+            "8b.is/codexist v{} (research preview)\n--------",
             VERSION
         );
 
@@ -158,7 +158,7 @@ impl EventProcessor for EventProcessorWithHumanOutput {
         ts_msg!(self, "{}\n{}", "user".style(self.cyan), prompt);
     }
 
-    fn process_event(&mut self, event: Event) -> CodexStatus {
+    fn process_event(&mut self, event: Event) -> CodexistStatus {
         let Event { id: _, msg } = event;
         match msg {
             EventMsg::Error(ErrorEvent { message }) => {
@@ -199,7 +199,7 @@ impl EventProcessor for EventProcessorWithHumanOutput {
 
                 self.final_message = last_agent_message;
 
-                return CodexStatus::InitiateShutdown;
+                return CodexistStatus::InitiateShutdown;
             }
             EventMsg::TokenCount(ev) => {
                 self.last_total_token_usage = ev.info;
@@ -207,7 +207,7 @@ impl EventProcessor for EventProcessorWithHumanOutput {
 
             EventMsg::AgentReasoningSectionBreak(_) => {
                 if !self.show_agent_reasoning {
-                    return CodexStatus::Running;
+                    return CodexistStatus::Running;
                 }
                 eprintln!();
             }
@@ -225,7 +225,7 @@ impl EventProcessor for EventProcessorWithHumanOutput {
                 ts_msg!(
                     self,
                     "{}\n{}",
-                    "codex".style(self.italic).style(self.magenta),
+                    "codexist".style(self.italic).style(self.magenta),
                     message,
                 );
             }
@@ -454,7 +454,7 @@ impl EventProcessor for EventProcessorWithHumanOutput {
                 ts_msg!(
                     self,
                     "{} {}",
-                    "codex session".style(self.magenta).style(self.bold),
+                    "codexist session".style(self.magenta).style(self.bold),
                     conversation_id.to_string().style(self.dimmed)
                 );
 
@@ -513,7 +513,7 @@ impl EventProcessor for EventProcessorWithHumanOutput {
                     ts_msg!(self, "task aborted: review ended");
                 }
             },
-            EventMsg::ShutdownComplete => return CodexStatus::Shutdown,
+            EventMsg::ShutdownComplete => return CodexistStatus::Shutdown,
             EventMsg::WebSearchBegin(_)
             | EventMsg::ExecApprovalRequest(_)
             | EventMsg::ApplyPatchApprovalRequest(_)
@@ -536,7 +536,7 @@ impl EventProcessor for EventProcessorWithHumanOutput {
             | EventMsg::UndoCompleted(_)
             | EventMsg::UndoStarted(_) => {}
         }
-        CodexStatus::Running
+        CodexistStatus::Running
     }
 
     fn print_final_output(&mut self) {

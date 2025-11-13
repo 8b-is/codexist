@@ -28,7 +28,7 @@ impl LoggingClientHandler {
 }
 
 impl ClientHandler for LoggingClientHandler {
-    // TODO (CODEX-3571): support elicitations.
+    // TODO (CODEXIST-3571): support elicitations.
     async fn create_elicitation(
         &self,
         request: CreateElicitationRequestParam,

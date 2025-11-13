@@ -1,7 +1,7 @@
-use codex_protocol::models::FunctionCallOutputPayload;
-use codex_protocol::models::ResponseItem;
-use codex_protocol::protocol::TokenUsage;
-use codex_protocol::protocol::TokenUsageInfo;
+use codexist_protocol::models::FunctionCallOutputPayload;
+use codexist_protocol::models::ResponseItem;
+use codexist_protocol::protocol::TokenUsage;
+use codexist_protocol::protocol::TokenUsageInfo;
 use std::ops::Deref;
 
 use crate::context_manager::normalize;

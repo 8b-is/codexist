@@ -77,8 +77,8 @@ impl ToolHandler for ApplyPatchHandler {
         // Avoid building temporary ExecParams/command vectors; derive directly from inputs.
         let cwd = turn.cwd.clone();
         let command = vec!["apply_patch".to_string(), patch_input.clone()];
-        match codex_apply_patch::maybe_parse_apply_patch_verified(&command, &cwd) {
-            codex_apply_patch::MaybeApplyPatchVerified::Body(changes) => {
+        match codexist_apply_patch::maybe_parse_apply_patch_verified(&command, &cwd) {
+            codexist_apply_patch::MaybeApplyPatchVerified::Body(changes) => {
                 match apply_patch::apply_patch(session.as_ref(), turn.as_ref(), &call_id, changes)
                     .await
                 {
@@ -108,7 +108,7 @@ impl ToolHandler for ApplyPatchHandler {
                             cwd: apply.action.cwd.clone(),
                             timeout_ms: None,
                             user_explicitly_approved: apply.user_explicitly_approved_this_action,
-                            codex_exe: turn.codex_linux_sandbox_exe.clone(),
+                            codexist_exe: turn.codexist_linux_sandbox_exe.clone(),
                         };
 
                         let mut orchestrator = ToolOrchestrator::new();
@@ -137,18 +137,18 @@ impl ToolHandler for ApplyPatchHandler {
                     }
                 }
             }
-            codex_apply_patch::MaybeApplyPatchVerified::CorrectnessError(parse_error) => {
+            codexist_apply_patch::MaybeApplyPatchVerified::CorrectnessError(parse_error) => {
                 Err(FunctionCallError::RespondToModel(format!(
                     "apply_patch verification failed: {parse_error}"
                 )))
             }
-            codex_apply_patch::MaybeApplyPatchVerified::ShellParseError(error) => {
+            codexist_apply_patch::MaybeApplyPatchVerified::ShellParseError(error) => {
                 tracing::trace!("Failed to parse apply_patch input, {error:?}");
                 Err(FunctionCallError::RespondToModel(
                     "apply_patch handler received invalid patch input".to_string(),
                 ))
             }
-            codex_apply_patch::MaybeApplyPatchVerified::NotApplyPatch => {
+            codexist_apply_patch::MaybeApplyPatchVerified::NotApplyPatch => {
                 Err(FunctionCallError::RespondToModel(
                     "apply_patch handler received non-apply_patch input".to_string(),
                 ))

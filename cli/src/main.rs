@@ -3,25 +3,25 @@ use clap::CommandFactory;
 use clap::Parser;
 use clap_complete::Shell;
 use clap_complete::generate;
-use codex_arg0::arg0_dispatch_or_else;
-use codex_chatgpt::apply_command::ApplyCommand;
-use codex_chatgpt::apply_command::run_apply_command;
-use codex_cli::LandlockCommand;
-use codex_cli::SeatbeltCommand;
-use codex_cli::WindowsCommand;
-use codex_cli::login::read_api_key_from_stdin;
-use codex_cli::login::run_login_status;
-use codex_cli::login::run_login_with_api_key;
-use codex_cli::login::run_login_with_chatgpt;
-use codex_cli::login::run_login_with_device_code;
-use codex_cli::login::run_logout;
-use codex_cloud_tasks::Cli as CloudTasksCli;
-use codex_common::CliConfigOverrides;
-use codex_exec::Cli as ExecCli;
-use codex_responses_api_proxy::Args as ResponsesApiProxyArgs;
-use codex_tui::AppExitInfo;
-use codex_tui::Cli as TuiCli;
-use codex_tui::update_action::UpdateAction;
+use codexist_arg0::arg0_dispatch_or_else;
+use codexist_chatgpt::apply_command::ApplyCommand;
+use codexist_chatgpt::apply_command::run_apply_command;
+use codexist_cli::LandlockCommand;
+use codexist_cli::SeatbeltCommand;
+use codexist_cli::WindowsCommand;
+use codexist_cli::login::read_api_key_from_stdin;
+use codexist_cli::login::run_login_status;
+use codexist_cli::login::run_login_with_api_key;
+use codexist_cli::login::run_login_with_chatgpt;
+use codexist_cli::login::run_login_with_device_code;
+use codexist_cli::login::run_logout;
+use codexist_cloud_tasks::Cli as CloudTasksCli;
+use codexist_common::CliConfigOverrides;
+use codexist_exec::Cli as ExecCli;
+use codexist_responses_api_proxy::Args as ResponsesApiProxyArgs;
+use codexist_tui::AppExitInfo;
+use codexist_tui::Cli as TuiCli;
+use codexist_tui::update_action::UpdateAction;
 use owo_colors::OwoColorize;
 use std::path::PathBuf;
 use supports_color::Stream;
@@ -32,11 +32,11 @@ mod wsl_paths;
 
 use crate::mcp_cmd::McpCli;
 
-use codex_core::config::Config;
-use codex_core::config::ConfigOverrides;
-use codex_core::features::is_known_feature_key;
+use codexist_core::config::Config;
+use codexist_core::config::ConfigOverrides;
+use codexist_core::features::is_known_feature_key;
 
-/// Codex CLI
+/// Codexist CLI
 ///
 /// If no subcommand is specified, options will be forwarded to the interactive CLI.
 #[derive(Debug, Parser)]
@@ -46,10 +46,10 @@ use codex_core::features::is_known_feature_key;
     // If a sub‑command is given, ignore requirements of the default args.
     subcommand_negates_reqs = true,
     // The executable is sometimes invoked via a platform‑specific name like
-    // `codex-x86_64-unknown-linux-musl`, but the help output should always use
-    // the generic `codex` command name that users run.
-    bin_name = "codex",
-    override_usage = "codex [OPTIONS] [PROMPT]\n       codex [OPTIONS] <COMMAND> [ARGS]"
+    // `codexist-x86_64-unknown-linux-musl`, but the help output should always use
+    // the generic `codexist` command name that users run.
+    bin_name = "codexist",
+    override_usage = "codexist [OPTIONS] [PROMPT]\n       codexist [OPTIONS] <COMMAND> [ARGS]"
 )]
 struct MultitoolCli {
     #[clap(flatten)]
@@ -67,7 +67,7 @@ struct MultitoolCli {
 
 #[derive(Debug, clap::Subcommand)]
 enum Subcommand {
-    /// Run Codex non-interactively.
+    /// Run Codexist non-interactively.
     #[clap(visible_alias = "e")]
     Exec(ExecCli),
 
@@ -77,10 +77,10 @@ enum Subcommand {
     /// Remove stored authentication credentials.
     Logout(LogoutCommand),
 
-    /// [experimental] Run Codex as an MCP server and manage MCP servers.
+    /// [experimental] Run Codexist as an MCP server and manage MCP servers.
     Mcp(McpCli),
 
-    /// [experimental] Run the Codex MCP server (stdio transport).
+    /// [experimental] Run the Codexist MCP server (stdio transport).
     McpServer,
 
     /// [experimental] Run the app server or related tooling.
@@ -89,18 +89,18 @@ enum Subcommand {
     /// Generate shell completion scripts.
     Completion(CompletionCommand),
 
-    /// Run commands within a Codex-provided sandbox.
+    /// Run commands within a Codexist-provided sandbox.
     #[clap(visible_alias = "debug")]
     Sandbox(SandboxArgs),
 
-    /// Apply the latest diff produced by Codex agent as a `git apply` to your local working tree.
+    /// Apply the latest diff produced by Codexist agent as a `git apply` to your local working tree.
     #[clap(visible_alias = "a")]
     Apply(ApplyCommand),
 
     /// Resume a previous interactive session (picker by default; use --last to continue the most recent).
     Resume(ResumeCommand),
 
-    /// [EXPERIMENTAL] Browse tasks from Codex Cloud and apply changes locally.
+    /// [EXPERIMENTAL] Browse tasks from Codexist Cloud and apply changes locally.
     #[clap(name = "cloud", alias = "cloud-tasks")]
     Cloud(CloudTasksCli),
 
@@ -165,7 +165,7 @@ struct LoginCommand {
 
     #[arg(
         long = "with-api-key",
-        help = "Read the API key from stdin (e.g. `printenv OPENAI_API_KEY | codex login --with-api-key`)"
+        help = "Read the API key from stdin (e.g. `printenv OPENAI_API_KEY | codexist login --with-api-key`)"
     )]
     with_api_key: bool,
 
@@ -259,11 +259,11 @@ fn format_exit_messages(exit_info: AppExitInfo, color_enabled: bool) -> Vec<Stri
 
     let mut lines = vec![format!(
         "{}",
-        codex_core::protocol::FinalOutput::from(token_usage)
+        codexist_core::protocol::FinalOutput::from(token_usage)
     )];
 
     if let Some(session_id) = conversation_id {
-        let resume_cmd = format!("codex resume {session_id}");
+        let resume_cmd = format!("codexist resume {session_id}");
         let command = if color_enabled {
             resume_cmd.cyan().to_string()
         } else {
@@ -292,7 +292,7 @@ fn handle_app_exit(exit_info: AppExitInfo) -> anyhow::Result<()> {
 fn run_update_action(action: UpdateAction) -> anyhow::Result<()> {
     println!();
     let cmd_str = action.command_str();
-    println!("Updating Codex via `{cmd_str}`...");
+    println!("Updating Codexist via `{cmd_str}`...");
 
     let status = {
         #[cfg(windows)]
@@ -319,7 +319,7 @@ fn run_update_action(action: UpdateAction) -> anyhow::Result<()> {
         anyhow::bail!("`{cmd_str}` failed with status {status}");
     }
     println!();
-    println!("🎉 Update ran successfully! Please restart Codex.");
+    println!("🎉 Update ran successfully! Please restart Codexist.");
     Ok(())
 }
 
@@ -369,8 +369,8 @@ enum FeaturesSubcommand {
     List,
 }
 
-fn stage_str(stage: codex_core::features::Stage) -> &'static str {
-    use codex_core::features::Stage;
+fn stage_str(stage: codexist_core::features::Stage) -> &'static str {
+    use codexist_core::features::Stage;
     match stage {
         Stage::Experimental => "experimental",
         Stage::Beta => "beta",
@@ -385,17 +385,17 @@ fn stage_str(stage: codex_core::features::Stage) -> &'static str {
 #[ctor::ctor]
 #[cfg(not(debug_assertions))]
 fn pre_main_hardening() {
-    codex_process_hardening::pre_main_hardening();
+    codexist_process_hardening::pre_main_hardening();
 }
 
 fn main() -> anyhow::Result<()> {
-    arg0_dispatch_or_else(|codex_linux_sandbox_exe| async move {
-        cli_main(codex_linux_sandbox_exe).await?;
+    arg0_dispatch_or_else(|codexist_linux_sandbox_exe| async move {
+        cli_main(codexist_linux_sandbox_exe).await?;
         Ok(())
     })
 }
 
-async fn cli_main(codex_linux_sandbox_exe: Option<PathBuf>) -> anyhow::Result<()> {
+async fn cli_main(codexist_linux_sandbox_exe: Option<PathBuf>) -> anyhow::Result<()> {
     let MultitoolCli {
         config_overrides: mut root_config_overrides,
         feature_toggles,
@@ -413,7 +413,7 @@ async fn cli_main(codex_linux_sandbox_exe: Option<PathBuf>) -> anyhow::Result<()
                 &mut interactive.config_overrides,
                 root_config_overrides.clone(),
             );
-            let exit_info = codex_tui::run_main(interactive, codex_linux_sandbox_exe).await?;
+            let exit_info = codexist_tui::run_main(interactive, codexist_linux_sandbox_exe).await?;
             handle_app_exit(exit_info)?;
         }
         Some(Subcommand::Exec(mut exec_cli)) => {
@@ -421,10 +421,10 @@ async fn cli_main(codex_linux_sandbox_exe: Option<PathBuf>) -> anyhow::Result<()
                 &mut exec_cli.config_overrides,
                 root_config_overrides.clone(),
             );
-            codex_exec::run_main(exec_cli, codex_linux_sandbox_exe).await?;
+            codexist_exec::run_main(exec_cli, codexist_linux_sandbox_exe).await?;
         }
         Some(Subcommand::McpServer) => {
-            codex_mcp_server::run_main(codex_linux_sandbox_exe, root_config_overrides).await?;
+            codexist_mcp_server::run_main(codexist_linux_sandbox_exe, root_config_overrides).await?;
         }
         Some(Subcommand::Mcp(mut mcp_cli)) => {
             // Propagate any root-level config overrides (e.g. `-c key=value`).
@@ -433,16 +433,16 @@ async fn cli_main(codex_linux_sandbox_exe: Option<PathBuf>) -> anyhow::Result<()
         }
         Some(Subcommand::AppServer(app_server_cli)) => match app_server_cli.subcommand {
             None => {
-                codex_app_server::run_main(codex_linux_sandbox_exe, root_config_overrides).await?;
+                codexist_app_server::run_main(codexist_linux_sandbox_exe, root_config_overrides).await?;
             }
             Some(AppServerSubcommand::GenerateTs(gen_cli)) => {
-                codex_app_server_protocol::generate_ts(
+                codexist_app_server_protocol::generate_ts(
                     &gen_cli.out_dir,
                     gen_cli.prettier.as_deref(),
                 )?;
             }
             Some(AppServerSubcommand::GenerateJsonSchema(gen_cli)) => {
-                codex_app_server_protocol::generate_json(&gen_cli.out_dir)?;
+                codexist_app_server_protocol::generate_json(&gen_cli.out_dir)?;
             }
         },
         Some(Subcommand::Resume(ResumeCommand {
@@ -457,7 +457,7 @@ async fn cli_main(codex_linux_sandbox_exe: Option<PathBuf>) -> anyhow::Result<()
                 last,
                 config_overrides,
             );
-            let exit_info = codex_tui::run_main(interactive, codex_linux_sandbox_exe).await?;
+            let exit_info = codexist_tui::run_main(interactive, codexist_linux_sandbox_exe).await?;
             handle_app_exit(exit_info)?;
         }
         Some(Subcommand::Login(mut login_cli)) => {
@@ -479,7 +479,7 @@ async fn cli_main(codex_linux_sandbox_exe: Option<PathBuf>) -> anyhow::Result<()
                         .await;
                     } else if login_cli.api_key.is_some() {
                         eprintln!(
-                            "The --api-key flag is no longer supported. Pipe the key instead, e.g. `printenv OPENAI_API_KEY | codex login --with-api-key`."
+                            "The --api-key flag is no longer supported. Pipe the key instead, e.g. `printenv OPENAI_API_KEY | codexist login --with-api-key`."
                         );
                         std::process::exit(1);
                     } else if login_cli.with_api_key {
@@ -506,7 +506,7 @@ async fn cli_main(codex_linux_sandbox_exe: Option<PathBuf>) -> anyhow::Result<()
                 &mut cloud_cli.config_overrides,
                 root_config_overrides.clone(),
             );
-            codex_cloud_tasks::run_main(cloud_cli, codex_linux_sandbox_exe).await?;
+            codexist_cloud_tasks::run_main(cloud_cli, codexist_linux_sandbox_exe).await?;
         }
         Some(Subcommand::Sandbox(sandbox_args)) => match sandbox_args.cmd {
             SandboxCommand::Macos(mut seatbelt_cli) => {
@@ -514,9 +514,9 @@ async fn cli_main(codex_linux_sandbox_exe: Option<PathBuf>) -> anyhow::Result<()
                     &mut seatbelt_cli.config_overrides,
                     root_config_overrides.clone(),
                 );
-                codex_cli::debug_sandbox::run_command_under_seatbelt(
+                codexist_cli::debug_sandbox::run_command_under_seatbelt(
                     seatbelt_cli,
-                    codex_linux_sandbox_exe,
+                    codexist_linux_sandbox_exe,
                 )
                 .await?;
             }
@@ -525,9 +525,9 @@ async fn cli_main(codex_linux_sandbox_exe: Option<PathBuf>) -> anyhow::Result<()
                     &mut landlock_cli.config_overrides,
                     root_config_overrides.clone(),
                 );
-                codex_cli::debug_sandbox::run_command_under_landlock(
+                codexist_cli::debug_sandbox::run_command_under_landlock(
                     landlock_cli,
-                    codex_linux_sandbox_exe,
+                    codexist_linux_sandbox_exe,
                 )
                 .await?;
             }
@@ -536,9 +536,9 @@ async fn cli_main(codex_linux_sandbox_exe: Option<PathBuf>) -> anyhow::Result<()
                     &mut windows_cli.config_overrides,
                     root_config_overrides.clone(),
                 );
-                codex_cli::debug_sandbox::run_command_under_windows(
+                codexist_cli::debug_sandbox::run_command_under_windows(
                     windows_cli,
-                    codex_linux_sandbox_exe,
+                    codexist_linux_sandbox_exe,
                 )
                 .await?;
             }
@@ -551,12 +551,12 @@ async fn cli_main(codex_linux_sandbox_exe: Option<PathBuf>) -> anyhow::Result<()
             run_apply_command(apply_cli, None).await?;
         }
         Some(Subcommand::ResponsesApiProxy(args)) => {
-            tokio::task::spawn_blocking(move || codex_responses_api_proxy::run_main(args))
+            tokio::task::spawn_blocking(move || codexist_responses_api_proxy::run_main(args))
                 .await??;
         }
         Some(Subcommand::StdioToUds(cmd)) => {
             let socket_path = cmd.socket_path;
-            tokio::task::spawn_blocking(move || codex_stdio_to_uds::run(socket_path.as_path()))
+            tokio::task::spawn_blocking(move || codexist_stdio_to_uds::run(socket_path.as_path()))
                 .await??;
         }
         Some(Subcommand::Features(FeaturesCli { sub })) => match sub {
@@ -581,7 +581,7 @@ async fn cli_main(codex_linux_sandbox_exe: Option<PathBuf>) -> anyhow::Result<()
                 };
 
                 let config = Config::load_with_cli_overrides(cli_kv_overrides, overrides).await?;
-                for def in codex_core::features::FEATURES.iter() {
+                for def in codexist_core::features::FEATURES.iter() {
                     let name = def.key;
                     let stage = stage_str(def.stage);
                     let enabled = config.features.enabled(def.id);
@@ -605,7 +605,7 @@ fn prepend_config_flags(
         .splice(0..0, cli_config_overrides.raw_overrides);
 }
 
-/// Build the final `TuiCli` for a `codex resume` invocation.
+/// Build the final `TuiCli` for a `codexist resume` invocation.
 fn finalize_resume_interactive(
     mut interactive: TuiCli,
     root_config_overrides: CliConfigOverrides,
@@ -614,7 +614,7 @@ fn finalize_resume_interactive(
     resume_cli: TuiCli,
 ) -> TuiCli {
     // Start with the parsed interactive CLI so resume shares the same
-    // configuration surface area as `codex` without additional flags.
+    // configuration surface area as `codexist` without additional flags.
     let resume_session_id = session_id;
     interactive.resume_picker = resume_session_id.is_none() && !last;
     interactive.resume_last = last;
@@ -629,7 +629,7 @@ fn finalize_resume_interactive(
     interactive
 }
 
-/// Merge flags provided to `codex resume` so they take precedence over any
+/// Merge flags provided to `codexist resume` so they take precedence over any
 /// root-level flags. Only overrides fields explicitly set on the resume-scoped
 /// CLI. Also appends `-c key=value` overrides with highest precedence.
 fn merge_resume_cli_flags(interactive: &mut TuiCli, resume_cli: TuiCli) {
@@ -678,7 +678,7 @@ fn merge_resume_cli_flags(interactive: &mut TuiCli, resume_cli: TuiCli) {
 
 fn print_completion(cmd: CompletionCommand) {
     let mut app = MultitoolCli::command();
-    let name = "codex";
+    let name = "codexist";
     generate(cmd.shell, &mut app, name, &mut std::io::stdout());
 }
 
@@ -686,8 +686,8 @@ fn print_completion(cmd: CompletionCommand) {
 mod tests {
     use super::*;
     use assert_matches::assert_matches;
-    use codex_core::protocol::TokenUsage;
-    use codex_protocol::ConversationId;
+    use codexist_core::protocol::TokenUsage;
+    use codexist_protocol::ConversationId;
     use pretty_assertions::assert_eq;
 
     fn finalize_from_args(args: &[&str]) -> TuiCli {
@@ -745,7 +745,7 @@ mod tests {
             lines,
             vec![
                 "Token usage: total=2 input=0 output=2".to_string(),
-                "To continue this session, run codex resume 123e4567-e89b-12d3-a456-426614174000"
+                "To continue this session, run codexist resume 123e4567-e89b-12d3-a456-426614174000"
                     .to_string(),
             ]
         );
@@ -761,7 +761,7 @@ mod tests {
 
     #[test]
     fn resume_model_flag_applies_when_no_root_flags() {
-        let interactive = finalize_from_args(["codex", "resume", "-m", "gpt-5-test"].as_ref());
+        let interactive = finalize_from_args(["codexist", "resume", "-m", "gpt-5-test"].as_ref());
 
         assert_eq!(interactive.model.as_deref(), Some("gpt-5-test"));
         assert!(interactive.resume_picker);
@@ -771,7 +771,7 @@ mod tests {
 
     #[test]
     fn resume_picker_logic_none_and_not_last() {
-        let interactive = finalize_from_args(["codex", "resume"].as_ref());
+        let interactive = finalize_from_args(["codexist", "resume"].as_ref());
         assert!(interactive.resume_picker);
         assert!(!interactive.resume_last);
         assert_eq!(interactive.resume_session_id, None);
@@ -779,7 +779,7 @@ mod tests {
 
     #[test]
     fn resume_picker_logic_last() {
-        let interactive = finalize_from_args(["codex", "resume", "--last"].as_ref());
+        let interactive = finalize_from_args(["codexist", "resume", "--last"].as_ref());
         assert!(!interactive.resume_picker);
         assert!(interactive.resume_last);
         assert_eq!(interactive.resume_session_id, None);
@@ -787,7 +787,7 @@ mod tests {
 
     #[test]
     fn resume_picker_logic_with_session_id() {
-        let interactive = finalize_from_args(["codex", "resume", "1234"].as_ref());
+        let interactive = finalize_from_args(["codexist", "resume", "1234"].as_ref());
         assert!(!interactive.resume_picker);
         assert!(!interactive.resume_last);
         assert_eq!(interactive.resume_session_id.as_deref(), Some("1234"));
@@ -797,7 +797,7 @@ mod tests {
     fn resume_merges_option_flags_and_full_auto() {
         let interactive = finalize_from_args(
             [
-                "codex",
+                "codexist",
                 "resume",
                 "sid",
                 "--oss",
@@ -824,11 +824,11 @@ mod tests {
         assert_eq!(interactive.config_profile.as_deref(), Some("my-profile"));
         assert_matches!(
             interactive.sandbox_mode,
-            Some(codex_common::SandboxModeCliArg::WorkspaceWrite)
+            Some(codexist_common::SandboxModeCliArg::WorkspaceWrite)
         );
         assert_matches!(
             interactive.approval_policy,
-            Some(codex_common::ApprovalModeCliArg::OnRequest)
+            Some(codexist_common::ApprovalModeCliArg::OnRequest)
         );
         assert!(interactive.full_auto);
         assert_eq!(
@@ -854,7 +854,7 @@ mod tests {
     fn resume_merges_dangerously_bypass_flag() {
         let interactive = finalize_from_args(
             [
-                "codex",
+                "codexist",
                 "resume",
                 "--dangerously-bypass-approvals-and-sandbox",
             ]

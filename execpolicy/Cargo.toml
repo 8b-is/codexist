@@ -1,14 +1,14 @@
 [package]
 edition = "2024"
-name = "codex-execpolicy"
+name = "codexist-execpolicy"
 version = { workspace = true }
 
 [[bin]]
-name = "codex-execpolicy"
+name = "codexist-execpolicy"
 path = "src/main.rs"
 
 [lib]
-name = "codex_execpolicy"
+name = "codexist_execpolicy"
 path = "src/lib.rs"
 
 [lints]

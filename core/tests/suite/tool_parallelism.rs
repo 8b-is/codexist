@@ -4,13 +4,13 @@
 use std::time::Duration;
 use std::time::Instant;
 
-use codex_core::model_family::find_family_for_model;
-use codex_core::protocol::AskForApproval;
-use codex_core::protocol::EventMsg;
-use codex_core::protocol::Op;
-use codex_core::protocol::SandboxPolicy;
-use codex_protocol::config_types::ReasoningSummary;
-use codex_protocol::user_input::UserInput;
+use codexist_core::model_family::find_family_for_model;
+use codexist_core::protocol::AskForApproval;
+use codexist_core::protocol::EventMsg;
+use codexist_core::protocol::Op;
+use codexist_core::protocol::SandboxPolicy;
+use codexist_protocol::config_types::ReasoningSummary;
+use codexist_protocol::user_input::UserInput;
 use core_test_support::responses::ev_assistant_message;
 use core_test_support::responses::ev_completed;
 use core_test_support::responses::ev_function_call;
@@ -18,15 +18,15 @@ use core_test_support::responses::mount_sse_sequence;
 use core_test_support::responses::sse;
 use core_test_support::responses::start_mock_server;
 use core_test_support::skip_if_no_network;
-use core_test_support::test_codex::TestCodex;
-use core_test_support::test_codex::test_codex;
+use core_test_support::test_codexist::TestCodexist;
+use core_test_support::test_codexist::test_codexist;
 use core_test_support::wait_for_event;
 use serde_json::json;
 
-async fn run_turn(test: &TestCodex, prompt: &str) -> anyhow::Result<()> {
+async fn run_turn(test: &TestCodexist, prompt: &str) -> anyhow::Result<()> {
     let session_model = test.session_configured.model.clone();
 
-    test.codex
+    test.codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: prompt.into(),
@@ -41,23 +41,23 @@ async fn run_turn(test: &TestCodex, prompt: &str) -> anyhow::Result<()> {
         })
         .await?;
 
-    wait_for_event(&test.codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&test.codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     Ok(())
 }
 
-async fn run_turn_and_measure(test: &TestCodex, prompt: &str) -> anyhow::Result<Duration> {
+async fn run_turn_and_measure(test: &TestCodexist, prompt: &str) -> anyhow::Result<Duration> {
     let start = Instant::now();
     run_turn(test, prompt).await?;
     Ok(start.elapsed())
 }
 
 #[allow(clippy::expect_used)]
-async fn build_codex_with_test_tool(server: &wiremock::MockServer) -> anyhow::Result<TestCodex> {
-    let mut builder = test_codex().with_config(|config| {
-        config.model = "test-gpt-5-codex".to_string();
+async fn build_codexist_with_test_tool(server: &wiremock::MockServer) -> anyhow::Result<TestCodexist> {
+    let mut builder = test_codexist().with_config(|config| {
+        config.model = "test-gpt-5-codexist".to_string();
         config.model_family =
-            find_family_for_model("test-gpt-5-codex").expect("test-gpt-5-codex model family");
+            find_family_for_model("test-gpt-5-codexist").expect("test-gpt-5-codexist model family");
     });
     builder.build(server).await
 }
@@ -82,7 +82,7 @@ async fn read_file_tools_run_in_parallel() -> anyhow::Result<()> {
     skip_if_no_network!(Ok(()));
 
     let server = start_mock_server().await;
-    let test = build_codex_with_test_tool(&server).await?;
+    let test = build_codexist_with_test_tool(&server).await?;
 
     let warmup_args = json!({
         "sleep_after_ms": 10,
@@ -144,7 +144,7 @@ async fn non_parallel_tools_run_serially() -> anyhow::Result<()> {
     skip_if_no_network!(Ok(()));
 
     let server = start_mock_server().await;
-    let test = test_codex().build(&server).await?;
+    let test = test_codexist().build(&server).await?;
 
     let shell_args = json!({
         "command": ["/bin/sh", "-c", "sleep 0.3"],
@@ -176,7 +176,7 @@ async fn mixed_tools_fall_back_to_serial() -> anyhow::Result<()> {
     skip_if_no_network!(Ok(()));
 
     let server = start_mock_server().await;
-    let test = build_codex_with_test_tool(&server).await?;
+    let test = build_codexist_with_test_tool(&server).await?;
 
     let sync_args = json!({
         "sleep_after_ms": 300

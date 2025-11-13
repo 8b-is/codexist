@@ -4,26 +4,26 @@
 //!
 //! Each test sets up a mocked SSE conversation and drives the conversation through
 //! a specific sequence of operations. After every operation we capture the
-//! request payload that Codex would send to the model and assert that the
+//! request payload that Codexist would send to the model and assert that the
 //! model-visible history matches the expected sequence of messages.
 
 use super::compact::COMPACT_WARNING_MESSAGE;
 use super::compact::FIRST_REPLY;
 use super::compact::SUMMARY_TEXT;
 use super::compact::TEST_COMPACT_PROMPT;
-use codex_core::CodexAuth;
-use codex_core::CodexConversation;
-use codex_core::ConversationManager;
-use codex_core::ModelProviderInfo;
-use codex_core::NewConversation;
-use codex_core::built_in_model_providers;
-use codex_core::config::Config;
-use codex_core::config::OPENAI_DEFAULT_MODEL;
-use codex_core::protocol::EventMsg;
-use codex_core::protocol::Op;
-use codex_core::protocol::WarningEvent;
-use codex_core::spawn::CODEX_SANDBOX_NETWORK_DISABLED_ENV_VAR;
-use codex_protocol::user_input::UserInput;
+use codexist_core::CodexistAuth;
+use codexist_core::CodexistConversation;
+use codexist_core::ConversationManager;
+use codexist_core::ModelProviderInfo;
+use codexist_core::NewConversation;
+use codexist_core::built_in_model_providers;
+use codexist_core::config::Config;
+use codexist_core::config::OPENAI_DEFAULT_MODEL;
+use codexist_core::protocol::EventMsg;
+use codexist_core::protocol::Op;
+use codexist_core::protocol::WarningEvent;
+use codexist_core::spawn::CODEXIST_SANDBOX_NETWORK_DISABLED_ENV_VAR;
+use codexist_protocol::user_input::UserInput;
 use core_test_support::load_default_config_for_test;
 use core_test_support::responses::ev_assistant_message;
 use core_test_support::responses::ev_completed;
@@ -42,7 +42,7 @@ const COMPACT_PROMPT_MARKER: &str =
     "You are performing a CONTEXT CHECKPOINT COMPACTION for a tool.";
 
 fn network_disabled() -> bool {
-    std::env::var(CODEX_SANDBOX_NETWORK_DISABLED_ENV_VAR).is_ok()
+    std::env::var(CODEXIST_SANDBOX_NETWORK_DISABLED_ENV_VAR).is_ok()
 }
 
 fn filter_out_ghost_snapshot_entries(items: &[Value]) -> Vec<Value> {
@@ -798,7 +798,7 @@ async fn mount_second_compact_flow(server: &MockServer) {
 
 async fn start_test_conversation(
     server: &MockServer,
-) -> (TempDir, Config, ConversationManager, Arc<CodexConversation>) {
+) -> (TempDir, Config, ConversationManager, Arc<CodexistConversation>) {
     let model_provider = ModelProviderInfo {
         base_url: Some(format!("{}/v1", server.uri())),
         ..built_in_model_providers()["openai"].clone()
@@ -808,7 +808,7 @@ async fn start_test_conversation(
     config.model_provider = model_provider;
     config.compact_prompt = Some(TEST_COMPACT_PROMPT.to_string());
 
-    let manager = ConversationManager::with_auth(CodexAuth::from_api_key("dummy"));
+    let manager = ConversationManager::with_auth(CodexistAuth::from_api_key("dummy"));
     let NewConversation { conversation, .. } = manager
         .new_conversation(config.clone())
         .await
@@ -817,7 +817,7 @@ async fn start_test_conversation(
     (home, config, manager, conversation)
 }
 
-async fn user_turn(conversation: &Arc<CodexConversation>, text: &str) {
+async fn user_turn(conversation: &Arc<CodexistConversation>, text: &str) {
     conversation
         .submit(Op::UserInput {
             items: vec![UserInput::Text { text: text.into() }],
@@ -827,7 +827,7 @@ async fn user_turn(conversation: &Arc<CodexConversation>, text: &str) {
     wait_for_event(conversation, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 }
 
-async fn compact_conversation(conversation: &Arc<CodexConversation>) {
+async fn compact_conversation(conversation: &Arc<CodexistConversation>) {
     conversation
         .submit(Op::Compact)
         .await
@@ -840,7 +840,7 @@ async fn compact_conversation(conversation: &Arc<CodexConversation>) {
     wait_for_event(conversation, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 }
 
-async fn fetch_conversation_path(conversation: &Arc<CodexConversation>) -> std::path::PathBuf {
+async fn fetch_conversation_path(conversation: &Arc<CodexistConversation>) -> std::path::PathBuf {
     conversation.rollout_path()
 }
 
@@ -848,9 +848,9 @@ async fn resume_conversation(
     manager: &ConversationManager,
     config: &Config,
     path: std::path::PathBuf,
-) -> Arc<CodexConversation> {
+) -> Arc<CodexistConversation> {
     let auth_manager =
-        codex_core::AuthManager::from_auth_for_testing(CodexAuth::from_api_key("dummy"));
+        codexist_core::AuthManager::from_auth_for_testing(CodexistAuth::from_api_key("dummy"));
     let NewConversation { conversation, .. } = manager
         .resume_conversation_from_rollout(config.clone(), path, auth_manager)
         .await
@@ -864,7 +864,7 @@ async fn fork_conversation(
     config: &Config,
     path: std::path::PathBuf,
     nth_user_message: usize,
-) -> Arc<CodexConversation> {
+) -> Arc<CodexistConversation> {
     let NewConversation { conversation, .. } = manager
         .fork_conversation(nth_user_message, config.clone(), path)
         .await

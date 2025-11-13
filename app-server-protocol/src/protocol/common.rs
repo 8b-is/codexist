@@ -9,11 +9,11 @@ use crate::export::GeneratedSchema;
 use crate::export::write_json_schema;
 use crate::protocol::v1;
 use crate::protocol::v2;
-use codex_protocol::ConversationId;
-use codex_protocol::parse_command::ParsedCommand;
-use codex_protocol::protocol::FileChange;
-use codex_protocol::protocol::ReviewDecision;
-use codex_protocol::protocol::SandboxCommandAssessment;
+use codexist_protocol::ConversationId;
+use codexist_protocol::parse_command::ParsedCommand;
+use codexist_protocol::protocol::FileChange;
+use codexist_protocol::protocol::ReviewDecision;
+use codexist_protocol::protocol::SandboxCommandAssessment;
 use paste::paste;
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -182,12 +182,12 @@ client_request_definitions! {
         params: v1::GetConversationSummaryParams,
         response: v1::GetConversationSummaryResponse,
     },
-    /// List recorded Codex conversations (rollouts) with optional pagination and search.
+    /// List recorded Codexist conversations (rollouts) with optional pagination and search.
     ListConversations {
         params: v1::ListConversationsParams,
         response: v1::ListConversationsResponse,
     },
-    /// Resume a recorded Codex conversation from a rollout file.
+    /// Resume a recorded Codexist conversation from a rollout file.
     ResumeConversation {
         params: v1::ResumeConversationParams,
         response: v1::ResumeConversationResponse,
@@ -436,8 +436,8 @@ server_request_definitions! {
 #[serde(rename_all = "camelCase")]
 pub struct ApplyPatchApprovalParams {
     pub conversation_id: ConversationId,
-    /// Use to correlate this with [codex_core::protocol::PatchApplyBeginEvent]
-    /// and [codex_core::protocol::PatchApplyEndEvent].
+    /// Use to correlate this with [codexist_core::protocol::PatchApplyBeginEvent]
+    /// and [codexist_core::protocol::PatchApplyEndEvent].
     pub call_id: String,
     pub file_changes: HashMap<PathBuf, FileChange>,
     /// Optional explanatory reason (e.g. request for extra write access).
@@ -451,8 +451,8 @@ pub struct ApplyPatchApprovalParams {
 #[serde(rename_all = "camelCase")]
 pub struct ExecCommandApprovalParams {
     pub conversation_id: ConversationId,
-    /// Use to correlate this with [codex_core::protocol::ExecCommandBeginEvent]
-    /// and [codex_core::protocol::ExecCommandEndEvent].
+    /// Use to correlate this with [codexist_core::protocol::ExecCommandBeginEvent]
+    /// and [codexist_core::protocol::ExecCommandEndEvent].
     pub call_id: String,
     pub command: Vec<String>,
     pub cwd: PathBuf,
@@ -481,7 +481,7 @@ pub struct FuzzyFileSearchParams {
     pub cancellation_token: Option<String>,
 }
 
-/// Superset of [`codex_file_search::FileMatch`]
+/// Superset of [`codexist_file_search::FileMatch`]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, JsonSchema, TS)]
 pub struct FuzzyFileSearchResult {
     pub root: String,
@@ -530,8 +530,8 @@ client_notification_definitions! {
 mod tests {
     use super::*;
     use anyhow::Result;
-    use codex_protocol::account::PlanType;
-    use codex_protocol::protocol::AskForApproval;
+    use codexist_protocol::account::PlanType;
+    use codexist_protocol::protocol::AskForApproval;
     use pretty_assertions::assert_eq;
     use serde_json::json;
 
@@ -540,7 +540,7 @@ mod tests {
         let request = ClientRequest::NewConversation {
             request_id: RequestId::Integer(42),
             params: v1::NewConversationParams {
-                model: Some("gpt-5-codex".to_string()),
+                model: Some("gpt-5-codexist".to_string()),
                 model_provider: None,
                 profile: None,
                 cwd: None,
@@ -558,7 +558,7 @@ mod tests {
                 "method": "newConversation",
                 "id": 42,
                 "params": {
-                    "model": "gpt-5-codex",
+                    "model": "gpt-5-codexist",
                     "modelProvider": null,
                     "profile": null,
                     "cwd": null,

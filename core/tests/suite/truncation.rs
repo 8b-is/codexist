@@ -3,16 +3,16 @@
 
 use anyhow::Context;
 use anyhow::Result;
-use codex_core::config::types::McpServerConfig;
-use codex_core::config::types::McpServerTransportConfig;
-use codex_core::features::Feature;
-use codex_core::model_family::find_family_for_model;
-use codex_core::protocol::AskForApproval;
-use codex_core::protocol::EventMsg;
-use codex_core::protocol::Op;
-use codex_core::protocol::SandboxPolicy;
-use codex_protocol::config_types::ReasoningSummary;
-use codex_protocol::user_input::UserInput;
+use codexist_core::config::types::McpServerConfig;
+use codexist_core::config::types::McpServerTransportConfig;
+use codexist_core::features::Feature;
+use codexist_core::model_family::find_family_for_model;
+use codexist_core::protocol::AskForApproval;
+use codexist_core::protocol::EventMsg;
+use codexist_core::protocol::Op;
+use codexist_core::protocol::SandboxPolicy;
+use codexist_protocol::config_types::ReasoningSummary;
+use codexist_protocol::user_input::UserInput;
 use core_test_support::assert_regex_match;
 use core_test_support::responses;
 use core_test_support::responses::ev_assistant_message;
@@ -24,7 +24,7 @@ use core_test_support::responses::mount_sse_sequence;
 use core_test_support::responses::sse;
 use core_test_support::responses::start_mock_server;
 use core_test_support::skip_if_no_network;
-use core_test_support::test_codex::test_codex;
+use core_test_support::test_codexist::test_codexist;
 use core_test_support::wait_for_event;
 use escargot::CargoBuild;
 use regex_lite::Regex;
@@ -40,11 +40,11 @@ async fn truncate_function_error_trims_respond_to_model() -> Result<()> {
     skip_if_no_network!(Ok(()));
 
     let server = start_mock_server().await;
-    let mut builder = test_codex().with_config(|config| {
+    let mut builder = test_codexist().with_config(|config| {
         // Use the test model that wires function tools like grep_files
-        config.model = "test-gpt-5-codex".to_string();
+        config.model = "test-gpt-5-codexist".to_string();
         config.model_family =
-            find_family_for_model("test-gpt-5-codex").expect("model family for test model");
+            find_family_for_model("test-gpt-5-codexist").expect("model family for test model");
     });
     let test = builder.build(&server).await?;
 
@@ -105,10 +105,10 @@ async fn tool_call_output_exceeds_limit_truncated_for_model() -> Result<()> {
     let server = start_mock_server().await;
 
     // Use a model that exposes the generic shell tool.
-    let mut builder = test_codex().with_config(|config| {
-        config.model = "gpt-5-codex".to_string();
+    let mut builder = test_codexist().with_config(|config| {
+        config.model = "gpt-5-codexist".to_string();
         config.model_family =
-            find_family_for_model("gpt-5-codex").expect("gpt-5-codex is a model family");
+            find_family_for_model("gpt-5-codexist").expect("gpt-5-codexist is a model family");
     });
     let fixture = builder.build(&server).await?;
 
@@ -218,19 +218,19 @@ async fn mcp_tool_call_output_exceeds_limit_truncated_for_model() -> Result<()> 
 
     // Compile the rmcp stdio test server and configure it.
     let rmcp_test_server_bin = CargoBuild::new()
-        .package("codex-rmcp-client")
+        .package("codexist-rmcp-client")
         .bin("test_stdio_server")
         .run()?
         .path()
         .to_string_lossy()
         .into_owned();
 
-    let mut builder = test_codex().with_config(move |config| {
+    let mut builder = test_codexist().with_config(move |config| {
         config.features.enable(Feature::RmcpClient);
         config.mcp_servers.insert(
             server_name.to_string(),
-            codex_core::config::types::McpServerConfig {
-                transport: codex_core::config::types::McpServerTransportConfig::Stdio {
+            codexist_core::config::types::McpServerConfig {
+                transport: codexist_core::config::types::McpServerTransportConfig::Stdio {
                     command: rmcp_test_server_bin,
                     args: Vec::new(),
                     env: None,
@@ -313,7 +313,7 @@ async fn mcp_image_output_preserves_image_and_no_text_summary() -> Result<()> {
 
     // Build the stdio rmcp server and pass a tiny PNG via data URL so it can construct ImageContent.
     let rmcp_test_server_bin = CargoBuild::new()
-        .package("codex-rmcp-client")
+        .package("codexist-rmcp-client")
         .bin("test_stdio_server")
         .run()?
         .path()
@@ -323,7 +323,7 @@ async fn mcp_image_output_preserves_image_and_no_text_summary() -> Result<()> {
     // 1x1 PNG data URL
     let openai_png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/ee9bQAAAABJRU5ErkJggg==";
 
-    let mut builder = test_codex().with_config(move |config| {
+    let mut builder = test_codexist().with_config(move |config| {
         config.features.enable(Feature::RmcpClient);
         config.mcp_servers.insert(
             server_name.to_string(),
@@ -350,7 +350,7 @@ async fn mcp_image_output_preserves_image_and_no_text_summary() -> Result<()> {
     let session_model = fixture.session_configured.model.clone();
 
     fixture
-        .codex
+        .codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "call the rmcp image tool".into(),
@@ -366,7 +366,7 @@ async fn mcp_image_output_preserves_image_and_no_text_summary() -> Result<()> {
         .await?;
 
     // Wait for completion to ensure the outbound request is captured.
-    wait_for_event(&fixture.codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&fixture.codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
     let output_item = final_mock.single_request().function_call_output(call_id);
     // Expect exactly one array element: the image item; and no trailing summary text.
     let output = output_item.get("output").expect("output");

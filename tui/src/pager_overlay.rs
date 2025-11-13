@@ -579,7 +579,7 @@ fn render_offset_content(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use codex_core::protocol::ReviewDecision;
+    use codexist_core::protocol::ReviewDecision;
     use insta::assert_snapshot;
     use std::collections::HashMap;
     use std::path::PathBuf;
@@ -590,8 +590,8 @@ mod tests {
     use crate::history_cell;
     use crate::history_cell::HistoryCell;
     use crate::history_cell::new_patch_event;
-    use codex_core::protocol::FileChange;
-    use codex_protocol::parse_command::ParsedCommand;
+    use codexist_core::protocol::FileChange;
+    use codexist_protocol::parse_command::ParsedCommand;
     use ratatui::Terminal;
     use ratatui::backend::TestBackend;
     use ratatui::text::Text;

@@ -1,21 +1,21 @@
 #![allow(clippy::expect_used)]
-use codex_core::auth::CODEX_API_KEY_ENV_VAR;
+use codexist_core::auth::CODEXIST_API_KEY_ENV_VAR;
 use std::path::Path;
 use tempfile::TempDir;
 use wiremock::MockServer;
 
-pub struct TestCodexExecBuilder {
+pub struct TestCodexistExecBuilder {
     home: TempDir,
     cwd: TempDir,
 }
 
-impl TestCodexExecBuilder {
+impl TestCodexistExecBuilder {
     pub fn cmd(&self) -> assert_cmd::Command {
-        let mut cmd = assert_cmd::Command::cargo_bin("codex-exec")
-            .expect("should find binary for codex-exec");
+        let mut cmd = assert_cmd::Command::cargo_bin("codexist-exec")
+            .expect("should find binary for codexist-exec");
         cmd.current_dir(self.cwd.path())
-            .env("CODEX_HOME", self.home.path())
-            .env(CODEX_API_KEY_ENV_VAR, "dummy");
+            .env("CODEXIST_HOME", self.home.path())
+            .env(CODEXIST_API_KEY_ENV_VAR, "dummy");
         cmd
     }
     pub fn cmd_with_server(&self, server: &MockServer) -> assert_cmd::Command {
@@ -33,8 +33,8 @@ impl TestCodexExecBuilder {
     }
 }
 
-pub fn test_codex_exec() -> TestCodexExecBuilder {
-    TestCodexExecBuilder {
+pub fn test_codexist_exec() -> TestCodexistExecBuilder {
+    TestCodexistExecBuilder {
         home: TempDir::new().expect("create temp home"),
         cwd: TempDir::new().expect("create temp cwd"),
     }

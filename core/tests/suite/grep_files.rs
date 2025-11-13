@@ -1,13 +1,13 @@
 #![cfg(not(target_os = "windows"))]
 
 use anyhow::Result;
-use codex_core::model_family::find_family_for_model;
-use codex_core::protocol::AskForApproval;
-use codex_core::protocol::EventMsg;
-use codex_core::protocol::Op;
-use codex_core::protocol::SandboxPolicy;
-use codex_protocol::config_types::ReasoningSummary;
-use codex_protocol::user_input::UserInput;
+use codexist_core::model_family::find_family_for_model;
+use codexist_core::protocol::AskForApproval;
+use codexist_core::protocol::EventMsg;
+use codexist_core::protocol::Op;
+use codexist_core::protocol::SandboxPolicy;
+use codexist_protocol::config_types::ReasoningSummary;
+use codexist_protocol::user_input::UserInput;
 use core_test_support::responses;
 use core_test_support::responses::ev_assistant_message;
 use core_test_support::responses::ev_completed;
@@ -16,8 +16,8 @@ use core_test_support::responses::ev_response_created;
 use core_test_support::responses::sse;
 use core_test_support::responses::start_mock_server;
 use core_test_support::skip_if_no_network;
-use core_test_support::test_codex::TestCodex;
-use core_test_support::test_codex::test_codex;
+use core_test_support::test_codexist::TestCodexist;
+use core_test_support::test_codexist::test_codexist;
 use core_test_support::wait_for_event;
 use serde_json::Value;
 use std::collections::HashSet;
@@ -25,7 +25,7 @@ use std::path::Path;
 use std::process::Command as StdCommand;
 use wiremock::matchers::any;
 
-const MODEL_WITH_TOOL: &str = "test-gpt-5-codex";
+const MODEL_WITH_TOOL: &str = "test-gpt-5-codexist";
 
 fn ripgrep_available() -> bool {
     StdCommand::new("rg")
@@ -50,7 +50,7 @@ async fn grep_files_tool_collects_matches() -> Result<()> {
     skip_if_ripgrep_missing!(Ok(()));
 
     let server = start_mock_server().await;
-    let test = build_test_codex(&server).await?;
+    let test = build_test_codexist(&server).await?;
 
     let search_dir = test.cwd.path().join("src");
     std::fs::create_dir_all(&search_dir)?;
@@ -104,7 +104,7 @@ async fn grep_files_tool_reports_empty_results() -> Result<()> {
     skip_if_ripgrep_missing!(Ok(()));
 
     let server = start_mock_server().await;
-    let test = build_test_codex(&server).await?;
+    let test = build_test_codexist(&server).await?;
 
     let search_dir = test.cwd.path().join("logs");
     std::fs::create_dir_all(&search_dir)?;
@@ -135,8 +135,8 @@ async fn grep_files_tool_reports_empty_results() -> Result<()> {
 }
 
 #[allow(clippy::expect_used)]
-async fn build_test_codex(server: &wiremock::MockServer) -> Result<TestCodex> {
-    let mut builder = test_codex().with_config(|config| {
+async fn build_test_codexist(server: &wiremock::MockServer) -> Result<TestCodexist> {
+    let mut builder = test_codexist().with_config(|config| {
         config.model = MODEL_WITH_TOOL.to_string();
         config.model_family =
             find_family_for_model(MODEL_WITH_TOOL).expect("model family for test model");
@@ -144,10 +144,10 @@ async fn build_test_codex(server: &wiremock::MockServer) -> Result<TestCodex> {
     builder.build(server).await
 }
 
-async fn submit_turn(test: &TestCodex, prompt: &str) -> Result<()> {
+async fn submit_turn(test: &TestCodexist, prompt: &str) -> Result<()> {
     let session_model = test.session_configured.model.clone();
 
-    test.codex
+    test.codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: prompt.into(),
@@ -162,7 +162,7 @@ async fn submit_turn(test: &TestCodex, prompt: &str) -> Result<()> {
         })
         .await?;
 
-    wait_for_event(&test.codex, |event| {
+    wait_for_event(&test.codexist, |event| {
         matches!(event, EventMsg::TaskComplete(_))
     })
     .await;

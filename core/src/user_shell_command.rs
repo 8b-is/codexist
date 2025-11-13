@@ -1,7 +1,7 @@
 use std::time::Duration;
 
-use codex_protocol::models::ContentItem;
-use codex_protocol::models::ResponseItem;
+use codexist_protocol::models::ContentItem;
+use codexist_protocol::models::ResponseItem;
 
 use crate::exec::ExecToolCallOutput;
 use crate::tools::format_exec_output_str;

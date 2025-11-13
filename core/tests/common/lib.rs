@@ -2,18 +2,18 @@
 
 use tempfile::TempDir;
 
-use codex_core::CodexConversation;
-use codex_core::config::Config;
-use codex_core::config::ConfigOverrides;
-use codex_core::config::ConfigToml;
+use codexist_core::CodexistConversation;
+use codexist_core::config::Config;
+use codexist_core::config::ConfigOverrides;
+use codexist_core::config::ConfigToml;
 use regex_lite::Regex;
 
 #[cfg(target_os = "linux")]
 use assert_cmd::cargo::cargo_bin;
 
 pub mod responses;
-pub mod test_codex;
-pub mod test_codex_exec;
+pub mod test_codexist;
+pub mod test_codexist_exec;
 
 #[track_caller]
 pub fn assert_regex_match<'s>(pattern: &str, actual: &'s str) -> regex_lite::Captures<'s> {
@@ -27,12 +27,12 @@ pub fn assert_regex_match<'s>(pattern: &str, actual: &'s str) -> regex_lite::Cap
 
 /// Returns a default `Config` whose on-disk state is confined to the provided
 /// temporary directory. Using a per-test directory keeps tests hermetic and
-/// avoids clobbering a developer’s real `~/.codex`.
-pub fn load_default_config_for_test(codex_home: &TempDir) -> Config {
+/// avoids clobbering a developer’s real `~/.codexist`.
+pub fn load_default_config_for_test(codexist_home: &TempDir) -> Config {
     Config::load_from_base_config_with_overrides(
         ConfigToml::default(),
         default_test_overrides(),
-        codex_home.path().to_path_buf(),
+        codexist_home.path().to_path_buf(),
     )
     .expect("defaults for test should always succeed")
 }
@@ -40,7 +40,7 @@ pub fn load_default_config_for_test(codex_home: &TempDir) -> Config {
 #[cfg(target_os = "linux")]
 fn default_test_overrides() -> ConfigOverrides {
     ConfigOverrides {
-        codex_linux_sandbox_exe: Some(cargo_bin("codex-linux-sandbox")),
+        codexist_linux_sandbox_exe: Some(cargo_bin("codexist-linux-sandbox")),
         ..ConfigOverrides::default()
     }
 }
@@ -124,37 +124,37 @@ pub fn load_sse_fixture_with_id(path: impl AsRef<std::path::Path>, id: &str) -> 
 }
 
 pub async fn wait_for_event<F>(
-    codex: &CodexConversation,
+    codexist: &CodexistConversation,
     predicate: F,
-) -> codex_core::protocol::EventMsg
+) -> codexist_core::protocol::EventMsg
 where
-    F: FnMut(&codex_core::protocol::EventMsg) -> bool,
+    F: FnMut(&codexist_core::protocol::EventMsg) -> bool,
 {
     use tokio::time::Duration;
-    wait_for_event_with_timeout(codex, predicate, Duration::from_secs(1)).await
+    wait_for_event_with_timeout(codexist, predicate, Duration::from_secs(1)).await
 }
 
-pub async fn wait_for_event_match<T, F>(codex: &CodexConversation, matcher: F) -> T
+pub async fn wait_for_event_match<T, F>(codexist: &CodexistConversation, matcher: F) -> T
 where
-    F: Fn(&codex_core::protocol::EventMsg) -> Option<T>,
+    F: Fn(&codexist_core::protocol::EventMsg) -> Option<T>,
 {
-    let ev = wait_for_event(codex, |ev| matcher(ev).is_some()).await;
+    let ev = wait_for_event(codexist, |ev| matcher(ev).is_some()).await;
     matcher(&ev).unwrap()
 }
 
 pub async fn wait_for_event_with_timeout<F>(
-    codex: &CodexConversation,
+    codexist: &CodexistConversation,
     mut predicate: F,
     wait_time: tokio::time::Duration,
-) -> codex_core::protocol::EventMsg
+) -> codexist_core::protocol::EventMsg
 where
-    F: FnMut(&codex_core::protocol::EventMsg) -> bool,
+    F: FnMut(&codexist_core::protocol::EventMsg) -> bool,
 {
     use tokio::time::Duration;
     use tokio::time::timeout;
     loop {
         // Allow a bit more time to accommodate async startup work (e.g. config IO, tool discovery)
-        let ev = timeout(wait_time.max(Duration::from_secs(5)), codex.next_event())
+        let ev = timeout(wait_time.max(Duration::from_secs(5)), codexist.next_event())
             .await
             .expect("timeout waiting for event")
             .expect("stream ended unexpectedly");
@@ -165,11 +165,11 @@ where
 }
 
 pub fn sandbox_env_var() -> &'static str {
-    codex_core::spawn::CODEX_SANDBOX_ENV_VAR
+    codexist_core::spawn::CODEXIST_SANDBOX_ENV_VAR
 }
 
 pub fn sandbox_network_env_var() -> &'static str {
-    codex_core::spawn::CODEX_SANDBOX_NETWORK_DISABLED_ENV_VAR
+    codexist_core::spawn::CODEXIST_SANDBOX_NETWORK_DISABLED_ENV_VAR
 }
 
 pub mod fs_wait {
@@ -346,7 +346,7 @@ macro_rules! skip_if_no_network {
     () => {{
         if ::std::env::var($crate::sandbox_network_env_var()).is_ok() {
             println!(
-                "Skipping test because it cannot execute when network is disabled in a Codex sandbox."
+                "Skipping test because it cannot execute when network is disabled in a Codexist sandbox."
             );
             return;
         }
@@ -354,7 +354,7 @@ macro_rules! skip_if_no_network {
     ($return_value:expr $(,)?) => {{
         if ::std::env::var($crate::sandbox_network_env_var()).is_ok() {
             println!(
-                "Skipping test because it cannot execute when network is disabled in a Codex sandbox."
+                "Skipping test because it cannot execute when network is disabled in a Codexist sandbox."
             );
             return $return_value;
         }

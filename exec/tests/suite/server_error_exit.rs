@@ -2,14 +2,14 @@
 #![allow(clippy::expect_used, clippy::unwrap_used)]
 
 use core_test_support::responses;
-use core_test_support::test_codex_exec::test_codex_exec;
+use core_test_support::test_codexist_exec::test_codexist_exec;
 use wiremock::matchers::any;
 
-/// Verify that when the server reports an error, `codex-exec` exits with a
+/// Verify that when the server reports an error, `codexist-exec` exits with a
 /// non-zero status code so automation can detect failures.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn exits_non_zero_when_server_reports_error() -> anyhow::Result<()> {
-    let test = test_codex_exec();
+    let test = test_codexist_exec();
 
     // Mock a simple Responses API SSE stream that immediately reports a
     // `response.failed` event with an error message.

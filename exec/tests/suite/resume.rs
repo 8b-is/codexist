@@ -1,6 +1,6 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 use anyhow::Context;
-use core_test_support::test_codex_exec::test_codex_exec;
+use core_test_support::test_codexist_exec::test_codexist_exec;
 use serde_json::Value;
 use std::path::Path;
 use std::string::ToString;
@@ -71,7 +71,7 @@ fn extract_conversation_id(path: &std::path::Path) -> String {
 
 #[test]
 fn exec_resume_last_appends_to_existing_file() -> anyhow::Result<()> {
-    let test = test_codex_exec();
+    let test = test_codexist_exec();
     let fixture =
         Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/cli_responses_fixture.sse");
 
@@ -80,7 +80,7 @@ fn exec_resume_last_appends_to_existing_file() -> anyhow::Result<()> {
     let prompt = format!("echo {marker}");
 
     test.cmd()
-        .env("CODEX_RS_SSE_FIXTURE", &fixture)
+        .env("CODEXIST_RS_SSE_FIXTURE", &fixture)
         .env("OPENAI_BASE_URL", "http://unused.local")
         .arg("--skip-git-repo-check")
         .arg("-C")
@@ -99,7 +99,7 @@ fn exec_resume_last_appends_to_existing_file() -> anyhow::Result<()> {
     let prompt2 = format!("echo {marker2}");
 
     test.cmd()
-        .env("CODEX_RS_SSE_FIXTURE", &fixture)
+        .env("CODEXIST_RS_SSE_FIXTURE", &fixture)
         .env("OPENAI_BASE_URL", "http://unused.local")
         .arg("--skip-git-repo-check")
         .arg("-C")
@@ -125,7 +125,7 @@ fn exec_resume_last_appends_to_existing_file() -> anyhow::Result<()> {
 
 #[test]
 fn exec_resume_by_id_appends_to_existing_file() -> anyhow::Result<()> {
-    let test = test_codex_exec();
+    let test = test_codexist_exec();
     let fixture =
         Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/cli_responses_fixture.sse");
 
@@ -134,7 +134,7 @@ fn exec_resume_by_id_appends_to_existing_file() -> anyhow::Result<()> {
     let prompt = format!("echo {marker}");
 
     test.cmd()
-        .env("CODEX_RS_SSE_FIXTURE", &fixture)
+        .env("CODEXIST_RS_SSE_FIXTURE", &fixture)
         .env("OPENAI_BASE_URL", "http://unused.local")
         .arg("--skip-git-repo-check")
         .arg("-C")
@@ -157,7 +157,7 @@ fn exec_resume_by_id_appends_to_existing_file() -> anyhow::Result<()> {
     let prompt2 = format!("echo {marker2}");
 
     test.cmd()
-        .env("CODEX_RS_SSE_FIXTURE", &fixture)
+        .env("CODEXIST_RS_SSE_FIXTURE", &fixture)
         .env("OPENAI_BASE_URL", "http://unused.local")
         .arg("--skip-git-repo-check")
         .arg("-C")
@@ -182,7 +182,7 @@ fn exec_resume_by_id_appends_to_existing_file() -> anyhow::Result<()> {
 
 #[test]
 fn exec_resume_preserves_cli_configuration_overrides() -> anyhow::Result<()> {
-    let test = test_codex_exec();
+    let test = test_codexist_exec();
     let fixture =
         Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/cli_responses_fixture.sse");
 
@@ -190,7 +190,7 @@ fn exec_resume_preserves_cli_configuration_overrides() -> anyhow::Result<()> {
     let prompt = format!("echo {marker}");
 
     test.cmd()
-        .env("CODEX_RS_SSE_FIXTURE", &fixture)
+        .env("CODEXIST_RS_SSE_FIXTURE", &fixture)
         .env("OPENAI_BASE_URL", "http://unused.local")
         .arg("--skip-git-repo-check")
         .arg("--sandbox")
@@ -212,7 +212,7 @@ fn exec_resume_preserves_cli_configuration_overrides() -> anyhow::Result<()> {
 
     let output = test
         .cmd()
-        .env("CODEX_RS_SSE_FIXTURE", &fixture)
+        .env("CODEXIST_RS_SSE_FIXTURE", &fixture)
         .env("OPENAI_BASE_URL", "http://unused.local")
         .arg("--skip-git-repo-check")
         .arg("--sandbox")

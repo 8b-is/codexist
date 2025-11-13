@@ -3,14 +3,14 @@
 
 use anyhow::Context;
 use anyhow::Result;
-use codex_core::features::Feature;
-use codex_core::model_family::find_family_for_model;
-use codex_core::protocol::AskForApproval;
-use codex_core::protocol::EventMsg;
-use codex_core::protocol::Op;
-use codex_core::protocol::SandboxPolicy;
-use codex_protocol::config_types::ReasoningSummary;
-use codex_protocol::user_input::UserInput;
+use codexist_core::features::Feature;
+use codexist_core::model_family::find_family_for_model;
+use codexist_core::protocol::AskForApproval;
+use codexist_core::protocol::EventMsg;
+use codexist_core::protocol::Op;
+use codexist_core::protocol::SandboxPolicy;
+use codexist_protocol::config_types::ReasoningSummary;
+use codexist_protocol::user_input::UserInput;
 use core_test_support::assert_regex_match;
 use core_test_support::responses::ev_assistant_message;
 use core_test_support::responses::ev_completed;
@@ -22,22 +22,22 @@ use core_test_support::responses::mount_sse_sequence;
 use core_test_support::responses::sse;
 use core_test_support::responses::start_mock_server;
 use core_test_support::skip_if_no_network;
-use core_test_support::test_codex::TestCodex;
-use core_test_support::test_codex::test_codex;
+use core_test_support::test_codexist::TestCodexist;
+use core_test_support::test_codexist::test_codexist;
 use core_test_support::wait_for_event;
 use regex_lite::Regex;
 use serde_json::Value;
 use serde_json::json;
 
 async fn submit_turn(
-    test: &TestCodex,
+    test: &TestCodexist,
     prompt: &str,
     approval_policy: AskForApproval,
     sandbox_policy: SandboxPolicy,
 ) -> Result<()> {
     let session_model = test.session_configured.model.clone();
 
-    test.codex
+    test.codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: prompt.into(),
@@ -52,7 +52,7 @@ async fn submit_turn(
         })
         .await?;
 
-    wait_for_event(&test.codex, |event| {
+    wait_for_event(&test.codexist, |event| {
         matches!(event, EventMsg::TaskComplete(_))
     })
     .await;
@@ -82,7 +82,7 @@ async fn custom_tool_unknown_returns_custom_output_error() -> Result<()> {
     skip_if_no_network!(Ok(()));
 
     let server = start_mock_server().await;
-    let mut builder = test_codex();
+    let mut builder = test_codexist();
     let test = builder.build(&server).await?;
 
     let call_id = "custom-unsupported";
@@ -130,7 +130,7 @@ async fn shell_escalated_permissions_rejected_then_ok() -> Result<()> {
     skip_if_no_network!(Ok(()));
 
     let server = start_mock_server().await;
-    let mut builder = test_codex().with_config(|config| {
+    let mut builder = test_codexist().with_config(|config| {
         config.model = "gpt-5".to_string();
         config.model_family = find_family_for_model("gpt-5").expect("gpt-5 is a valid model");
     });
@@ -233,10 +233,10 @@ async fn sandbox_denied_shell_returns_original_output() -> Result<()> {
     skip_if_no_network!(Ok(()));
 
     let server = start_mock_server().await;
-    let mut builder = test_codex().with_config(|config| {
-        config.model = "gpt-5-codex".to_string();
+    let mut builder = test_codexist().with_config(|config| {
+        config.model = "gpt-5-codexist".to_string();
         config.model_family =
-            find_family_for_model("gpt-5-codex").expect("gpt-5-codex model family");
+            find_family_for_model("gpt-5-codexist").expect("gpt-5-codexist model family");
     });
     let fixture = builder.build(&server).await?;
 
@@ -335,7 +335,7 @@ async fn collect_tools(use_unified_exec: bool) -> Result<Vec<String>> {
     ])];
     let mock = mount_sse_sequence(&server, responses).await;
 
-    let mut builder = test_codex().with_config(move |config| {
+    let mut builder = test_codexist().with_config(move |config| {
         if use_unified_exec {
             config.features.enable(Feature::UnifiedExec);
         } else {
@@ -388,7 +388,7 @@ async fn shell_timeout_includes_timeout_prefix_and_metadata() -> Result<()> {
     skip_if_no_network!(Ok(()));
 
     let server = start_mock_server().await;
-    let mut builder = test_codex().with_config(|config| {
+    let mut builder = test_codexist().with_config(|config| {
         config.model = "gpt-5".to_string();
         config.model_family = find_family_for_model("gpt-5").expect("gpt-5 is a valid model");
     });
@@ -463,7 +463,7 @@ async fn shell_spawn_failure_truncates_exec_error() -> Result<()> {
     skip_if_no_network!(Ok(()));
 
     let server = start_mock_server().await;
-    let mut builder = test_codex().with_config(|cfg| {
+    let mut builder = test_codexist().with_config(|cfg| {
         cfg.sandbox_policy = SandboxPolicy::DangerFullAccess;
     });
     let test = builder.build(&server).await?;

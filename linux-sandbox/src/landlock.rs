@@ -2,10 +2,10 @@ use std::collections::BTreeMap;
 use std::path::Path;
 use std::path::PathBuf;
 
-use codex_core::error::CodexErr;
-use codex_core::error::Result;
-use codex_core::error::SandboxErr;
-use codex_core::protocol::SandboxPolicy;
+use codexist_core::error::CodexistErr;
+use codexist_core::error::Result;
+use codexist_core::error::SandboxErr;
+use codexist_core::protocol::SandboxPolicy;
 
 use landlock::ABI;
 use landlock::Access;
@@ -55,7 +55,7 @@ pub(crate) fn apply_sandbox_policy_to_current_thread(
 /// `/dev/null` and the provided list of `writable_roots`.
 ///
 /// # Errors
-/// Returns [`CodexErr::Sandbox`] variants when the ruleset fails to apply.
+/// Returns [`CodexistErr::Sandbox`] variants when the ruleset fails to apply.
 fn install_filesystem_landlock_rules_on_current_thread(writable_roots: Vec<PathBuf>) -> Result<()> {
     let abi = ABI::V5;
     let access_rw = AccessFs::from_all(abi);
@@ -76,7 +76,7 @@ fn install_filesystem_landlock_rules_on_current_thread(writable_roots: Vec<PathB
     let status = ruleset.restrict_self()?;
 
     if status.ruleset == landlock::RulesetStatus::NotEnforced {
-        return Err(CodexErr::Sandbox(SandboxErr::LandlockRestrict));
+        return Err(CodexistErr::Sandbox(SandboxErr::LandlockRestrict));
     }
 
     Ok(())

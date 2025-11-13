@@ -1,7 +1,7 @@
 use assert_cmd::Command as AssertCommand;
 use assert_cmd::cargo::cargo_bin;
-use codex_core::RolloutRecorder;
-use codex_core::protocol::GitInfo;
+use codexist_core::RolloutRecorder;
+use codexist_core::protocol::GitInfo;
 use core_test_support::fs_wait;
 use core_test_support::skip_if_no_network;
 use std::time::Duration;
@@ -16,7 +16,7 @@ use wiremock::matchers::path;
 /// Tests streaming chat completions through the CLI using a mock server.
 /// This test:
 /// 1. Sets up a mock server that simulates OpenAI's chat completions API
-/// 2. Configures codex to use this mock server via a custom provider
+/// 2. Configures codexist to use this mock server via a custom provider
 /// 3. Sends a simple "hello?" prompt and verifies the streamed response
 /// 4. Ensures the response is received exactly once and contains "hi"
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -45,7 +45,7 @@ async fn chat_mode_stream_cli() {
         "model_providers.mock={{ name = \"mock\", base_url = \"{}/v1\", env_key = \"PATH\", wire_api = \"chat\" }}",
         server.uri()
     );
-    let bin = cargo_bin("codex");
+    let bin = cargo_bin("codexist");
     let mut cmd = AssertCommand::new(bin);
     cmd.arg("exec")
         .arg("--skip-git-repo-check")
@@ -56,7 +56,7 @@ async fn chat_mode_stream_cli() {
         .arg("-C")
         .arg(env!("CARGO_MANIFEST_DIR"))
         .arg("hello?");
-    cmd.env("CODEX_HOME", home.path())
+    cmd.env("CODEXIST_HOME", home.path())
         .env("OPENAI_API_KEY", "dummy")
         .env("OPENAI_BASE_URL", format!("{}/v1", server.uri()));
 
@@ -126,14 +126,14 @@ async fn exec_cli_applies_experimental_instructions_file() {
     let custom_path_str = custom_path.to_string_lossy().replace('\\', "/");
 
     // Build a provider override that points at the mock server and instructs
-    // Codex to use the Responses API with the dummy env var.
+    // Codexist to use the Responses API with the dummy env var.
     let provider_override = format!(
         "model_providers.mock={{ name = \"mock\", base_url = \"{}/v1\", env_key = \"PATH\", wire_api = \"responses\" }}",
         server.uri()
     );
 
     let home = TempDir::new().unwrap();
-    let bin = cargo_bin("codex");
+    let bin = cargo_bin("codexist");
     let mut cmd = AssertCommand::new(bin);
     cmd.arg("exec")
         .arg("--skip-git-repo-check")
@@ -148,7 +148,7 @@ async fn exec_cli_applies_experimental_instructions_file() {
         .arg("-C")
         .arg(env!("CARGO_MANIFEST_DIR"))
         .arg("hello?\n");
-    cmd.env("CODEX_HOME", home.path())
+    cmd.env("CODEXIST_HOME", home.path())
         .env("OPENAI_API_KEY", "dummy")
         .env("OPENAI_BASE_URL", format!("{}/v1", server.uri()));
 
@@ -176,7 +176,7 @@ async fn exec_cli_applies_experimental_instructions_file() {
 /// Tests streaming responses through the CLI using a local SSE fixture file.
 /// This test:
 /// 1. Uses a pre-recorded SSE response fixture instead of a live server
-/// 2. Configures codex to read from this fixture via CODEX_RS_SSE_FIXTURE env var
+/// 2. Configures codexist to read from this fixture via CODEXIST_RS_SSE_FIXTURE env var
 /// 3. Sends a "hello?" prompt and verifies the response
 /// 4. Ensures the fixture content is correctly streamed through the CLI
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -187,16 +187,16 @@ async fn responses_api_stream_cli() {
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/cli_responses_fixture.sse");
 
     let home = TempDir::new().unwrap();
-    let bin = cargo_bin("codex");
+    let bin = cargo_bin("codexist");
     let mut cmd = AssertCommand::new(bin);
     cmd.arg("exec")
         .arg("--skip-git-repo-check")
         .arg("-C")
         .arg(env!("CARGO_MANIFEST_DIR"))
         .arg("hello?");
-    cmd.env("CODEX_HOME", home.path())
+    cmd.env("CODEXIST_HOME", home.path())
         .env("OPENAI_API_KEY", "dummy")
-        .env("CODEX_RS_SSE_FIXTURE", fixture)
+        .env("CODEXIST_RS_SSE_FIXTURE", fixture)
         .env("OPENAI_BASE_URL", "http://unused.local");
 
     let output = cmd.output().unwrap();
@@ -222,24 +222,24 @@ async fn integration_creates_and_checks_session_file() -> anyhow::Result<()> {
     let fixture =
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/cli_responses_fixture.sse");
 
-    // 4. Run the codex CLI and invoke `exec`, which is what records a session.
-    let bin = cargo_bin("codex");
+    // 4. Run the codexist CLI and invoke `exec`, which is what records a session.
+    let bin = cargo_bin("codexist");
     let mut cmd = AssertCommand::new(bin);
     cmd.arg("exec")
         .arg("--skip-git-repo-check")
         .arg("-C")
         .arg(env!("CARGO_MANIFEST_DIR"))
         .arg(&prompt);
-    cmd.env("CODEX_HOME", home.path())
+    cmd.env("CODEXIST_HOME", home.path())
         .env("OPENAI_API_KEY", "dummy")
-        .env("CODEX_RS_SSE_FIXTURE", &fixture)
+        .env("CODEXIST_RS_SSE_FIXTURE", &fixture)
         // Required for CLI arg parsing even though fixture short-circuits network usage.
         .env("OPENAI_BASE_URL", "http://unused.local");
 
     let output = cmd.output().unwrap();
     assert!(
         output.status.success(),
-        "codex-cli exec failed: {}",
+        "codexist-cli exec failed: {}",
         String::from_utf8_lossy(&output.stderr)
     );
 
@@ -344,7 +344,7 @@ async fn integration_creates_and_checks_session_file() -> anyhow::Result<()> {
     // Second run: resume should update the existing file.
     let marker2 = format!("integration-resume-{}", Uuid::new_v4());
     let prompt2 = format!("echo {marker2}");
-    let bin2 = cargo_bin("codex");
+    let bin2 = cargo_bin("codexist");
     let mut cmd2 = AssertCommand::new(bin2);
     cmd2.arg("exec")
         .arg("--skip-git-repo-check")
@@ -353,13 +353,13 @@ async fn integration_creates_and_checks_session_file() -> anyhow::Result<()> {
         .arg(&prompt2)
         .arg("resume")
         .arg("--last");
-    cmd2.env("CODEX_HOME", home.path())
+    cmd2.env("CODEXIST_HOME", home.path())
         .env("OPENAI_API_KEY", "dummy")
-        .env("CODEX_RS_SSE_FIXTURE", &fixture)
+        .env("CODEXIST_RS_SSE_FIXTURE", &fixture)
         .env("OPENAI_BASE_URL", "http://unused.local");
 
     let output2 = cmd2.output().unwrap();
-    assert!(output2.status.success(), "resume codex-cli run failed");
+    assert!(output2.status.success(), "resume codexist-cli run failed");
 
     // Find the new session file containing the resumed marker.
     let marker2_clone = marker2.clone();
@@ -471,7 +471,7 @@ async fn integration_git_info_unit_test() {
         .unwrap();
 
     // 3. Test git info collection directly
-    let git_info = codex_core::git_info::collect_git_info(&git_repo).await;
+    let git_info = codexist_core::git_info::collect_git_info(&git_repo).await;
 
     // 4. Verify git info is present and contains expected data
     assert!(git_info.is_some(), "Git info should be collected");

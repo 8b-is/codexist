@@ -4,17 +4,17 @@
 //! `ApprovalCtx`, `Approvable`) together with the sandbox orchestration traits
 //! and helpers (`Sandboxable`, `ToolRuntime`, `SandboxAttempt`, etc.).
 
-use crate::codex::Session;
-use crate::codex::TurnContext;
-use crate::error::CodexErr;
+use crate::codexist::Session;
+use crate::codexist::TurnContext;
+use crate::error::CodexistErr;
 use crate::protocol::SandboxCommandAssessment;
 use crate::protocol::SandboxPolicy;
 use crate::sandboxing::CommandSpec;
 use crate::sandboxing::SandboxManager;
 use crate::sandboxing::SandboxTransformError;
 use crate::state::SessionServices;
-use codex_protocol::protocol::AskForApproval;
-use codex_protocol::protocol::ReviewDecision;
+use codexist_protocol::protocol::AskForApproval;
+use codexist_protocol::protocol::ReviewDecision;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::hash::Hash;
@@ -173,7 +173,7 @@ pub(crate) trait ProvidesSandboxRetryData {
 #[derive(Debug)]
 pub(crate) enum ToolError {
     Rejected(String),
-    Codex(CodexErr),
+    Codexist(CodexistErr),
 }
 
 pub(crate) trait ToolRuntime<Req, Out>: Approvable<Req> + Sandboxable {
@@ -190,7 +190,7 @@ pub(crate) struct SandboxAttempt<'a> {
     pub policy: &'a crate::protocol::SandboxPolicy,
     pub(crate) manager: &'a SandboxManager,
     pub(crate) sandbox_cwd: &'a Path,
-    pub codex_linux_sandbox_exe: Option<&'a std::path::PathBuf>,
+    pub codexist_linux_sandbox_exe: Option<&'a std::path::PathBuf>,
 }
 
 impl<'a> SandboxAttempt<'a> {
@@ -203,7 +203,7 @@ impl<'a> SandboxAttempt<'a> {
             self.policy,
             self.sandbox,
             self.sandbox_cwd,
-            self.codex_linux_sandbox_exe,
+            self.codexist_linux_sandbox_exe,
         )
     }
 }

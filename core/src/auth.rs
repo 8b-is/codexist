@@ -15,15 +15,15 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::Duration;
 
-use codex_app_server_protocol::AuthMode;
-use codex_protocol::config_types::ForcedLoginMethod;
+use codexist_app_server_protocol::AuthMode;
+use codexist_protocol::config_types::ForcedLoginMethod;
 
 pub use crate::auth::storage::AuthCredentialsStoreMode;
 pub use crate::auth::storage::AuthDotJson;
 use crate::auth::storage::AuthStorageBackend;
 use crate::auth::storage::create_auth_storage;
 use crate::config::Config;
-use crate::default_client::CodexHttpClient;
+use crate::default_client::CodexistHttpClient;
 use crate::error::RefreshTokenFailedError;
 use crate::error::RefreshTokenFailedReason;
 use crate::token_data::KnownPlan as InternalKnownPlan;
@@ -31,21 +31,21 @@ use crate::token_data::PlanType as InternalPlanType;
 use crate::token_data::TokenData;
 use crate::token_data::parse_id_token;
 use crate::util::try_parse_error_message;
-use codex_protocol::account::PlanType as AccountPlanType;
+use codexist_protocol::account::PlanType as AccountPlanType;
 use serde_json::Value;
 use thiserror::Error;
 
 #[derive(Debug, Clone)]
-pub struct CodexAuth {
+pub struct CodexistAuth {
     pub mode: AuthMode,
 
     pub(crate) api_key: Option<String>,
     pub(crate) auth_dot_json: Arc<Mutex<Option<AuthDotJson>>>,
     storage: Arc<dyn AuthStorageBackend>,
-    pub(crate) client: CodexHttpClient,
+    pub(crate) client: CodexistHttpClient,
 }
 
-impl PartialEq for CodexAuth {
+impl PartialEq for CodexistAuth {
     fn eq(&self, other: &Self) -> bool {
         self.mode == other.mode
     }
@@ -60,7 +60,7 @@ const REFRESH_TOKEN_INVALIDATED_MESSAGE: &str = "Your access token could not be 
 const REFRESH_TOKEN_UNKNOWN_MESSAGE: &str =
     "Your access token could not be refreshed. Please log out and sign in again.";
 const REFRESH_TOKEN_URL: &str = "https://auth.openai.com/oauth/token";
-pub const REFRESH_TOKEN_URL_OVERRIDE_ENV_VAR: &str = "CODEX_REFRESH_TOKEN_URL_OVERRIDE";
+pub const REFRESH_TOKEN_URL_OVERRIDE_ENV_VAR: &str = "CODEXIST_REFRESH_TOKEN_URL_OVERRIDE";
 
 #[derive(Debug, Error)]
 pub enum RefreshTokenError {
@@ -92,7 +92,7 @@ impl From<RefreshTokenError> for std::io::Error {
     }
 }
 
-impl CodexAuth {
+impl CodexistAuth {
     pub async fn refresh_token(&self) -> Result<String, RefreshTokenError> {
         tracing::info!("Refreshing token");
 
@@ -129,10 +129,10 @@ impl CodexAuth {
 
     /// Loads the available auth information from auth storage.
     pub fn from_auth_storage(
-        codex_home: &Path,
+        codexist_home: &Path,
         auth_credentials_store_mode: AuthCredentialsStoreMode,
-    ) -> std::io::Result<Option<CodexAuth>> {
-        load_auth(codex_home, false, auth_credentials_store_mode)
+    ) -> std::io::Result<Option<CodexistAuth>> {
+        load_auth(codexist_home, false, auth_credentials_store_mode)
     }
 
     pub async fn get_token_data(&self) -> Result<TokenData, std::io::Error> {
@@ -276,7 +276,7 @@ impl CodexAuth {
         }
     }
 
-    fn from_api_key_with_client(api_key: &str, client: CodexHttpClient) -> Self {
+    fn from_api_key_with_client(api_key: &str, client: CodexistHttpClient) -> Self {
         Self {
             api_key: Some(api_key.to_owned()),
             mode: AuthMode::ApiKey,
@@ -292,7 +292,7 @@ impl CodexAuth {
 }
 
 pub const OPENAI_API_KEY_ENV_VAR: &str = "OPENAI_API_KEY";
-pub const CODEX_API_KEY_ENV_VAR: &str = "CODEX_API_KEY";
+pub const CODEXIST_API_KEY_ENV_VAR: &str = "CODEXIST_API_KEY";
 
 pub fn read_openai_api_key_from_env() -> Option<String> {
     env::var(OPENAI_API_KEY_ENV_VAR)
@@ -301,26 +301,26 @@ pub fn read_openai_api_key_from_env() -> Option<String> {
         .filter(|value| !value.is_empty())
 }
 
-pub fn read_codex_api_key_from_env() -> Option<String> {
-    env::var(CODEX_API_KEY_ENV_VAR)
+pub fn read_codexist_api_key_from_env() -> Option<String> {
+    env::var(CODEXIST_API_KEY_ENV_VAR)
         .ok()
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty())
 }
 
-/// Delete the auth.json file inside `codex_home` if it exists. Returns `Ok(true)`
+/// Delete the auth.json file inside `codexist_home` if it exists. Returns `Ok(true)`
 /// if a file was removed, `Ok(false)` if no auth file was present.
 pub fn logout(
-    codex_home: &Path,
+    codexist_home: &Path,
     auth_credentials_store_mode: AuthCredentialsStoreMode,
 ) -> std::io::Result<bool> {
-    let storage = create_auth_storage(codex_home.to_path_buf(), auth_credentials_store_mode);
+    let storage = create_auth_storage(codexist_home.to_path_buf(), auth_credentials_store_mode);
     storage.delete()
 }
 
 /// Writes an `auth.json` that contains only the API key.
 pub fn login_with_api_key(
-    codex_home: &Path,
+    codexist_home: &Path,
     api_key: &str,
     auth_credentials_store_mode: AuthCredentialsStoreMode,
 ) -> std::io::Result<()> {
@@ -329,16 +329,16 @@ pub fn login_with_api_key(
         tokens: None,
         last_refresh: None,
     };
-    save_auth(codex_home, &auth_dot_json, auth_credentials_store_mode)
+    save_auth(codexist_home, &auth_dot_json, auth_credentials_store_mode)
 }
 
 /// Persist the provided auth payload using the specified backend.
 pub fn save_auth(
-    codex_home: &Path,
+    codexist_home: &Path,
     auth: &AuthDotJson,
     auth_credentials_store_mode: AuthCredentialsStoreMode,
 ) -> std::io::Result<()> {
-    let storage = create_auth_storage(codex_home.to_path_buf(), auth_credentials_store_mode);
+    let storage = create_auth_storage(codexist_home.to_path_buf(), auth_credentials_store_mode);
     storage.save(auth)
 }
 
@@ -348,16 +348,16 @@ pub fn save_auth(
 /// from the auth.json storage. It should use the AuthManager abstraction
 /// instead.
 pub fn load_auth_dot_json(
-    codex_home: &Path,
+    codexist_home: &Path,
     auth_credentials_store_mode: AuthCredentialsStoreMode,
 ) -> std::io::Result<Option<AuthDotJson>> {
-    let storage = create_auth_storage(codex_home.to_path_buf(), auth_credentials_store_mode);
+    let storage = create_auth_storage(codexist_home.to_path_buf(), auth_credentials_store_mode);
     storage.load()
 }
 
 pub async fn enforce_login_restrictions(config: &Config) -> std::io::Result<()> {
     let Some(auth) = load_auth(
-        &config.codex_home,
+        &config.codexist_home,
         true,
         config.cli_auth_credentials_store_mode,
     )?
@@ -381,7 +381,7 @@ pub async fn enforce_login_restrictions(config: &Config) -> std::io::Result<()> 
 
         if let Some(message) = method_violation {
             return logout_with_message(
-                &config.codex_home,
+                &config.codexist_home,
                 message,
                 config.cli_auth_credentials_store_mode,
             );
@@ -397,7 +397,7 @@ pub async fn enforce_login_restrictions(config: &Config) -> std::io::Result<()> 
             Ok(data) => data,
             Err(err) => {
                 return logout_with_message(
-                    &config.codex_home,
+                    &config.codexist_home,
                     format!(
                         "Failed to load ChatGPT credentials while enforcing workspace restrictions: {err}. Logging out."
                     ),
@@ -418,7 +418,7 @@ pub async fn enforce_login_restrictions(config: &Config) -> std::io::Result<()> 
                 ),
             };
             return logout_with_message(
-                &config.codex_home,
+                &config.codexist_home,
                 message,
                 config.cli_auth_credentials_store_mode,
             );
@@ -429,11 +429,11 @@ pub async fn enforce_login_restrictions(config: &Config) -> std::io::Result<()> 
 }
 
 fn logout_with_message(
-    codex_home: &Path,
+    codexist_home: &Path,
     message: String,
     auth_credentials_store_mode: AuthCredentialsStoreMode,
 ) -> std::io::Result<()> {
-    match logout(codex_home, auth_credentials_store_mode) {
+    match logout(codexist_home, auth_credentials_store_mode) {
         Ok(_) => Err(std::io::Error::other(message)),
         Err(err) => Err(std::io::Error::other(format!(
             "{message}. Failed to remove auth.json: {err}"
@@ -442,19 +442,19 @@ fn logout_with_message(
 }
 
 fn load_auth(
-    codex_home: &Path,
-    enable_codex_api_key_env: bool,
+    codexist_home: &Path,
+    enable_codexist_api_key_env: bool,
     auth_credentials_store_mode: AuthCredentialsStoreMode,
-) -> std::io::Result<Option<CodexAuth>> {
-    if enable_codex_api_key_env && let Some(api_key) = read_codex_api_key_from_env() {
+) -> std::io::Result<Option<CodexistAuth>> {
+    if enable_codexist_api_key_env && let Some(api_key) = read_codexist_api_key_from_env() {
         let client = crate::default_client::create_client();
-        return Ok(Some(CodexAuth::from_api_key_with_client(
+        return Ok(Some(CodexistAuth::from_api_key_with_client(
             api_key.as_str(),
             client,
         )));
     }
 
-    let storage = create_auth_storage(codex_home.to_path_buf(), auth_credentials_store_mode);
+    let storage = create_auth_storage(codexist_home.to_path_buf(), auth_credentials_store_mode);
 
     let client = crate::default_client::create_client();
     let auth_dot_json = match storage.load()? {
@@ -470,10 +470,10 @@ fn load_auth(
 
     // Prefer AuthMode.ApiKey if it's set in the auth.json.
     if let Some(api_key) = &auth_json_api_key {
-        return Ok(Some(CodexAuth::from_api_key_with_client(api_key, client)));
+        return Ok(Some(CodexistAuth::from_api_key_with_client(api_key, client)));
     }
 
-    Ok(Some(CodexAuth {
+    Ok(Some(CodexistAuth {
         api_key: None,
         mode: AuthMode::ChatGPT,
         storage: storage.clone(),
@@ -513,7 +513,7 @@ async fn update_tokens(
 
 async fn try_refresh_token(
     refresh_token: String,
-    client: &CodexHttpClient,
+    client: &CodexistHttpClient,
 ) -> Result<RefreshResponse, RefreshTokenError> {
     let refresh_request = RefreshRequest {
         client_id: CLIENT_ID,
@@ -637,7 +637,7 @@ use std::sync::RwLock;
 /// Internal cached auth state.
 #[derive(Clone, Debug)]
 struct CachedAuth {
-    auth: Option<CodexAuth>,
+    auth: Option<CodexistAuth>,
 }
 
 #[cfg(test)]
@@ -651,10 +651,10 @@ mod tests {
     use crate::token_data::IdTokenInfo;
     use crate::token_data::KnownPlan as InternalKnownPlan;
     use crate::token_data::PlanType as InternalPlanType;
-    use codex_protocol::account::PlanType as AccountPlanType;
+    use codexist_protocol::account::PlanType as AccountPlanType;
 
     use base64::Engine;
-    use codex_protocol::config_types::ForcedLoginMethod;
+    use codexist_protocol::config_types::ForcedLoginMethod;
     use pretty_assertions::assert_eq;
     use serde::Serialize;
     use serde_json::json;
@@ -662,19 +662,19 @@ mod tests {
 
     #[tokio::test]
     async fn refresh_without_id_token() {
-        let codex_home = tempdir().unwrap();
+        let codexist_home = tempdir().unwrap();
         let fake_jwt = write_auth_file(
             AuthFileParams {
                 openai_api_key: None,
                 chatgpt_plan_type: "pro".to_string(),
                 chatgpt_account_id: None,
             },
-            codex_home.path(),
+            codexist_home.path(),
         )
         .expect("failed to write auth file");
 
         let storage = create_auth_storage(
-            codex_home.path().to_path_buf(),
+            codexist_home.path().to_path_buf(),
             AuthCredentialsStoreMode::File,
         );
         let updated = super::update_tokens(
@@ -725,32 +725,32 @@ mod tests {
     #[test]
     fn missing_auth_json_returns_none() {
         let dir = tempdir().unwrap();
-        let auth = CodexAuth::from_auth_storage(dir.path(), AuthCredentialsStoreMode::File)
+        let auth = CodexistAuth::from_auth_storage(dir.path(), AuthCredentialsStoreMode::File)
             .expect("call should succeed");
         assert_eq!(auth, None);
     }
 
     #[tokio::test]
-    #[serial(codex_api_key)]
+    #[serial(codexist_api_key)]
     async fn pro_account_with_no_api_key_uses_chatgpt_auth() {
-        let codex_home = tempdir().unwrap();
+        let codexist_home = tempdir().unwrap();
         let fake_jwt = write_auth_file(
             AuthFileParams {
                 openai_api_key: None,
                 chatgpt_plan_type: "pro".to_string(),
                 chatgpt_account_id: None,
             },
-            codex_home.path(),
+            codexist_home.path(),
         )
         .expect("failed to write auth file");
 
-        let CodexAuth {
+        let CodexistAuth {
             api_key,
             mode,
             auth_dot_json,
             storage: _,
             ..
-        } = super::load_auth(codex_home.path(), false, AuthCredentialsStoreMode::File)
+        } = super::load_auth(codexist_home.path(), false, AuthCredentialsStoreMode::File)
             .unwrap()
             .unwrap();
         assert_eq!(None, api_key);
@@ -783,7 +783,7 @@ mod tests {
     }
 
     #[tokio::test]
-    #[serial(codex_api_key)]
+    #[serial(codexist_api_key)]
     async fn loads_api_key_from_auth_json() {
         let dir = tempdir().unwrap();
         let auth_file = dir.path().join("auth.json");
@@ -824,8 +824,8 @@ mod tests {
         chatgpt_account_id: Option<String>,
     }
 
-    fn write_auth_file(params: AuthFileParams, codex_home: &Path) -> std::io::Result<String> {
-        let auth_file = get_auth_file(codex_home);
+    fn write_auth_file(params: AuthFileParams, codexist_home: &Path) -> std::io::Result<String> {
+        let auth_file = get_auth_file(codexist_home);
         // Create a minimal valid JWT for the id_token field.
         #[derive(Serialize)]
         struct Header {
@@ -873,14 +873,14 @@ mod tests {
     }
 
     fn build_config(
-        codex_home: &Path,
+        codexist_home: &Path,
         forced_login_method: Option<ForcedLoginMethod>,
         forced_chatgpt_workspace_id: Option<String>,
     ) -> Config {
         let mut config = Config::load_from_base_config_with_overrides(
             ConfigToml::default(),
             ConfigOverrides::default(),
-            codex_home.to_path_buf(),
+            codexist_home.to_path_buf(),
         )
         .expect("config should load");
         config.forced_login_method = forced_login_method;
@@ -921,69 +921,69 @@ mod tests {
 
     #[tokio::test]
     async fn enforce_login_restrictions_logs_out_for_method_mismatch() {
-        let codex_home = tempdir().unwrap();
-        login_with_api_key(codex_home.path(), "sk-test", AuthCredentialsStoreMode::File)
+        let codexist_home = tempdir().unwrap();
+        login_with_api_key(codexist_home.path(), "sk-test", AuthCredentialsStoreMode::File)
             .expect("seed api key");
 
-        let config = build_config(codex_home.path(), Some(ForcedLoginMethod::Chatgpt), None);
+        let config = build_config(codexist_home.path(), Some(ForcedLoginMethod::Chatgpt), None);
 
         let err = super::enforce_login_restrictions(&config)
             .await
             .expect_err("expected method mismatch to error");
         assert!(err.to_string().contains("ChatGPT login is required"));
         assert!(
-            !codex_home.path().join("auth.json").exists(),
+            !codexist_home.path().join("auth.json").exists(),
             "auth.json should be removed on mismatch"
         );
     }
 
     #[tokio::test]
-    #[serial(codex_api_key)]
+    #[serial(codexist_api_key)]
     async fn enforce_login_restrictions_logs_out_for_workspace_mismatch() {
-        let codex_home = tempdir().unwrap();
+        let codexist_home = tempdir().unwrap();
         let _jwt = write_auth_file(
             AuthFileParams {
                 openai_api_key: None,
                 chatgpt_plan_type: "pro".to_string(),
                 chatgpt_account_id: Some("org_another_org".to_string()),
             },
-            codex_home.path(),
+            codexist_home.path(),
         )
         .expect("failed to write auth file");
 
-        let config = build_config(codex_home.path(), None, Some("org_mine".to_string()));
+        let config = build_config(codexist_home.path(), None, Some("org_mine".to_string()));
 
         let err = super::enforce_login_restrictions(&config)
             .await
             .expect_err("expected workspace mismatch to error");
         assert!(err.to_string().contains("workspace org_mine"));
         assert!(
-            !codex_home.path().join("auth.json").exists(),
+            !codexist_home.path().join("auth.json").exists(),
             "auth.json should be removed on mismatch"
         );
     }
 
     #[tokio::test]
-    #[serial(codex_api_key)]
+    #[serial(codexist_api_key)]
     async fn enforce_login_restrictions_allows_matching_workspace() {
-        let codex_home = tempdir().unwrap();
+        let codexist_home = tempdir().unwrap();
         let _jwt = write_auth_file(
             AuthFileParams {
                 openai_api_key: None,
                 chatgpt_plan_type: "pro".to_string(),
                 chatgpt_account_id: Some("org_mine".to_string()),
             },
-            codex_home.path(),
+            codexist_home.path(),
         )
         .expect("failed to write auth file");
 
-        let config = build_config(codex_home.path(), None, Some("org_mine".to_string()));
+        let config = build_config(codexist_home.path(), None, Some("org_mine".to_string()));
 
         super::enforce_login_restrictions(&config)
             .await
             .expect("matching workspace should succeed");
         assert!(
-            codex_home.path().join("auth.json").exists(),
+            codexist_home.path().join("auth.json").exists(),
             "auth.json should remain when restrictions pass"
         );
     }
@@ -991,28 +991,28 @@ mod tests {
     #[tokio::test]
     async fn enforce_login_restrictions_allows_api_key_if_login_method_not_set_but_forced_chatgpt_workspace_id_is_set()
      {
-        let codex_home = tempdir().unwrap();
-        login_with_api_key(codex_home.path(), "sk-test", AuthCredentialsStoreMode::File)
+        let codexist_home = tempdir().unwrap();
+        login_with_api_key(codexist_home.path(), "sk-test", AuthCredentialsStoreMode::File)
             .expect("seed api key");
 
-        let config = build_config(codex_home.path(), None, Some("org_mine".to_string()));
+        let config = build_config(codexist_home.path(), None, Some("org_mine".to_string()));
 
         super::enforce_login_restrictions(&config)
             .await
             .expect("matching workspace should succeed");
         assert!(
-            codex_home.path().join("auth.json").exists(),
+            codexist_home.path().join("auth.json").exists(),
             "auth.json should remain when restrictions pass"
         );
     }
 
     #[tokio::test]
-    #[serial(codex_api_key)]
+    #[serial(codexist_api_key)]
     async fn enforce_login_restrictions_blocks_env_api_key_when_chatgpt_required() {
-        let _guard = EnvVarGuard::set(CODEX_API_KEY_ENV_VAR, "sk-env");
-        let codex_home = tempdir().unwrap();
+        let _guard = EnvVarGuard::set(CODEXIST_API_KEY_ENV_VAR, "sk-env");
+        let codexist_home = tempdir().unwrap();
 
-        let config = build_config(codex_home.path(), Some(ForcedLoginMethod::Chatgpt), None);
+        let config = build_config(codexist_home.path(), Some(ForcedLoginMethod::Chatgpt), None);
 
         let err = super::enforce_login_restrictions(&config)
             .await
@@ -1025,18 +1025,18 @@ mod tests {
 
     #[test]
     fn plan_type_maps_known_plan() {
-        let codex_home = tempdir().unwrap();
+        let codexist_home = tempdir().unwrap();
         let _jwt = write_auth_file(
             AuthFileParams {
                 openai_api_key: None,
                 chatgpt_plan_type: "pro".to_string(),
                 chatgpt_account_id: None,
             },
-            codex_home.path(),
+            codexist_home.path(),
         )
         .expect("failed to write auth file");
 
-        let auth = super::load_auth(codex_home.path(), false, AuthCredentialsStoreMode::File)
+        let auth = super::load_auth(codexist_home.path(), false, AuthCredentialsStoreMode::File)
             .expect("load auth")
             .expect("auth available");
 
@@ -1049,18 +1049,18 @@ mod tests {
 
     #[test]
     fn plan_type_maps_unknown_to_unknown() {
-        let codex_home = tempdir().unwrap();
+        let codexist_home = tempdir().unwrap();
         let _jwt = write_auth_file(
             AuthFileParams {
                 openai_api_key: None,
                 chatgpt_plan_type: "mystery-tier".to_string(),
                 chatgpt_account_id: None,
             },
-            codex_home.path(),
+            codexist_home.path(),
         )
         .expect("failed to write auth file");
 
-        let auth = super::load_auth(codex_home.path(), false, AuthCredentialsStoreMode::File)
+        let auth = super::load_auth(codexist_home.path(), false, AuthCredentialsStoreMode::File)
             .expect("load auth")
             .expect("auth available");
 
@@ -1074,7 +1074,7 @@ mod tests {
 
 /// Central manager providing a single source of truth for auth.json derived
 /// authentication data. It loads once (or on preference change) and then
-/// hands out cloned `CodexAuth` values so the rest of the program has a
+/// hands out cloned `CodexistAuth` values so the rest of the program has a
 /// consistent snapshot.
 ///
 /// External modifications to `auth.json` will NOT be observed until
@@ -1082,9 +1082,9 @@ mod tests {
 /// different parts of the program seeing inconsistent auth data mid‑run.
 #[derive(Debug)]
 pub struct AuthManager {
-    codex_home: PathBuf,
+    codexist_home: PathBuf,
     inner: RwLock<CachedAuth>,
-    enable_codex_api_key_env: bool,
+    enable_codexist_api_key_env: bool,
     auth_credentials_store_mode: AuthCredentialsStoreMode,
 }
 
@@ -1094,38 +1094,38 @@ impl AuthManager {
     /// simply return `None` in that case so callers can treat it as an
     /// unauthenticated state.
     pub fn new(
-        codex_home: PathBuf,
-        enable_codex_api_key_env: bool,
+        codexist_home: PathBuf,
+        enable_codexist_api_key_env: bool,
         auth_credentials_store_mode: AuthCredentialsStoreMode,
     ) -> Self {
         let auth = load_auth(
-            &codex_home,
-            enable_codex_api_key_env,
+            &codexist_home,
+            enable_codexist_api_key_env,
             auth_credentials_store_mode,
         )
         .ok()
         .flatten();
         Self {
-            codex_home,
+            codexist_home,
             inner: RwLock::new(CachedAuth { auth }),
-            enable_codex_api_key_env,
+            enable_codexist_api_key_env,
             auth_credentials_store_mode,
         }
     }
 
-    /// Create an AuthManager with a specific CodexAuth, for testing only.
-    pub fn from_auth_for_testing(auth: CodexAuth) -> Arc<Self> {
+    /// Create an AuthManager with a specific CodexistAuth, for testing only.
+    pub fn from_auth_for_testing(auth: CodexistAuth) -> Arc<Self> {
         let cached = CachedAuth { auth: Some(auth) };
         Arc::new(Self {
-            codex_home: PathBuf::new(),
+            codexist_home: PathBuf::new(),
             inner: RwLock::new(cached),
-            enable_codex_api_key_env: false,
+            enable_codexist_api_key_env: false,
             auth_credentials_store_mode: AuthCredentialsStoreMode::File,
         })
     }
 
     /// Current cached auth (clone). May be `None` if not logged in or load failed.
-    pub fn auth(&self) -> Option<CodexAuth> {
+    pub fn auth(&self) -> Option<CodexistAuth> {
         self.inner.read().ok().and_then(|c| c.auth.clone())
     }
 
@@ -1133,8 +1133,8 @@ impl AuthManager {
     /// whether the auth value changed.
     pub fn reload(&self) -> bool {
         let new_auth = load_auth(
-            &self.codex_home,
-            self.enable_codex_api_key_env,
+            &self.codexist_home,
+            self.enable_codexist_api_key_env,
             self.auth_credentials_store_mode,
         )
         .ok()
@@ -1148,7 +1148,7 @@ impl AuthManager {
         }
     }
 
-    fn auths_equal(a: &Option<CodexAuth>, b: &Option<CodexAuth>) -> bool {
+    fn auths_equal(a: &Option<CodexistAuth>, b: &Option<CodexistAuth>) -> bool {
         match (a, b) {
             (None, None) => true,
             (Some(a), Some(b)) => a == b,
@@ -1158,13 +1158,13 @@ impl AuthManager {
 
     /// Convenience constructor returning an `Arc` wrapper.
     pub fn shared(
-        codex_home: PathBuf,
-        enable_codex_api_key_env: bool,
+        codexist_home: PathBuf,
+        enable_codexist_api_key_env: bool,
         auth_credentials_store_mode: AuthCredentialsStoreMode,
     ) -> Arc<Self> {
         Arc::new(Self::new(
-            codex_home,
-            enable_codex_api_key_env,
+            codexist_home,
+            enable_codexist_api_key_env,
             auth_credentials_store_mode,
         ))
     }
@@ -1196,7 +1196,7 @@ impl AuthManager {
     /// reloads the in‑memory auth cache so callers immediately observe the
     /// unauthenticated state.
     pub fn logout(&self) -> std::io::Result<bool> {
-        let removed = super::auth::logout(&self.codex_home, self.auth_credentials_store_mode)?;
+        let removed = super::auth::logout(&self.codexist_home, self.auth_credentials_store_mode)?;
         // Always reload to clear any cached auth (even if file absent).
         self.reload();
         Ok(removed)

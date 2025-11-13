@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::app_event::AppEvent;
 use crate::app_event_sender::AppEventSender;
-use codex_core::protocol::Op;
+use codexist_core::protocol::Op;
 
 /// State machine that manages shell-style history navigation (Up/Down) inside
 /// the chat composer. This struct is intentionally decoupled from the
@@ -188,7 +188,7 @@ impl ChatComposerHistory {
                 offset: global_idx,
                 log_id,
             };
-            app_event_tx.send(AppEvent::CodexOp(op));
+            app_event_tx.send(AppEvent::CodexistOp(op));
         }
         None
     }
@@ -198,7 +198,7 @@ impl ChatComposerHistory {
 mod tests {
     use super::*;
     use crate::app_event::AppEvent;
-    use codex_core::protocol::Op;
+    use codexist_core::protocol::Op;
     use tokio::sync::mpsc::unbounded_channel;
 
     #[test]
@@ -237,9 +237,9 @@ mod tests {
         assert!(history.should_handle_navigation("", 0));
         assert!(history.navigate_up(&tx).is_none()); // don't replace the text yet
 
-        // Verify that an AppEvent::CodexOp with the correct GetHistoryEntryRequest was sent.
+        // Verify that an AppEvent::CodexistOp with the correct GetHistoryEntryRequest was sent.
         let event = rx.try_recv().expect("expected AppEvent to be sent");
-        let AppEvent::CodexOp(history_request1) = event else {
+        let AppEvent::CodexistOp(history_request1) = event else {
             panic!("unexpected event variant");
         };
         assert_eq!(
@@ -259,9 +259,9 @@ mod tests {
         // Next Up should move to offset 1.
         assert!(history.navigate_up(&tx).is_none()); // don't replace the text yet
 
-        // Verify second CodexOp event for offset 1.
+        // Verify second CodexistOp event for offset 1.
         let event2 = rx.try_recv().expect("expected second event");
-        let AppEvent::CodexOp(history_request_2) = event2 else {
+        let AppEvent::CodexistOp(history_request_2) = event2 else {
             panic!("unexpected event variant");
         };
         assert_eq!(

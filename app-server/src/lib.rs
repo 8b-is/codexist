@@ -1,8 +1,8 @@
 #![deny(clippy::print_stdout, clippy::print_stderr)]
 
-use codex_common::CliConfigOverrides;
-use codex_core::config::Config;
-use codex_core::config::ConfigOverrides;
+use codexist_common::CliConfigOverrides;
+use codexist_core::config::Config;
+use codexist_core::config::ConfigOverrides;
 use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
 use std::io::ErrorKind;
 use std::io::Result as IoResult;
@@ -11,8 +11,8 @@ use std::path::PathBuf;
 use crate::message_processor::MessageProcessor;
 use crate::outgoing_message::OutgoingMessage;
 use crate::outgoing_message::OutgoingMessageSender;
-use codex_app_server_protocol::JSONRPCMessage;
-use codex_feedback::CodexFeedback;
+use codexist_app_server_protocol::JSONRPCMessage;
+use codexist_feedback::CodexistFeedback;
 use tokio::io::AsyncBufReadExt;
 use tokio::io::AsyncWriteExt;
 use tokio::io::BufReader;
@@ -28,7 +28,7 @@ use tracing_subscriber::filter::Targets;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
-mod codex_message_processor;
+mod codexist_message_processor;
 mod error_code;
 mod fuzzy_file_search;
 mod message_processor;
@@ -41,7 +41,7 @@ mod outgoing_message;
 const CHANNEL_CAPACITY: usize = 128;
 
 pub async fn run_main(
-    codex_linux_sandbox_exe: Option<PathBuf>,
+    codexist_linux_sandbox_exe: Option<PathBuf>,
     cli_config_overrides: CliConfigOverrides,
 ) -> IoResult<()> {
     // Set up channels.
@@ -85,10 +85,10 @@ pub async fn run_main(
             std::io::Error::new(ErrorKind::InvalidData, format!("error loading config: {e}"))
         })?;
 
-    let feedback = CodexFeedback::new();
+    let feedback = CodexistFeedback::new();
 
     let otel =
-        codex_core::otel_init::build_provider(&config, env!("CARGO_PKG_VERSION")).map_err(|e| {
+        codexist_core::otel_init::build_provider(&config, env!("CARGO_PKG_VERSION")).map_err(|e| {
             std::io::Error::new(
                 ErrorKind::InvalidData,
                 format!("error loading otel config: {e}"),
@@ -112,7 +112,7 @@ pub async fn run_main(
         .with(feedback_layer)
         .with(otel.as_ref().map(|provider| {
             OpenTelemetryTracingBridge::new(&provider.logger).with_filter(
-                tracing_subscriber::filter::filter_fn(codex_core::otel_init::codex_export_filter),
+                tracing_subscriber::filter::filter_fn(codexist_core::otel_init::codexist_export_filter),
             )
         }))
         .try_init();
@@ -122,7 +122,7 @@ pub async fn run_main(
         let outgoing_message_sender = OutgoingMessageSender::new(outgoing_tx);
         let mut processor = MessageProcessor::new(
             outgoing_message_sender,
-            codex_linux_sandbox_exe,
+            codexist_linux_sandbox_exe,
             std::sync::Arc::new(config),
             feedback.clone(),
         );

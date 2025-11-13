@@ -3,16 +3,16 @@
 
 use std::path::Path;
 
-use codex_app_server_protocol::AddConversationListenerParams;
-use codex_app_server_protocol::InterruptConversationParams;
-use codex_app_server_protocol::InterruptConversationResponse;
-use codex_app_server_protocol::JSONRPCResponse;
-use codex_app_server_protocol::NewConversationParams;
-use codex_app_server_protocol::NewConversationResponse;
-use codex_app_server_protocol::RequestId;
-use codex_app_server_protocol::SendUserMessageParams;
-use codex_app_server_protocol::SendUserMessageResponse;
-use codex_core::protocol::TurnAbortReason;
+use codexist_app_server_protocol::AddConversationListenerParams;
+use codexist_app_server_protocol::InterruptConversationParams;
+use codexist_app_server_protocol::InterruptConversationResponse;
+use codexist_app_server_protocol::JSONRPCResponse;
+use codexist_app_server_protocol::NewConversationParams;
+use codexist_app_server_protocol::NewConversationResponse;
+use codexist_app_server_protocol::RequestId;
+use codexist_app_server_protocol::SendUserMessageParams;
+use codexist_app_server_protocol::SendUserMessageResponse;
+use codexist_core::protocol::TurnAbortReason;
 use core_test_support::skip_if_no_network;
 use tempfile::TempDir;
 use tokio::time::timeout;
@@ -49,9 +49,9 @@ async fn shell_command_interruption() -> anyhow::Result<()> {
     let shell_command = vec!["sleep".to_string(), "10".to_string()];
 
     let tmp = TempDir::new()?;
-    // Temporary Codex home with config pointing at the mock server.
-    let codex_home = tmp.path().join("codex_home");
-    std::fs::create_dir(&codex_home)?;
+    // Temporary Codexist home with config pointing at the mock server.
+    let codexist_home = tmp.path().join("codexist_home");
+    std::fs::create_dir(&codexist_home)?;
     let working_directory = tmp.path().join("workdir");
     std::fs::create_dir(&working_directory)?;
 
@@ -63,10 +63,10 @@ async fn shell_command_interruption() -> anyhow::Result<()> {
         "call_sleep",
     )?])
     .await;
-    create_config_toml(&codex_home, server.uri())?;
+    create_config_toml(&codexist_home, server.uri())?;
 
     // Start MCP server and initialize.
-    let mut mcp = McpProcess::new(&codex_home).await?;
+    let mut mcp = McpProcess::new(&codexist_home).await?;
     timeout(DEFAULT_READ_TIMEOUT, mcp.initialize()).await??;
 
     // 1) newConversation
@@ -103,7 +103,7 @@ async fn shell_command_interruption() -> anyhow::Result<()> {
     let send_user_id = mcp
         .send_send_user_message_request(SendUserMessageParams {
             conversation_id,
-            items: vec![codex_app_server_protocol::InputItem::Text {
+            items: vec![codexist_app_server_protocol::InputItem::Text {
                 text: "run first sleep command".to_string(),
             }],
         })
@@ -138,8 +138,8 @@ async fn shell_command_interruption() -> anyhow::Result<()> {
 // Helpers
 // ---------------------------------------------------------------------------
 
-fn create_config_toml(codex_home: &Path, server_uri: String) -> std::io::Result<()> {
-    let config_toml = codex_home.join("config.toml");
+fn create_config_toml(codexist_home: &Path, server_uri: String) -> std::io::Result<()> {
+    let config_toml = codexist_home.join("config.toml");
     std::fs::write(
         config_toml,
         format!(

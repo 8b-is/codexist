@@ -1,14 +1,14 @@
 #![allow(clippy::unwrap_used)]
 
-use codex_core::CodexAuth;
-use codex_core::ConversationManager;
-use codex_core::ModelProviderInfo;
-use codex_core::built_in_model_providers;
-use codex_core::features::Feature;
-use codex_core::model_family::find_family_for_model;
-use codex_core::protocol::EventMsg;
-use codex_core::protocol::Op;
-use codex_protocol::user_input::UserInput;
+use codexist_core::CodexistAuth;
+use codexist_core::ConversationManager;
+use codexist_core::ModelProviderInfo;
+use codexist_core::built_in_model_providers;
+use codexist_core::features::Feature;
+use codexist_core::model_family::find_family_for_model;
+use codexist_core::protocol::EventMsg;
+use codexist_core::protocol::Op;
+use codexist_protocol::user_input::UserInput;
 use core_test_support::load_default_config_for_test;
 use core_test_support::load_sse_fixture_with_id;
 use core_test_support::responses;
@@ -50,8 +50,8 @@ async fn collect_tool_identifiers_for_model(model: &str) -> Vec<String> {
     };
 
     let cwd = TempDir::new().unwrap();
-    let codex_home = TempDir::new().unwrap();
-    let mut config = load_default_config_for_test(&codex_home);
+    let codexist_home = TempDir::new().unwrap();
+    let mut config = load_default_config_for_test(&codexist_home);
     config.cwd = cwd.path().to_path_buf();
     config.model_provider = model_provider;
     config.model = model.to_string();
@@ -63,14 +63,14 @@ async fn collect_tool_identifiers_for_model(model: &str) -> Vec<String> {
     config.features.disable(Feature::UnifiedExec);
 
     let conversation_manager =
-        ConversationManager::with_auth(CodexAuth::from_api_key("Test API Key"));
-    let codex = conversation_manager
+        ConversationManager::with_auth(CodexistAuth::from_api_key("Test API Key"));
+    let codexist = conversation_manager
         .new_conversation(config)
         .await
         .expect("create new conversation")
         .conversation;
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello tools".into(),
@@ -78,7 +78,7 @@ async fn collect_tool_identifiers_for_model(model: &str) -> Vec<String> {
         })
         .await
         .unwrap();
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     let body = resp_mock.single_request().body_json();
     tool_identifiers(&body)
@@ -89,9 +89,9 @@ async fn model_selects_expected_tools() {
     skip_if_no_network!();
     use pretty_assertions::assert_eq;
 
-    let codex_tools = collect_tool_identifiers_for_model("codex-mini-latest").await;
+    let codexist_tools = collect_tool_identifiers_for_model("codexist-mini-latest").await;
     assert_eq!(
-        codex_tools,
+        codexist_tools,
         vec![
             "local_shell".to_string(),
             "list_mcp_resources".to_string(),
@@ -99,7 +99,7 @@ async fn model_selects_expected_tools() {
             "read_mcp_resource".to_string(),
             "update_plan".to_string()
         ],
-        "codex-mini-latest should expose the local shell tool",
+        "codexist-mini-latest should expose the local shell tool",
     );
 
     let o3_tools = collect_tool_identifiers_for_model("o3").await;
@@ -115,9 +115,9 @@ async fn model_selects_expected_tools() {
         "o3 should expose the generic shell tool",
     );
 
-    let gpt5_codex_tools = collect_tool_identifiers_for_model("gpt-5-codex").await;
+    let gpt5_codexist_tools = collect_tool_identifiers_for_model("gpt-5-codexist").await;
     assert_eq!(
-        gpt5_codex_tools,
+        gpt5_codexist_tools,
         vec![
             "shell".to_string(),
             "list_mcp_resources".to_string(),
@@ -126,12 +126,12 @@ async fn model_selects_expected_tools() {
             "update_plan".to_string(),
             "apply_patch".to_string()
         ],
-        "gpt-5-codex should expose the apply_patch tool",
+        "gpt-5-codexist should expose the apply_patch tool",
     );
 
-    let gpt51_codex_tools = collect_tool_identifiers_for_model("gpt-5.1-codex").await;
+    let gpt51_codexist_tools = collect_tool_identifiers_for_model("gpt-5.1-codexist").await;
     assert_eq!(
-        gpt51_codex_tools,
+        gpt51_codexist_tools,
         vec![
             "shell".to_string(),
             "list_mcp_resources".to_string(),
@@ -140,10 +140,10 @@ async fn model_selects_expected_tools() {
             "update_plan".to_string(),
             "apply_patch".to_string()
         ],
-        "gpt-5-codex should expose the apply_patch tool",
+        "gpt-5-codexist should expose the apply_patch tool",
     );
 
-    let gpt51_tools = collect_tool_identifiers_for_model("gpt-5-codex").await;
+    let gpt51_tools = collect_tool_identifiers_for_model("gpt-5-codexist").await;
     assert_eq!(
         gpt51_tools,
         vec![
@@ -154,6 +154,6 @@ async fn model_selects_expected_tools() {
             "update_plan".to_string(),
             "apply_patch".to_string()
         ],
-        "gpt-5-codex should expose the apply_patch tool",
+        "gpt-5-codexist should expose the apply_patch tool",
     );
 }

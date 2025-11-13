@@ -2,12 +2,12 @@ use base64::Engine as _;
 use chrono::Utc;
 use reqwest::header::HeaderMap;
 
-use codex_core::config::Config;
-use codex_core::config::ConfigOverrides;
-use codex_login::AuthManager;
+use codexist_core::config::Config;
+use codexist_core::config::ConfigOverrides;
+use codexist_login::AuthManager;
 
 pub fn set_user_agent_suffix(suffix: &str) {
-    if let Ok(mut guard) = codex_core::default_client::USER_AGENT_SUFFIX.lock() {
+    if let Ok(mut guard) = codexist_core::default_client::USER_AGENT_SUFFIX.lock() {
         guard.replace(suffix.to_string());
     }
 }
@@ -64,7 +64,7 @@ pub async fn load_auth_manager() -> Option<AuthManager> {
         .await
         .ok()?;
     Some(AuthManager::new(
-        config.codex_home,
+        config.codexist_home,
         false,
         config.cli_auth_credentials_store_mode,
     ))
@@ -78,12 +78,12 @@ pub async fn build_chatgpt_headers() -> HeaderMap {
     use reqwest::header::HeaderValue;
     use reqwest::header::USER_AGENT;
 
-    set_user_agent_suffix("codex_cloud_tasks_tui");
-    let ua = codex_core::default_client::get_codex_user_agent();
+    set_user_agent_suffix("codexist_cloud_tasks_tui");
+    let ua = codexist_core::default_client::get_codexist_user_agent();
     let mut headers = HeaderMap::new();
     headers.insert(
         USER_AGENT,
-        HeaderValue::from_str(&ua).unwrap_or(HeaderValue::from_static("codex-cli")),
+        HeaderValue::from_str(&ua).unwrap_or(HeaderValue::from_static("codexist-cli")),
     );
     if let Some(am) = load_auth_manager().await
         && let Some(auth) = am.auth()
@@ -110,13 +110,13 @@ pub async fn build_chatgpt_headers() -> HeaderMap {
 pub fn task_url(base_url: &str, task_id: &str) -> String {
     let normalized = normalize_base_url(base_url);
     if let Some(root) = normalized.strip_suffix("/backend-api") {
-        return format!("{root}/codex/tasks/{task_id}");
+        return format!("{root}/codexist/tasks/{task_id}");
     }
-    if let Some(root) = normalized.strip_suffix("/api/codex") {
-        return format!("{root}/codex/tasks/{task_id}");
+    if let Some(root) = normalized.strip_suffix("/api/codexist") {
+        return format!("{root}/codexist/tasks/{task_id}");
     }
-    if normalized.ends_with("/codex") {
+    if normalized.ends_with("/codexist") {
         return format!("{normalized}/tasks/{task_id}");
     }
-    format!("{normalized}/codex/tasks/{task_id}")
+    format!("{normalized}/codexist/tasks/{task_id}")
 }

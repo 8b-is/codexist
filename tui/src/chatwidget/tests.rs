@@ -4,48 +4,48 @@ use crate::app_event_sender::AppEventSender;
 use crate::test_backend::VT100Backend;
 use crate::tui::FrameRequester;
 use assert_matches::assert_matches;
-use codex_common::approval_presets::builtin_approval_presets;
-use codex_common::model_presets::ModelPreset;
-use codex_common::model_presets::ReasoningEffortPreset;
-use codex_core::AuthManager;
-use codex_core::CodexAuth;
-use codex_core::config::Config;
-use codex_core::config::ConfigOverrides;
-use codex_core::config::ConfigToml;
-use codex_core::config::OPENAI_DEFAULT_MODEL;
-use codex_core::protocol::AgentMessageDeltaEvent;
-use codex_core::protocol::AgentMessageEvent;
-use codex_core::protocol::AgentReasoningDeltaEvent;
-use codex_core::protocol::AgentReasoningEvent;
-use codex_core::protocol::ApplyPatchApprovalRequestEvent;
-use codex_core::protocol::Event;
-use codex_core::protocol::EventMsg;
-use codex_core::protocol::ExecApprovalRequestEvent;
-use codex_core::protocol::ExecCommandBeginEvent;
-use codex_core::protocol::ExecCommandEndEvent;
-use codex_core::protocol::ExitedReviewModeEvent;
-use codex_core::protocol::FileChange;
-use codex_core::protocol::Op;
-use codex_core::protocol::PatchApplyBeginEvent;
-use codex_core::protocol::PatchApplyEndEvent;
-use codex_core::protocol::RateLimitWindow;
-use codex_core::protocol::ReviewCodeLocation;
-use codex_core::protocol::ReviewFinding;
-use codex_core::protocol::ReviewLineRange;
-use codex_core::protocol::ReviewOutputEvent;
-use codex_core::protocol::ReviewRequest;
-use codex_core::protocol::StreamErrorEvent;
-use codex_core::protocol::TaskCompleteEvent;
-use codex_core::protocol::TaskStartedEvent;
-use codex_core::protocol::UndoCompletedEvent;
-use codex_core::protocol::UndoStartedEvent;
-use codex_core::protocol::ViewImageToolCallEvent;
-use codex_core::protocol::WarningEvent;
-use codex_protocol::ConversationId;
-use codex_protocol::parse_command::ParsedCommand;
-use codex_protocol::plan_tool::PlanItemArg;
-use codex_protocol::plan_tool::StepStatus;
-use codex_protocol::plan_tool::UpdatePlanArgs;
+use codexist_common::approval_presets::builtin_approval_presets;
+use codexist_common::model_presets::ModelPreset;
+use codexist_common::model_presets::ReasoningEffortPreset;
+use codexist_core::AuthManager;
+use codexist_core::CodexistAuth;
+use codexist_core::config::Config;
+use codexist_core::config::ConfigOverrides;
+use codexist_core::config::ConfigToml;
+use codexist_core::config::OPENAI_DEFAULT_MODEL;
+use codexist_core::protocol::AgentMessageDeltaEvent;
+use codexist_core::protocol::AgentMessageEvent;
+use codexist_core::protocol::AgentReasoningDeltaEvent;
+use codexist_core::protocol::AgentReasoningEvent;
+use codexist_core::protocol::ApplyPatchApprovalRequestEvent;
+use codexist_core::protocol::Event;
+use codexist_core::protocol::EventMsg;
+use codexist_core::protocol::ExecApprovalRequestEvent;
+use codexist_core::protocol::ExecCommandBeginEvent;
+use codexist_core::protocol::ExecCommandEndEvent;
+use codexist_core::protocol::ExitedReviewModeEvent;
+use codexist_core::protocol::FileChange;
+use codexist_core::protocol::Op;
+use codexist_core::protocol::PatchApplyBeginEvent;
+use codexist_core::protocol::PatchApplyEndEvent;
+use codexist_core::protocol::RateLimitWindow;
+use codexist_core::protocol::ReviewCodeLocation;
+use codexist_core::protocol::ReviewFinding;
+use codexist_core::protocol::ReviewLineRange;
+use codexist_core::protocol::ReviewOutputEvent;
+use codexist_core::protocol::ReviewRequest;
+use codexist_core::protocol::StreamErrorEvent;
+use codexist_core::protocol::TaskCompleteEvent;
+use codexist_core::protocol::TaskStartedEvent;
+use codexist_core::protocol::UndoCompletedEvent;
+use codexist_core::protocol::UndoStartedEvent;
+use codexist_core::protocol::ViewImageToolCallEvent;
+use codexist_core::protocol::WarningEvent;
+use codexist_protocol::ConversationId;
+use codexist_protocol::parse_command::ParsedCommand;
+use codexist_protocol::plan_tool::PlanItemArg;
+use codexist_protocol::plan_tool::StepStatus;
+use codexist_protocol::plan_tool::UpdatePlanArgs;
 use crossterm::event::KeyCode;
 use crossterm::event::KeyEvent;
 use crossterm::event::KeyModifiers;
@@ -122,7 +122,7 @@ fn resumed_initial_messages_render_history() {
 
     let conversation_id = ConversationId::new();
     let rollout_file = NamedTempFile::new().unwrap();
-    let configured = codex_core::protocol::SessionConfiguredEvent {
+    let configured = codexist_core::protocol::SessionConfiguredEvent {
         session_id: conversation_id,
         model: "test-model".to_string(),
         reasoning_effort: Some(ReasoningEffortConfig::default()),
@@ -140,7 +140,7 @@ fn resumed_initial_messages_render_history() {
         rollout_path: rollout_file.path().to_path_buf(),
     };
 
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "initial".into(),
         msg: EventMsg::SessionConfigured(configured),
     });
@@ -172,7 +172,7 @@ fn resumed_initial_messages_render_history() {
 fn entered_review_mode_uses_request_hint() {
     let (mut chat, mut rx, _ops) = make_chatwidget_manual();
 
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "review-start".into(),
         msg: EventMsg::EnteredReviewMode(ReviewRequest {
             prompt: "Review the latest changes".to_string(),
@@ -191,7 +191,7 @@ fn entered_review_mode_uses_request_hint() {
 fn entered_review_mode_defaults_to_current_changes_banner() {
     let (mut chat, mut rx, _ops) = make_chatwidget_manual();
 
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "review-start".into(),
         msg: EventMsg::EnteredReviewMode(ReviewRequest {
             prompt: "Review the current changes".to_string(),
@@ -227,7 +227,7 @@ fn exited_review_mode_emits_results_and_finishes() {
         overall_confidence_score: 0.5,
     };
 
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "review-end".into(),
         msg: EventMsg::ExitedReviewMode(ExitedReviewModeEvent {
             review_output: Some(review),
@@ -249,10 +249,10 @@ async fn helpers_are_available_and_do_not_panic() {
     let (tx_raw, _rx) = unbounded_channel::<AppEvent>();
     let tx = AppEventSender::new(tx_raw);
     let cfg = test_config();
-    let conversation_manager = Arc::new(ConversationManager::with_auth(CodexAuth::from_api_key(
+    let conversation_manager = Arc::new(ConversationManager::with_auth(CodexistAuth::from_api_key(
         "test",
     )));
-    let auth_manager = AuthManager::from_auth_for_testing(CodexAuth::from_api_key("test"));
+    let auth_manager = AuthManager::from_auth_for_testing(CodexistAuth::from_api_key("test"));
     let init = ChatWidgetInit {
         config: cfg,
         frame_requester: FrameRequester::test_dummy(),
@@ -261,7 +261,7 @@ async fn helpers_are_available_and_do_not_panic() {
         initial_images: Vec::new(),
         enhanced_keys_supported: false,
         auth_manager,
-        feedback: codex_feedback::CodexFeedback::new(),
+        feedback: codexist_feedback::CodexistFeedback::new(),
     };
     let mut w = ChatWidget::new(init, conversation_manager);
     // Basic construction sanity.
@@ -283,13 +283,13 @@ fn make_chatwidget_manual() -> (
         frame_requester: FrameRequester::test_dummy(),
         has_input_focus: true,
         enhanced_keys_supported: false,
-        placeholder_text: "Ask Codex to do anything".to_string(),
+        placeholder_text: "Ask Codexist to do anything".to_string(),
         disable_paste_burst: false,
     });
-    let auth_manager = AuthManager::from_auth_for_testing(CodexAuth::from_api_key("test"));
+    let auth_manager = AuthManager::from_auth_for_testing(CodexistAuth::from_api_key("test"));
     let widget = ChatWidget {
         app_event_tx,
-        codex_op_tx: op_tx,
+        codexist_op_tx: op_tx,
         bottom_pane: bottom,
         active_cell: None,
         config: cfg.clone(),
@@ -317,7 +317,7 @@ fn make_chatwidget_manual() -> (
         is_review_mode: false,
         needs_final_message_separator: false,
         last_rendered_width: std::cell::Cell::new(None),
-        feedback: codex_feedback::CodexFeedback::new(),
+        feedback: codexist_feedback::CodexistFeedback::new(),
         current_rollout_path: None,
     };
     (widget, rx, op_rx)
@@ -412,7 +412,7 @@ fn test_rate_limit_warnings_monthly() {
 fn rate_limit_switch_prompt_skips_when_on_lower_cost_model() {
     let (mut chat, _, _) = make_chatwidget_manual();
     chat.auth_manager =
-        AuthManager::from_auth_for_testing(CodexAuth::create_dummy_chatgpt_auth_for_testing());
+        AuthManager::from_auth_for_testing(CodexistAuth::create_dummy_chatgpt_auth_for_testing());
     chat.config.model = NUDGE_MODEL_SLUG.to_string();
 
     chat.on_rate_limit_snapshot(Some(snapshot(95.0)));
@@ -425,7 +425,7 @@ fn rate_limit_switch_prompt_skips_when_on_lower_cost_model() {
 
 #[test]
 fn rate_limit_switch_prompt_shows_once_per_session() {
-    let auth = CodexAuth::create_dummy_chatgpt_auth_for_testing();
+    let auth = CodexistAuth::create_dummy_chatgpt_auth_for_testing();
     let (mut chat, _, _) = make_chatwidget_manual();
     chat.config.model = "gpt-5".to_string();
     chat.auth_manager = AuthManager::from_auth_for_testing(auth);
@@ -450,7 +450,7 @@ fn rate_limit_switch_prompt_shows_once_per_session() {
 
 #[test]
 fn rate_limit_switch_prompt_respects_hidden_notice() {
-    let auth = CodexAuth::create_dummy_chatgpt_auth_for_testing();
+    let auth = CodexistAuth::create_dummy_chatgpt_auth_for_testing();
     let (mut chat, _, _) = make_chatwidget_manual();
     chat.config.model = "gpt-5".to_string();
     chat.auth_manager = AuthManager::from_auth_for_testing(auth);
@@ -466,7 +466,7 @@ fn rate_limit_switch_prompt_respects_hidden_notice() {
 
 #[test]
 fn rate_limit_switch_prompt_defers_until_task_complete() {
-    let auth = CodexAuth::create_dummy_chatgpt_auth_for_testing();
+    let auth = CodexistAuth::create_dummy_chatgpt_auth_for_testing();
     let (mut chat, _, _) = make_chatwidget_manual();
     chat.config.model = "gpt-5".to_string();
     chat.auth_manager = AuthManager::from_auth_for_testing(auth);
@@ -490,7 +490,7 @@ fn rate_limit_switch_prompt_defers_until_task_complete() {
 fn rate_limit_switch_prompt_popup_snapshot() {
     let (mut chat, _rx, _op_rx) = make_chatwidget_manual();
     chat.auth_manager =
-        AuthManager::from_auth_for_testing(CodexAuth::create_dummy_chatgpt_auth_for_testing());
+        AuthManager::from_auth_for_testing(CodexistAuth::create_dummy_chatgpt_auth_for_testing());
     chat.config.model = "gpt-5".to_string();
 
     chat.on_rate_limit_snapshot(Some(snapshot(92.0)));
@@ -517,7 +517,7 @@ fn exec_approval_emits_proposed_command_and_decision_history() {
         risk: None,
         parsed_cmd: vec![],
     };
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "sub-short".into(),
         msg: EventMsg::ExecApprovalRequest(ev),
     });
@@ -560,7 +560,7 @@ fn exec_approval_decision_truncates_multiline_and_long_commands() {
         risk: None,
         parsed_cmd: vec![],
     };
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "sub-multi".into(),
         msg: EventMsg::ExecApprovalRequest(ev_multi),
     });
@@ -609,7 +609,7 @@ fn exec_approval_decision_truncates_multiline_and_long_commands() {
         risk: None,
         parsed_cmd: vec![],
     };
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "sub-long".into(),
         msg: EventMsg::ExecApprovalRequest(ev_long),
     });
@@ -633,8 +633,8 @@ fn begin_exec(chat: &mut ChatWidget, call_id: &str, raw_cmd: &str) {
     // Build the full command vec and parse it using core's parser,
     // then convert to protocol variants for the event payload.
     let command = vec!["bash".to_string(), "-lc".to_string(), raw_cmd.to_string()];
-    let parsed_cmd: Vec<ParsedCommand> = codex_core::parse_command::parse_command(&command);
-    chat.handle_codex_event(Event {
+    let parsed_cmd: Vec<ParsedCommand> = codexist_core::parse_command::parse_command(&command);
+    chat.handle_codexist_event(Event {
         id: call_id.to_string(),
         msg: EventMsg::ExecCommandBegin(ExecCommandBeginEvent {
             call_id: call_id.to_string(),
@@ -652,7 +652,7 @@ fn end_exec(chat: &mut ChatWidget, call_id: &str, stdout: &str, stderr: &str, ex
     } else {
         format!("{stdout}{stderr}")
     };
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: call_id.to_string(),
         msg: EventMsg::ExecCommandEnd(ExecCommandEndEvent {
             call_id: call_id.to_string(),
@@ -941,7 +941,7 @@ fn slash_init_skips_when_project_doc_exists() {
 
     match op_rx.try_recv() {
         Err(TryRecvError::Empty) => {}
-        other => panic!("expected no Codex op to be sent, got {other:?}"),
+        other => panic!("expected no Codexist op to be sent, got {other:?}"),
     }
 
     let cells = drain_insert_history(&mut rx);
@@ -986,15 +986,15 @@ fn slash_undo_sends_op() {
     chat.dispatch_command(SlashCommand::Undo);
 
     match rx.try_recv() {
-        Ok(AppEvent::CodexOp(Op::Undo)) => {}
-        other => panic!("expected AppEvent::CodexOp(Op::Undo), got {other:?}"),
+        Ok(AppEvent::CodexistOp(Op::Undo)) => {}
+        other => panic!("expected AppEvent::CodexistOp(Op::Undo), got {other:?}"),
     }
 }
 
 #[test]
 fn slash_rollout_displays_current_path() {
     let (mut chat, mut rx, _op_rx) = make_chatwidget_manual();
-    let rollout_path = PathBuf::from("/tmp/codex-test-rollout.jsonl");
+    let rollout_path = PathBuf::from("/tmp/codexist-test-rollout.jsonl");
     chat.current_rollout_path = Some(rollout_path.clone());
 
     chat.dispatch_command(SlashCommand::Rollout);
@@ -1031,7 +1031,7 @@ fn slash_rollout_handles_missing_path() {
 fn undo_success_events_render_info_messages() {
     let (mut chat, mut rx, _op_rx) = make_chatwidget_manual();
 
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "turn-1".to_string(),
         msg: EventMsg::UndoStarted(UndoStartedEvent {
             message: Some("Undo requested for the last turn...".to_string()),
@@ -1042,7 +1042,7 @@ fn undo_success_events_render_info_messages() {
         "status indicator should be visible during undo"
     );
 
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "turn-1".to_string(),
         msg: EventMsg::UndoCompleted(UndoCompletedEvent {
             success: true,
@@ -1068,7 +1068,7 @@ fn undo_success_events_render_info_messages() {
 fn undo_failure_events_render_error_message() {
     let (mut chat, mut rx, _op_rx) = make_chatwidget_manual();
 
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "turn-2".to_string(),
         msg: EventMsg::UndoStarted(UndoStartedEvent { message: None }),
     });
@@ -1077,7 +1077,7 @@ fn undo_failure_events_render_error_message() {
         "status indicator should be visible during undo"
     );
 
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "turn-2".to_string(),
         msg: EventMsg::UndoCompleted(UndoCompletedEvent {
             success: false,
@@ -1103,7 +1103,7 @@ fn undo_failure_events_render_error_message() {
 fn undo_started_hides_interrupt_hint() {
     let (mut chat, _rx, _op_rx) = make_chatwidget_manual();
 
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "turn-hint".to_string(),
         msg: EventMsg::UndoStarted(UndoStartedEvent { message: None }),
     });
@@ -1128,12 +1128,12 @@ fn review_commit_picker_shows_subjects_without_timestamps() {
 
     // Show commit picker with synthetic entries.
     let entries = vec![
-        codex_core::git_info::CommitLogEntry {
+        codexist_core::git_info::CommitLogEntry {
             sha: "1111111deadbeef".to_string(),
             timestamp: 0,
             subject: "Add new feature X".to_string(),
         },
-        codex_core::git_info::CommitLogEntry {
+        codexist_core::git_info::CommitLogEntry {
             sha: "2222222cafebabe".to_string(),
             timestamp: 0,
             subject: "Fix bug Y".to_string(),
@@ -1190,10 +1190,10 @@ fn custom_prompt_submit_sends_review_op() {
     chat.handle_paste("  please audit dependencies  ".to_string());
     chat.handle_key_event(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
 
-    // Expect AppEvent::CodexOp(Op::Review { .. }) with trimmed prompt
+    // Expect AppEvent::CodexistOp(Op::Review { .. }) with trimmed prompt
     let evt = rx.try_recv().expect("expected one app event");
     match evt {
-        AppEvent::CodexOp(Op::Review { review_request }) => {
+        AppEvent::CodexistOp(Op::Review { review_request }) => {
             assert_eq!(
                 review_request.prompt,
                 "please audit dependencies".to_string()
@@ -1216,7 +1216,7 @@ fn custom_prompt_enter_empty_does_not_send() {
     // Enter without any text
     chat.handle_key_event(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
 
-    // No AppEvent::CodexOp should be sent
+    // No AppEvent::CodexistOp should be sent
     assert!(rx.try_recv().is_err(), "no app event should be sent");
 }
 
@@ -1225,7 +1225,7 @@ fn view_image_tool_call_adds_history_cell() {
     let (mut chat, mut rx, _op_rx) = make_chatwidget_manual();
     let image_path = chat.config.cwd.join("example.png");
 
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "sub-image".into(),
         msg: EventMsg::ViewImageToolCall(ViewImageToolCallEvent {
             call_id: "call-image".into(),
@@ -1250,9 +1250,9 @@ fn interrupt_exec_marks_failed_snapshot() {
 
     // Simulate the task being aborted (as if ESC was pressed), which should
     // cause the active exec cell to be finalized as failed and flushed.
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "call-int".into(),
-        msg: EventMsg::TurnAborted(codex_core::protocol::TurnAbortedEvent {
+        msg: EventMsg::TurnAborted(codexist_core::protocol::TurnAbortedEvent {
             reason: TurnAbortReason::Interrupted,
         }),
     });
@@ -1275,7 +1275,7 @@ fn interrupted_turn_error_message_snapshot() {
     let (mut chat, mut rx, _op_rx) = make_chatwidget_manual();
 
     // Simulate an in-progress task so the widget is in a running state.
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "task-1".into(),
         msg: EventMsg::TaskStarted(TaskStartedEvent {
             model_context_window: None,
@@ -1283,9 +1283,9 @@ fn interrupted_turn_error_message_snapshot() {
     });
 
     // Abort the turn (like pressing Esc) and drain inserted history.
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "task-1".into(),
-        msg: EventMsg::TurnAborted(codex_core::protocol::TurnAbortedEvent {
+        msg: EventMsg::TurnAborted(codexist_core::protocol::TurnAbortedEvent {
             reason: TurnAbortReason::Interrupted,
         }),
     });
@@ -1427,7 +1427,7 @@ fn render_bottom_popup(chat: &ChatWidget, width: u16) -> String {
 fn model_selection_popup_snapshot() {
     let (mut chat, _rx, _op_rx) = make_chatwidget_manual();
 
-    chat.config.model = "gpt-5-codex".to_string();
+    chat.config.model = "gpt-5-codexist".to_string();
     chat.open_model_popup();
 
     let popup = render_bottom_popup(&chat, 80);
@@ -1466,7 +1466,7 @@ fn approvals_popup_includes_wsl_note_for_auto_mode() {
         "expected auto preset description to mention WSL requirement only on Windows, popup: {popup}"
     );
     assert_eq!(
-        popup.contains("Codex forced your settings back to Read Only on this Windows machine."),
+        popup.contains("Codexist forced your settings back to Read Only on this Windows machine."),
         cfg!(target_os = "windows") && chat.config.forced_auto_mode_downgraded_on_windows,
         "expected downgrade notice only when auto mode is forced off on Windows, popup: {popup}"
     );
@@ -1504,13 +1504,13 @@ fn windows_auto_mode_instructions_popup_lists_install_steps() {
 fn model_reasoning_selection_popup_snapshot() {
     let (mut chat, _rx, _op_rx) = make_chatwidget_manual();
 
-    chat.config.model = "gpt-5-codex".to_string();
+    chat.config.model = "gpt-5-codexist".to_string();
     chat.config.model_reasoning_effort = Some(ReasoningEffortConfig::High);
 
     let preset = builtin_model_presets(None)
         .into_iter()
-        .find(|preset| preset.model == "gpt-5-codex")
-        .expect("gpt-5-codex preset");
+        .find(|preset| preset.model == "gpt-5-codexist")
+        .expect("gpt-5-codexist preset");
     chat.open_reasoning_popup(preset);
 
     let popup = render_bottom_popup(&chat, 80);
@@ -1586,8 +1586,8 @@ fn reasoning_popup_escape_returns_to_model_popup() {
 
     let presets = builtin_model_presets(None)
         .into_iter()
-        .find(|preset| preset.model == "gpt-5-codex")
-        .expect("gpt-5-codex preset");
+        .find(|preset| preset.model == "gpt-5-codexist")
+        .expect("gpt-5-codexist preset");
     chat.open_reasoning_popup(presets);
 
     let before_escape = render_bottom_popup(&chat, 80);
@@ -1652,9 +1652,9 @@ fn disabled_slash_command_while_task_running_snapshot() {
 
 #[tokio::test]
 async fn binary_size_transcript_snapshot() {
-    // the snapshot in this test depends on gpt-5-codex. Skip for now. We will consider
+    // the snapshot in this test depends on gpt-5-codexist. Skip for now. We will consider
     // creating snapshots for other models in the future.
-    if OPENAI_DEFAULT_MODEL != "gpt-5-codex" {
+    if OPENAI_DEFAULT_MODEL != "gpt-5-codexist" {
         return;
     }
     let (mut chat, mut rx, _op_rx) = make_chatwidget_manual();
@@ -1693,7 +1693,7 @@ async fn binary_size_transcript_snapshot() {
         };
 
         match kind {
-            "codex_event" => {
+            "codexist_event" => {
                 if let Some(payload) = v.get("payload") {
                     let ev: Event =
                         serde_json::from_value(upgrade_event_payload_for_tests(payload.clone()))
@@ -1704,7 +1704,7 @@ async fn binary_size_transcript_snapshot() {
                             ..
                         } => {
                             // Re-parse the command
-                            let parsed_cmd = codex_core::parse_command::parse_command(&e.command);
+                            let parsed_cmd = codexist_core::parse_command::parse_command(&e.command);
                             Event {
                                 id: ev.id,
                                 msg: EventMsg::ExecCommandBegin(ExecCommandBeginEvent {
@@ -1718,7 +1718,7 @@ async fn binary_size_transcript_snapshot() {
                         }
                         _ => ev,
                     };
-                    chat.handle_codex_event(ev);
+                    chat.handle_codexist_event(ev);
                     while let Ok(app_ev) = rx.try_recv() {
                         if let AppEvent::InsertHistoryCell(cell) = app_ev {
                             let mut lines = cell.display_lines(width);
@@ -1813,7 +1813,7 @@ async fn binary_size_transcript_snapshot() {
 //
 // Snapshot test: command approval modal
 //
-// Synthesizes a Codex ExecApprovalRequest event to trigger the approval modal
+// Synthesizes a Codexist ExecApprovalRequest event to trigger the approval modal
 // and snapshots the visual output using the ratatui TestBackend.
 #[test]
 fn approval_modal_exec_snapshot() {
@@ -1832,7 +1832,7 @@ fn approval_modal_exec_snapshot() {
         risk: None,
         parsed_cmd: vec![],
     };
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "sub-approve".into(),
         msg: EventMsg::ExecApprovalRequest(ev),
     });
@@ -1877,7 +1877,7 @@ fn approval_modal_exec_without_reason_snapshot() {
         risk: None,
         parsed_cmd: vec![],
     };
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "sub-approve-noreason".into(),
         msg: EventMsg::ExecApprovalRequest(ev),
     });
@@ -1915,7 +1915,7 @@ fn approval_modal_patch_snapshot() {
         reason: Some("The model wants to apply changes".into()),
         grant_root: Some(PathBuf::from("/tmp")),
     };
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "sub-approve-patch".into(),
         msg: EventMsg::ApplyPatchApprovalRequest(ev),
     });
@@ -1949,9 +1949,9 @@ fn interrupt_restores_queued_messages_into_composer() {
     chat.refresh_queued_user_messages();
 
     // Deliver a TurnAborted event with Interrupted reason (as if Esc was pressed).
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "turn-1".into(),
-        msg: EventMsg::TurnAborted(codex_core::protocol::TurnAbortedEvent {
+        msg: EventMsg::TurnAborted(codexist_core::protocol::TurnAbortedEvent {
             reason: TurnAbortReason::Interrupted,
         }),
     });
@@ -1987,9 +1987,9 @@ fn interrupt_prepends_queued_messages_before_existing_composer_text() {
         .push_back(UserMessage::from("second queued".to_string()));
     chat.refresh_queued_user_messages();
 
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "turn-1".into(),
-        msg: EventMsg::TurnAborted(codex_core::protocol::TurnAbortedEvent {
+        msg: EventMsg::TurnAborted(codexist_core::protocol::TurnAbortedEvent {
             reason: TurnAbortReason::Interrupted,
         }),
     });
@@ -2032,13 +2032,13 @@ fn ui_snapshots_small_heights_task_running() {
     use ratatui::backend::TestBackend;
     let (mut chat, _rx, _op_rx) = make_chatwidget_manual();
     // Activate status line
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "task-1".into(),
         msg: EventMsg::TaskStarted(TaskStartedEvent {
             model_context_window: None,
         }),
     });
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "task-1".into(),
         msg: EventMsg::AgentReasoningDelta(AgentReasoningDeltaEvent {
             delta: "**Thinking**".into(),
@@ -2059,18 +2059,18 @@ fn ui_snapshots_small_heights_task_running() {
 // task (status indicator active) while an approval request is shown.
 #[test]
 fn status_widget_and_approval_modal_snapshot() {
-    use codex_core::protocol::ExecApprovalRequestEvent;
+    use codexist_core::protocol::ExecApprovalRequestEvent;
 
     let (mut chat, _rx, _op_rx) = make_chatwidget_manual();
     // Begin a running task so the status indicator would be active.
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "task-1".into(),
         msg: EventMsg::TaskStarted(TaskStartedEvent {
             model_context_window: None,
         }),
     });
     // Provide a deterministic header for the status line.
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "task-1".into(),
         msg: EventMsg::AgentReasoningDelta(AgentReasoningDeltaEvent {
             delta: "**Analyzing**".into(),
@@ -2088,7 +2088,7 @@ fn status_widget_and_approval_modal_snapshot() {
         risk: None,
         parsed_cmd: vec![],
     };
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "sub-approve-exec".into(),
         msg: EventMsg::ExecApprovalRequest(ev),
     });
@@ -2109,14 +2109,14 @@ fn status_widget_and_approval_modal_snapshot() {
 fn status_widget_active_snapshot() {
     let (mut chat, _rx, _op_rx) = make_chatwidget_manual();
     // Activate the status indicator by simulating a task start.
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "task-1".into(),
         msg: EventMsg::TaskStarted(TaskStartedEvent {
             model_context_window: None,
         }),
     });
     // Provide a deterministic header via a bold reasoning chunk.
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "task-1".into(),
         msg: EventMsg::AgentReasoningDelta(AgentReasoningDeltaEvent {
             delta: "**Analyzing**".into(),
@@ -2150,7 +2150,7 @@ fn apply_patch_events_emit_history_cells() {
         reason: None,
         grant_root: None,
     };
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "s1".into(),
         msg: EventMsg::ApplyPatchApprovalRequest(ev),
     });
@@ -2189,7 +2189,7 @@ fn apply_patch_events_emit_history_cells() {
         auto_approved: true,
         changes: changes2,
     };
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "s1".into(),
         msg: EventMsg::PatchApplyBegin(begin),
     });
@@ -2208,7 +2208,7 @@ fn apply_patch_events_emit_history_cells() {
         stderr: String::new(),
         success: true,
     };
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "s1".into(),
         msg: EventMsg::PatchApplyEnd(end),
     });
@@ -2230,7 +2230,7 @@ fn apply_patch_manual_approval_adjusts_header() {
             content: "hello\n".to_string(),
         },
     );
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "s1".into(),
         msg: EventMsg::ApplyPatchApprovalRequest(ApplyPatchApprovalRequestEvent {
             call_id: "c1".into(),
@@ -2248,7 +2248,7 @@ fn apply_patch_manual_approval_adjusts_header() {
             content: "hello\n".to_string(),
         },
     );
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "s1".into(),
         msg: EventMsg::PatchApplyBegin(PatchApplyBeginEvent {
             call_id: "c1".into(),
@@ -2277,7 +2277,7 @@ fn apply_patch_manual_flow_snapshot() {
             content: "hello\n".to_string(),
         },
     );
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "s1".into(),
         msg: EventMsg::ApplyPatchApprovalRequest(ApplyPatchApprovalRequestEvent {
             call_id: "c1".into(),
@@ -2299,7 +2299,7 @@ fn apply_patch_manual_flow_snapshot() {
             content: "hello\n".to_string(),
         },
     );
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "s1".into(),
         msg: EventMsg::PatchApplyBegin(PatchApplyBeginEvent {
             call_id: "c1".into(),
@@ -2334,7 +2334,7 @@ fn apply_patch_approval_sends_op_with_submission_id() {
         reason: None,
         grant_root: None,
     };
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "sub-123".into(),
         msg: EventMsg::ApplyPatchApprovalRequest(ev),
     });
@@ -2342,12 +2342,12 @@ fn apply_patch_approval_sends_op_with_submission_id() {
     // Approve via key press 'y'
     chat.handle_key_event(KeyEvent::new(KeyCode::Char('y'), KeyModifiers::NONE));
 
-    // Expect a CodexOp with PatchApproval carrying the submission id, not call id
+    // Expect a CodexistOp with PatchApproval carrying the submission id, not call id
     let mut found = false;
     while let Ok(app_ev) = rx.try_recv() {
-        if let AppEvent::CodexOp(Op::PatchApproval { id, decision }) = app_ev {
+        if let AppEvent::CodexistOp(Op::PatchApproval { id, decision }) = app_ev {
             assert_eq!(id, "sub-123");
-            assert_matches!(decision, codex_core::protocol::ReviewDecision::Approved);
+            assert_matches!(decision, codexist_core::protocol::ReviewDecision::Approved);
             found = true;
             break;
         }
@@ -2365,7 +2365,7 @@ fn apply_patch_full_flow_integration_like() {
         PathBuf::from("pkg.rs"),
         FileChange::Add { content: "".into() },
     );
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "sub-xyz".into(),
         msg: EventMsg::ApplyPatchApprovalRequest(ApplyPatchApprovalRequestEvent {
             call_id: "call-1".into(),
@@ -2375,26 +2375,26 @@ fn apply_patch_full_flow_integration_like() {
         }),
     });
 
-    // 2) User approves via 'y' and App receives a CodexOp
+    // 2) User approves via 'y' and App receives a CodexistOp
     chat.handle_key_event(KeyEvent::new(KeyCode::Char('y'), KeyModifiers::NONE));
     let mut maybe_op: Option<Op> = None;
     while let Ok(app_ev) = rx.try_recv() {
-        if let AppEvent::CodexOp(op) = app_ev {
+        if let AppEvent::CodexistOp(op) = app_ev {
             maybe_op = Some(op);
             break;
         }
     }
-    let op = maybe_op.expect("expected CodexOp after key press");
+    let op = maybe_op.expect("expected CodexistOp after key press");
 
-    // 3) App forwards to widget.submit_op, which pushes onto codex_op_tx
+    // 3) App forwards to widget.submit_op, which pushes onto codexist_op_tx
     chat.submit_op(op);
     let forwarded = op_rx
         .try_recv()
-        .expect("expected op forwarded to codex channel");
+        .expect("expected op forwarded to codexist channel");
     match forwarded {
         Op::PatchApproval { id, decision } => {
             assert_eq!(id, "sub-xyz");
-            assert_matches!(decision, codex_core::protocol::ReviewDecision::Approved);
+            assert_matches!(decision, codexist_core::protocol::ReviewDecision::Approved);
         }
         other => panic!("unexpected op forwarded: {other:?}"),
     }
@@ -2405,7 +2405,7 @@ fn apply_patch_full_flow_integration_like() {
         PathBuf::from("pkg.rs"),
         FileChange::Add { content: "".into() },
     );
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "sub-xyz".into(),
         msg: EventMsg::PatchApplyBegin(PatchApplyBeginEvent {
             call_id: "call-1".into(),
@@ -2413,7 +2413,7 @@ fn apply_patch_full_flow_integration_like() {
             changes: changes2,
         }),
     });
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "sub-xyz".into(),
         msg: EventMsg::PatchApplyEnd(PatchApplyEndEvent {
             call_id: "call-1".into(),
@@ -2436,7 +2436,7 @@ fn apply_patch_untrusted_shows_approval_modal() {
         PathBuf::from("a.rs"),
         FileChange::Add { content: "".into() },
     );
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "sub-1".into(),
         msg: EventMsg::ApplyPatchApprovalRequest(ApplyPatchApprovalRequestEvent {
             call_id: "call-1".into(),
@@ -2484,7 +2484,7 @@ fn apply_patch_request_shows_diff_summary() {
             content: "line one\nline two\n".into(),
         },
     );
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "sub-apply".into(),
         msg: EventMsg::ApplyPatchApprovalRequest(ApplyPatchApprovalRequestEvent {
             call_id: "call-apply".into(),
@@ -2553,7 +2553,7 @@ fn plan_update_renders_history_cell() {
             },
         ],
     };
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "sub-1".into(),
         msg: EventMsg::PlanUpdate(update),
     });
@@ -2574,7 +2574,7 @@ fn stream_error_updates_status_indicator() {
     let (mut chat, mut rx, _op_rx) = make_chatwidget_manual();
     chat.bottom_pane.set_task_running(true);
     let msg = "Reconnecting... 2/5";
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "sub-1".into(),
         msg: EventMsg::StreamError(StreamErrorEvent {
             message: msg.to_string(),
@@ -2596,7 +2596,7 @@ fn stream_error_updates_status_indicator() {
 #[test]
 fn warning_event_adds_warning_history_cell() {
     let (mut chat, mut rx, _op_rx) = make_chatwidget_manual();
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "sub-1".into(),
         msg: EventMsg::Warning(WarningEvent {
             message: TEST_WARNING_MESSAGE.to_string(),
@@ -2617,7 +2617,7 @@ fn multiple_agent_messages_in_single_turn_emit_multiple_headers() {
     let (mut chat, mut rx, _op_rx) = make_chatwidget_manual();
 
     // Begin turn
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "s1".into(),
         msg: EventMsg::TaskStarted(TaskStartedEvent {
             model_context_window: None,
@@ -2625,7 +2625,7 @@ fn multiple_agent_messages_in_single_turn_emit_multiple_headers() {
     });
 
     // First finalized assistant message
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "s1".into(),
         msg: EventMsg::AgentMessage(AgentMessageEvent {
             message: "First message".into(),
@@ -2633,7 +2633,7 @@ fn multiple_agent_messages_in_single_turn_emit_multiple_headers() {
     });
 
     // Second finalized assistant message in the same turn
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "s1".into(),
         msg: EventMsg::AgentMessage(AgentMessageEvent {
             message: "Second message".into(),
@@ -2641,7 +2641,7 @@ fn multiple_agent_messages_in_single_turn_emit_multiple_headers() {
     });
 
     // End turn
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "s1".into(),
         msg: EventMsg::TaskComplete(TaskCompleteEvent {
             last_agent_message: None,
@@ -2671,13 +2671,13 @@ fn final_reasoning_then_message_without_deltas_are_rendered() {
     let (mut chat, mut rx, _op_rx) = make_chatwidget_manual();
 
     // No deltas; only final reasoning followed by final message.
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "s1".into(),
         msg: EventMsg::AgentReasoning(AgentReasoningEvent {
             text: "I will first analyze the request.".into(),
         }),
     });
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "s1".into(),
         msg: EventMsg::AgentMessage(AgentMessageEvent {
             message: "Here is the result.".into(),
@@ -2698,25 +2698,25 @@ fn deltas_then_same_final_message_are_rendered_snapshot() {
     let (mut chat, mut rx, _op_rx) = make_chatwidget_manual();
 
     // Stream some reasoning deltas first.
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "s1".into(),
         msg: EventMsg::AgentReasoningDelta(AgentReasoningDeltaEvent {
             delta: "I will ".into(),
         }),
     });
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "s1".into(),
         msg: EventMsg::AgentReasoningDelta(AgentReasoningDeltaEvent {
             delta: "first analyze the ".into(),
         }),
     });
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "s1".into(),
         msg: EventMsg::AgentReasoningDelta(AgentReasoningDeltaEvent {
             delta: "request.".into(),
         }),
     });
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "s1".into(),
         msg: EventMsg::AgentReasoning(AgentReasoningEvent {
             text: "request.".into(),
@@ -2724,20 +2724,20 @@ fn deltas_then_same_final_message_are_rendered_snapshot() {
     });
 
     // Then stream answer deltas, followed by the exact same final message.
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "s1".into(),
         msg: EventMsg::AgentMessageDelta(AgentMessageDeltaEvent {
             delta: "Here is the ".into(),
         }),
     });
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "s1".into(),
         msg: EventMsg::AgentMessageDelta(AgentMessageDeltaEvent {
             delta: "result.".into(),
         }),
     });
 
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "s1".into(),
         msg: EventMsg::AgentMessage(AgentMessageEvent {
             message: "Here is the result.".into(),
@@ -2760,12 +2760,12 @@ fn deltas_then_same_final_message_are_rendered_snapshot() {
 #[test]
 fn chatwidget_exec_and_status_layout_vt100_snapshot() {
     let (mut chat, mut rx, _op_rx) = make_chatwidget_manual();
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "t1".into(),
         msg: EventMsg::AgentMessage(AgentMessageEvent { message: "I’m going to search the repo for where “Change Approved” is rendered to update that view.".into() }),
     });
 
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "c1".into(),
         msg: EventMsg::ExecCommandBegin(ExecCommandBeginEvent {
             call_id: "c1".into(),
@@ -2786,7 +2786,7 @@ fn chatwidget_exec_and_status_layout_vt100_snapshot() {
             is_user_shell_command: false,
         }),
     });
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "c1".into(),
         msg: EventMsg::ExecCommandEnd(ExecCommandEndEvent {
             call_id: "c1".into(),
@@ -2798,13 +2798,13 @@ fn chatwidget_exec_and_status_layout_vt100_snapshot() {
             formatted_output: String::new(),
         }),
     });
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "t1".into(),
         msg: EventMsg::TaskStarted(TaskStartedEvent {
             model_context_window: None,
         }),
     });
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "t1".into(),
         msg: EventMsg::AgentReasoningDelta(AgentReasoningDeltaEvent {
             delta: "**Investigating rendering code**".into(),
@@ -2842,7 +2842,7 @@ fn chatwidget_markdown_code_blocks_vt100_snapshot() {
 
     // Simulate a final agent message via streaming deltas instead of a single message
 
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "t1".into(),
         msg: EventMsg::TaskStarted(TaskStartedEvent {
             model_context_window: None,
@@ -2890,7 +2890,7 @@ printf 'fenced within fenced\n'
             delta.push(c2);
         }
 
-        chat.handle_codex_event(Event {
+        chat.handle_codexist_event(Event {
             id: "t1".into(),
             msg: EventMsg::AgentMessageDelta(AgentMessageDeltaEvent { delta }),
         });
@@ -2913,7 +2913,7 @@ printf 'fenced within fenced\n'
     }
 
     // Finalize the stream without sending a final AgentMessage, to flush any tail.
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "t1".into(),
         msg: EventMsg::TaskComplete(TaskCompleteEvent {
             last_agent_message: None,
@@ -2930,7 +2930,7 @@ printf 'fenced within fenced\n'
 #[test]
 fn chatwidget_tall() {
     let (mut chat, _rx, _op_rx) = make_chatwidget_manual();
-    chat.handle_codex_event(Event {
+    chat.handle_codexist_event(Event {
         id: "t1".into(),
         msg: EventMsg::TaskStarted(TaskStartedEvent {
             model_context_window: None,

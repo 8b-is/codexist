@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use codex_core::config::edit::ConfigEditsBuilder;
+use codexist_core::config::edit::ConfigEditsBuilder;
 use crossterm::event::KeyCode;
 use crossterm::event::KeyEvent;
 use crossterm::event::KeyEventKind;
@@ -32,15 +32,15 @@ pub(crate) const WSL_INSTRUCTIONS: &str = r#"Install WSL2 by opening PowerShell 
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash && export NVM_DIR="$HOME/.nvm" && \. "$NVM_DIR/nvm.sh"
     nvm install 22
 
-    # Install and run Codex in WSL
-    npm install --global @openai/codex
-    codex
+    # Install and run Codexist in WSL
+    npm install --global @openai/codexist
+    codexist
 
-    # Additional details and instructions for how to install and run Codex in WSL:
-    https://developers.openai.com/codex/windows"#;
+    # Additional details and instructions for how to install and run Codexist in WSL:
+    https://developers.openai.com/codexist/windows"#;
 
 pub(crate) struct WindowsSetupWidget {
-    pub codex_home: PathBuf,
+    pub codexist_home: PathBuf,
     pub selection: Option<WindowsSetupSelection>,
     pub highlighted: WindowsSetupSelection,
     pub error: Option<String>,
@@ -54,9 +54,9 @@ pub enum WindowsSetupSelection {
 }
 
 impl WindowsSetupWidget {
-    pub fn new(codex_home: PathBuf) -> Self {
+    pub fn new(codexist_home: PathBuf) -> Self {
         Self {
-            codex_home,
+            codexist_home,
             selection: None,
             highlighted: WindowsSetupSelection::Install,
             error: None,
@@ -66,7 +66,7 @@ impl WindowsSetupWidget {
 
     fn handle_continue(&mut self) {
         self.highlighted = WindowsSetupSelection::Continue;
-        match ConfigEditsBuilder::new(&self.codex_home)
+        match ConfigEditsBuilder::new(&self.codexist_home)
             .set_windows_wsl_setup_acknowledged(true)
             .apply_blocking()
         {
@@ -99,10 +99,10 @@ impl WidgetRef for &WindowsSetupWidget {
         let mut lines: Vec<Line> = vec![
             Line::from(vec![
                 "> ".into(),
-                "To use all Codex features, we recommend running Codex in Windows Subsystem for Linux (WSL2)".bold(),
+                "To use all Codexist features, we recommend running Codexist in Windows Subsystem for Linux (WSL2)".bold(),
             ]),
-            Line::from(vec!["  ".into(), "WSL allows Codex to run Agent mode in a sandboxed environment with better data protections in place.".into()]),
-            Line::from(vec!["  ".into(), "Learn more: https://developers.openai.com/codex/windows".into()]),
+            Line::from(vec!["  ".into(), "WSL allows Codexist to run Agent mode in a sandboxed environment with better data protections in place.".into()]),
+            Line::from(vec!["  ".into(), "Learn more: https://developers.openai.com/codexist/windows".into()]),
             Line::from(""),
         ];
 

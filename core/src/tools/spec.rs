@@ -429,7 +429,7 @@ fn create_test_sync_tool() -> ToolSpec {
 
     ToolSpec::Function(ResponsesApiTool {
         name: "test_sync_tool".to_string(),
-        description: "Internal synchronization helper used by Codex integration tests.".to_string(),
+        description: "Internal synchronization helper used by Codexist integration tests.".to_string(),
         strict: false,
         parameters: JsonSchema::Object {
             properties,
@@ -1168,9 +1168,9 @@ mod tests {
     }
 
     #[test]
-    fn test_full_toolset_specs_for_gpt5_codex_unified_exec_web_search() {
-        let model_family = find_family_for_model("gpt-5-codex")
-            .expect("gpt-5-codex should be a valid model family");
+    fn test_full_toolset_specs_for_gpt5_codexist_unified_exec_web_search() {
+        let model_family = find_family_for_model("gpt-5-codexist")
+            .expect("gpt-5-codexist should be a valid model family");
         let mut features = Features::with_defaults();
         features.enable(Feature::UnifiedExec);
         features.enable(Feature::WebSearchRequest);
@@ -1241,9 +1241,9 @@ mod tests {
     }
 
     #[test]
-    fn test_build_specs_gpt5_codex_default() {
+    fn test_build_specs_gpt5_codexist_default() {
         assert_model_tools(
-            "gpt-5-codex",
+            "gpt-5-codexist",
             &Features::with_defaults(),
             &[
                 "shell",
@@ -1258,9 +1258,9 @@ mod tests {
     }
 
     #[test]
-    fn test_build_specs_gpt5_codex_unified_exec_web_search() {
+    fn test_build_specs_gpt5_codexist_unified_exec_web_search() {
         assert_model_tools(
-            "gpt-5-codex",
+            "gpt-5-codexist",
             Features::with_defaults()
                 .enable(Feature::UnifiedExec)
                 .enable(Feature::WebSearchRequest),
@@ -1279,9 +1279,9 @@ mod tests {
     }
 
     #[test]
-    fn test_codex_mini_defaults() {
+    fn test_codexist_mini_defaults() {
         assert_model_tools(
-            "codex-mini-latest",
+            "codexist-mini-latest",
             &Features::with_defaults(),
             &[
                 "local_shell",
@@ -1312,9 +1312,9 @@ mod tests {
     }
 
     #[test]
-    fn test_codex_mini_unified_exec_web_search() {
+    fn test_codexist_mini_unified_exec_web_search() {
         assert_model_tools(
-            "codex-mini-latest",
+            "codexist-mini-latest",
             Features::with_defaults()
                 .enable(Feature::UnifiedExec)
                 .enable(Feature::WebSearchRequest),
@@ -1354,7 +1354,7 @@ mod tests {
     #[test]
     fn test_build_specs_shell_command_present() {
         assert_model_tools(
-            "codex-mini-latest",
+            "codexist-mini-latest",
             Features::with_defaults().enable(Feature::ShellCommandTool),
             &[
                 "shell_command",
@@ -1370,8 +1370,8 @@ mod tests {
     #[test]
     #[ignore]
     fn test_parallel_support_flags() {
-        let model_family = find_family_for_model("gpt-5-codex")
-            .expect("codex-mini-latest should be a valid model family");
+        let model_family = find_family_for_model("gpt-5-codexist")
+            .expect("codexist-mini-latest should be a valid model family");
         let mut features = Features::with_defaults();
         features.disable(Feature::ViewImageTool);
         features.enable(Feature::UnifiedExec);
@@ -1390,8 +1390,8 @@ mod tests {
 
     #[test]
     fn test_test_model_family_includes_sync_tool() {
-        let model_family = find_family_for_model("test-gpt-5-codex")
-            .expect("test-gpt-5-codex should be a valid model family");
+        let model_family = find_family_for_model("test-gpt-5-codexist")
+            .expect("test-gpt-5-codexist should be a valid model family");
         let mut features = Features::with_defaults();
         features.disable(Feature::ViewImageTool);
         let config = ToolsConfig::new(&ToolsConfigParams {
@@ -1589,8 +1589,8 @@ mod tests {
 
     #[test]
     fn test_mcp_tool_property_missing_type_defaults_to_string() {
-        let model_family = find_family_for_model("gpt-5-codex")
-            .expect("gpt-5-codex should be a valid model family");
+        let model_family = find_family_for_model("gpt-5-codexist")
+            .expect("gpt-5-codexist should be a valid model family");
         let mut features = Features::with_defaults();
         features.enable(Feature::UnifiedExec);
         features.enable(Feature::WebSearchRequest);
@@ -1646,8 +1646,8 @@ mod tests {
 
     #[test]
     fn test_mcp_tool_integer_normalized_to_number() {
-        let model_family = find_family_for_model("gpt-5-codex")
-            .expect("gpt-5-codex should be a valid model family");
+        let model_family = find_family_for_model("gpt-5-codexist")
+            .expect("gpt-5-codexist should be a valid model family");
         let mut features = Features::with_defaults();
         features.enable(Feature::UnifiedExec);
         features.enable(Feature::WebSearchRequest);
@@ -1699,8 +1699,8 @@ mod tests {
 
     #[test]
     fn test_mcp_tool_array_without_items_gets_default_string_items() {
-        let model_family = find_family_for_model("gpt-5-codex")
-            .expect("gpt-5-codex should be a valid model family");
+        let model_family = find_family_for_model("gpt-5-codexist")
+            .expect("gpt-5-codexist should be a valid model family");
         let mut features = Features::with_defaults();
         features.enable(Feature::UnifiedExec);
         features.enable(Feature::WebSearchRequest);
@@ -1756,8 +1756,8 @@ mod tests {
 
     #[test]
     fn test_mcp_tool_anyof_defaults_to_string() {
-        let model_family = find_family_for_model("gpt-5-codex")
-            .expect("gpt-5-codex should be a valid model family");
+        let model_family = find_family_for_model("gpt-5-codexist")
+            .expect("gpt-5-codexist should be a valid model family");
         let mut features = Features::with_defaults();
         features.enable(Feature::UnifiedExec);
         features.enable(Feature::WebSearchRequest);
@@ -1839,8 +1839,8 @@ mod tests {
 
     #[test]
     fn test_get_openai_tools_mcp_tools_with_additional_properties_schema() {
-        let model_family = find_family_for_model("gpt-5-codex")
-            .expect("gpt-5-codex should be a valid model family");
+        let model_family = find_family_for_model("gpt-5-codexist")
+            .expect("gpt-5-codexist should be a valid model family");
         let mut features = Features::with_defaults();
         features.enable(Feature::UnifiedExec);
         features.enable(Feature::WebSearchRequest);

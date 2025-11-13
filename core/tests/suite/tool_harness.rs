@@ -3,15 +3,15 @@
 use std::fs;
 
 use assert_matches::assert_matches;
-use codex_core::features::Feature;
-use codex_core::model_family::find_family_for_model;
-use codex_core::protocol::AskForApproval;
-use codex_core::protocol::EventMsg;
-use codex_core::protocol::Op;
-use codex_core::protocol::SandboxPolicy;
-use codex_protocol::config_types::ReasoningSummary;
-use codex_protocol::plan_tool::StepStatus;
-use codex_protocol::user_input::UserInput;
+use codexist_core::features::Feature;
+use codexist_core::model_family::find_family_for_model;
+use codexist_core::protocol::AskForApproval;
+use codexist_core::protocol::EventMsg;
+use codexist_core::protocol::Op;
+use codexist_core::protocol::SandboxPolicy;
+use codexist_protocol::config_types::ReasoningSummary;
+use codexist_protocol::plan_tool::StepStatus;
+use codexist_protocol::user_input::UserInput;
 use core_test_support::assert_regex_match;
 use core_test_support::responses;
 use core_test_support::responses::ev_apply_patch_function_call;
@@ -23,8 +23,8 @@ use core_test_support::responses::ev_response_created;
 use core_test_support::responses::sse;
 use core_test_support::responses::start_mock_server;
 use core_test_support::skip_if_no_network;
-use core_test_support::test_codex::TestCodex;
-use core_test_support::test_codex::test_codex;
+use core_test_support::test_codexist::TestCodexist;
+use core_test_support::test_codexist::test_codexist;
 use core_test_support::wait_for_event;
 use serde_json::Value;
 use serde_json::json;
@@ -44,12 +44,12 @@ async fn shell_tool_executes_command_and_streams_output() -> anyhow::Result<()> 
 
     let server = start_mock_server().await;
 
-    let mut builder = test_codex().with_config(|config| {
+    let mut builder = test_codexist().with_config(|config| {
         config.model = "gpt-5".to_string();
         config.model_family = find_family_for_model("gpt-5").expect("gpt-5 is a valid model");
     });
-    let TestCodex {
-        codex,
+    let TestCodexist {
+        codexist,
         cwd,
         session_configured,
         ..
@@ -72,7 +72,7 @@ async fn shell_tool_executes_command_and_streams_output() -> anyhow::Result<()> 
 
     let session_model = session_configured.model.clone();
 
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "please run the shell command".into(),
@@ -87,7 +87,7 @@ async fn shell_tool_executes_command_and_streams_output() -> anyhow::Result<()> 
         })
         .await?;
 
-    wait_for_event(&codex, |event| matches!(event, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |event| matches!(event, EventMsg::TaskComplete(_))).await;
 
     let req = second_mock.single_request();
     let output_item = req.function_call_output(call_id);
@@ -106,9 +106,9 @@ async fn update_plan_tool_emits_plan_update_event() -> anyhow::Result<()> {
 
     let server = start_mock_server().await;
 
-    let mut builder = test_codex();
-    let TestCodex {
-        codex,
+    let mut builder = test_codexist();
+    let TestCodexist {
+        codexist,
         cwd,
         session_configured,
         ..
@@ -139,7 +139,7 @@ async fn update_plan_tool_emits_plan_update_event() -> anyhow::Result<()> {
 
     let session_model = session_configured.model.clone();
 
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "please update the plan".into(),
@@ -155,7 +155,7 @@ async fn update_plan_tool_emits_plan_update_event() -> anyhow::Result<()> {
         .await?;
 
     let mut saw_plan_update = false;
-    wait_for_event(&codex, |event| match event {
+    wait_for_event(&codexist, |event| match event {
         EventMsg::PlanUpdate(update) => {
             saw_plan_update = true;
             assert_eq!(update.explanation.as_deref(), Some("Tool harness check"));
@@ -191,9 +191,9 @@ async fn update_plan_tool_rejects_malformed_payload() -> anyhow::Result<()> {
 
     let server = start_mock_server().await;
 
-    let mut builder = test_codex();
-    let TestCodex {
-        codex,
+    let mut builder = test_codexist();
+    let TestCodexist {
+        codexist,
         cwd,
         session_configured,
         ..
@@ -220,7 +220,7 @@ async fn update_plan_tool_rejects_malformed_payload() -> anyhow::Result<()> {
 
     let session_model = session_configured.model.clone();
 
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "please update the plan".into(),
@@ -236,7 +236,7 @@ async fn update_plan_tool_rejects_malformed_payload() -> anyhow::Result<()> {
         .await?;
 
     let mut saw_plan_update = false;
-    wait_for_event(&codex, |event| match event {
+    wait_for_event(&codexist, |event| match event {
         EventMsg::PlanUpdate(_) => {
             saw_plan_update = true;
             false
@@ -283,11 +283,11 @@ async fn apply_patch_tool_executes_and_emits_patch_events() -> anyhow::Result<()
 
     let server = start_mock_server().await;
 
-    let mut builder = test_codex().with_config(|config| {
+    let mut builder = test_codexist().with_config(|config| {
         config.features.enable(Feature::ApplyPatchFreeform);
     });
-    let TestCodex {
-        codex,
+    let TestCodexist {
+        codexist,
         cwd,
         session_configured,
         ..
@@ -318,7 +318,7 @@ async fn apply_patch_tool_executes_and_emits_patch_events() -> anyhow::Result<()
 
     let session_model = session_configured.model.clone();
 
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "please apply a patch".into(),
@@ -335,7 +335,7 @@ async fn apply_patch_tool_executes_and_emits_patch_events() -> anyhow::Result<()
 
     let mut saw_patch_begin = false;
     let mut patch_end_success = None;
-    wait_for_event(&codex, |event| match event {
+    wait_for_event(&codexist, |event| match event {
         EventMsg::PatchApplyBegin(begin) => {
             saw_patch_begin = true;
             assert_eq!(begin.call_id, call_id);
@@ -389,11 +389,11 @@ async fn apply_patch_reports_parse_diagnostics() -> anyhow::Result<()> {
 
     let server = start_mock_server().await;
 
-    let mut builder = test_codex().with_config(|config| {
+    let mut builder = test_codexist().with_config(|config| {
         config.features.enable(Feature::ApplyPatchFreeform);
     });
-    let TestCodex {
-        codex,
+    let TestCodexist {
+        codexist,
         cwd,
         session_configured,
         ..
@@ -419,7 +419,7 @@ async fn apply_patch_reports_parse_diagnostics() -> anyhow::Result<()> {
 
     let session_model = session_configured.model.clone();
 
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "please apply a patch".into(),
@@ -434,7 +434,7 @@ async fn apply_patch_reports_parse_diagnostics() -> anyhow::Result<()> {
         })
         .await?;
 
-    wait_for_event(&codex, |event| matches!(event, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |event| matches!(event, EventMsg::TaskComplete(_))).await;
 
     let req = second_mock.single_request();
     let output_item = req.function_call_output(call_id);

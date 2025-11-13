@@ -12,6 +12,6 @@ use serde::de::DeserializeOwned;
 
 pub fn to_response<T: DeserializeOwned>(response: JSONRPCResponse) -> anyhow::Result<T> {
     let value = serde_json::to_value(response.result)?;
-    let codex_response = serde_json::from_value(value)?;
-    Ok(codex_response)
+    let codexist_response = serde_json::from_value(value)?;
+    Ok(codexist_response)
 }

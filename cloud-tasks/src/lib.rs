@@ -8,7 +8,7 @@ pub mod util;
 pub use cli::Cli;
 
 use anyhow::anyhow;
-use codex_login::AuthManager;
+use codexist_login::AuthManager;
 use std::io::IsTerminal;
 use std::io::Read;
 use std::path::PathBuf;
@@ -22,38 +22,38 @@ use util::append_error_log;
 use util::set_user_agent_suffix;
 
 struct ApplyJob {
-    task_id: codex_cloud_tasks_client::TaskId,
+    task_id: codexist_cloud_tasks_client::TaskId,
     diff_override: Option<String>,
 }
 
 struct BackendContext {
-    backend: Arc<dyn codex_cloud_tasks_client::CloudBackend>,
+    backend: Arc<dyn codexist_cloud_tasks_client::CloudBackend>,
     base_url: String,
 }
 
 async fn init_backend(user_agent_suffix: &str) -> anyhow::Result<BackendContext> {
     let use_mock = matches!(
-        std::env::var("CODEX_CLOUD_TASKS_MODE").ok().as_deref(),
+        std::env::var("CODEXIST_CLOUD_TASKS_MODE").ok().as_deref(),
         Some("mock") | Some("MOCK")
     );
-    let base_url = std::env::var("CODEX_CLOUD_TASKS_BASE_URL")
+    let base_url = std::env::var("CODEXIST_CLOUD_TASKS_BASE_URL")
         .unwrap_or_else(|_| "https://chatgpt.com/backend-api".to_string());
 
     set_user_agent_suffix(user_agent_suffix);
 
     if use_mock {
         return Ok(BackendContext {
-            backend: Arc::new(codex_cloud_tasks_client::MockClient),
+            backend: Arc::new(codexist_cloud_tasks_client::MockClient),
             base_url,
         });
     }
 
-    let ua = codex_core::default_client::get_codex_user_agent();
-    let mut http = codex_cloud_tasks_client::HttpClient::new(base_url.clone())?.with_user_agent(ua);
+    let ua = codexist_core::default_client::get_codexist_user_agent();
+    let mut http = codexist_cloud_tasks_client::HttpClient::new(base_url.clone())?.with_user_agent(ua);
     let style = if base_url.contains("/backend-api") {
         "wham"
     } else {
-        "codex-api"
+        "codexist-api"
     };
     append_error_log(format!("startup: base_url={base_url} path_style={style}"));
 
@@ -62,7 +62,7 @@ async fn init_backend(user_agent_suffix: &str) -> anyhow::Result<BackendContext>
         Some(auth) => auth,
         None => {
             eprintln!(
-                "Not signed in. Please run 'codex login' to sign in with ChatGPT, then re-run 'codex cloud'."
+                "Not signed in. Please run 'codexist login' to sign in with ChatGPT, then re-run 'codexist cloud'."
             );
             std::process::exit(1);
         }
@@ -76,7 +76,7 @@ async fn init_backend(user_agent_suffix: &str) -> anyhow::Result<BackendContext>
         Ok(t) if !t.is_empty() => t,
         _ => {
             eprintln!(
-                "Not signed in. Please run 'codex login' to sign in with ChatGPT, then re-run 'codex cloud'."
+                "Not signed in. Please run 'codexist login' to sign in with ChatGPT, then re-run 'codexist cloud'."
             );
             std::process::exit(1);
         }
@@ -103,10 +103,10 @@ async fn run_exec_command(args: crate::cli::ExecCommand) -> anyhow::Result<()> {
         environment,
         attempts,
     } = args;
-    let ctx = init_backend("codex_cloud_tasks_exec").await?;
+    let ctx = init_backend("codexist_cloud_tasks_exec").await?;
     let prompt = resolve_query_input(query)?;
     let env_id = resolve_environment_id(&ctx, &environment).await?;
-    let created = codex_cloud_tasks_client::CloudBackend::create_task(
+    let created = codexist_cloud_tasks_client::CloudBackend::create_task(
         &*ctx.backend,
         &env_id,
         &prompt,
@@ -149,7 +149,7 @@ async fn resolve_environment_id(ctx: &BackendContext, requested: &str) -> anyhow
         .collect::<Vec<_>>();
     match label_matches.as_slice() {
         [] => Err(anyhow!(
-            "environment '{trimmed}' not found; run `codex cloud` to list available environments"
+            "environment '{trimmed}' not found; run `codexist cloud` to list available environments"
         )),
         [single] => Ok(single.id.clone()),
         [first, rest @ ..] => {
@@ -158,7 +158,7 @@ async fn resolve_environment_id(ctx: &BackendContext, requested: &str) -> anyhow
                 Ok(first_id.clone())
             } else {
                 Err(anyhow!(
-                    "environment label '{trimmed}' is ambiguous; run `codex cloud` to pick the desired environment id"
+                    "environment label '{trimmed}' is ambiguous; run `codexist cloud` to pick the desired environment id"
                 ))
             }
         }
@@ -192,17 +192,17 @@ fn resolve_query_input(query_arg: Option<String>) -> anyhow::Result<String> {
     }
 }
 
-fn level_from_status(status: codex_cloud_tasks_client::ApplyStatus) -> app::ApplyResultLevel {
+fn level_from_status(status: codexist_cloud_tasks_client::ApplyStatus) -> app::ApplyResultLevel {
     match status {
-        codex_cloud_tasks_client::ApplyStatus::Success => app::ApplyResultLevel::Success,
-        codex_cloud_tasks_client::ApplyStatus::Partial => app::ApplyResultLevel::Partial,
-        codex_cloud_tasks_client::ApplyStatus::Error => app::ApplyResultLevel::Error,
+        codexist_cloud_tasks_client::ApplyStatus::Success => app::ApplyResultLevel::Success,
+        codexist_cloud_tasks_client::ApplyStatus::Partial => app::ApplyResultLevel::Partial,
+        codexist_cloud_tasks_client::ApplyStatus::Error => app::ApplyResultLevel::Error,
     }
 }
 
 fn spawn_preflight(
     app: &mut app::App,
-    backend: &Arc<dyn codex_cloud_tasks_client::CloudBackend>,
+    backend: &Arc<dyn codexist_cloud_tasks_client::CloudBackend>,
     tx: &UnboundedSender<app::AppEvent>,
     frame_tx: &UnboundedSender<Instant>,
     title: String,
@@ -227,7 +227,7 @@ fn spawn_preflight(
             task_id,
             diff_override,
         } = job;
-        let result = codex_cloud_tasks_client::CloudBackend::apply_task_preflight(
+        let result = codexist_cloud_tasks_client::CloudBackend::apply_task_preflight(
             &*backend,
             task_id.clone(),
             diff_override,
@@ -264,7 +264,7 @@ fn spawn_preflight(
 
 fn spawn_apply(
     app: &mut app::App,
-    backend: &Arc<dyn codex_cloud_tasks_client::CloudBackend>,
+    backend: &Arc<dyn codexist_cloud_tasks_client::CloudBackend>,
     tx: &UnboundedSender<app::AppEvent>,
     frame_tx: &UnboundedSender<Instant>,
     job: ApplyJob,
@@ -288,7 +288,7 @@ fn spawn_apply(
             task_id,
             diff_override,
         } = job;
-        let result = codex_cloud_tasks_client::CloudBackend::apply_task(
+        let result = codexist_cloud_tasks_client::CloudBackend::apply_task(
             &*backend,
             task_id.clone(),
             diff_override,
@@ -316,8 +316,8 @@ fn spawn_apply(
 
 // (no standalone patch summarizer needed – UI displays raw diffs)
 
-/// Entry point for the `codex cloud` subcommand.
-pub async fn run_main(cli: Cli, _codex_linux_sandbox_exe: Option<PathBuf>) -> anyhow::Result<()> {
+/// Entry point for the `codexist cloud` subcommand.
+pub async fn run_main(cli: Cli, _codexist_linux_sandbox_exe: Option<PathBuf>) -> anyhow::Result<()> {
     if let Some(command) = cli.command {
         return match command {
             crate::cli::Command::Exec(args) => run_exec_command(args).await,
@@ -338,7 +338,7 @@ pub async fn run_main(cli: Cli, _codex_linux_sandbox_exe: Option<PathBuf>) -> an
         .try_init();
 
     info!("Launching Cloud Tasks list UI");
-    let BackendContext { backend, .. } = init_backend("codex_cloud_tasks_tui").await?;
+    let BackendContext { backend, .. } = init_backend("codexist_cloud_tasks_tui").await?;
     let backend = backend;
 
     // Terminal setup
@@ -376,7 +376,7 @@ pub async fn run_main(cli: Cli, _codex_linux_sandbox_exe: Option<PathBuf>) -> an
     let mut app = app::App::new();
     // Initial load
     let force_internal = matches!(
-        std::env::var("CODEX_CLOUD_TASKS_FORCE_INTERNAL")
+        std::env::var("CODEXIST_CLOUD_TASKS_FORCE_INTERNAL")
             .ok()
             .as_deref(),
         Some("1") | Some("true") | Some("TRUE")
@@ -384,7 +384,7 @@ pub async fn run_main(cli: Cli, _codex_linux_sandbox_exe: Option<PathBuf>) -> an
     append_error_log(format!(
         "startup: wham_force_internal={} ua={}",
         force_internal,
-        codex_core::default_client::get_codex_user_agent()
+        codexist_core::default_client::get_codexist_user_agent()
     ));
     // Non-blocking initial load so the in-box spinner can animate
     app.status = "Loading tasks…".to_string();
@@ -423,7 +423,7 @@ pub async fn run_main(cli: Cli, _codex_linux_sandbox_exe: Option<PathBuf>) -> an
         let tx = tx.clone();
         tokio::spawn(async move {
             let base_url = util::normalize_base_url(
-                &std::env::var("CODEX_CLOUD_TASKS_BASE_URL")
+                &std::env::var("CODEXIST_CLOUD_TASKS_BASE_URL")
                     .unwrap_or_else(|_| "https://chatgpt.com/backend-api".to_string()),
             );
             let headers = util::build_chatgpt_headers().await;
@@ -438,7 +438,7 @@ pub async fn run_main(cli: Cli, _codex_linux_sandbox_exe: Option<PathBuf>) -> an
         let tx = tx.clone();
         tokio::spawn(async move {
             let base_url = util::normalize_base_url(
-                &std::env::var("CODEX_CLOUD_TASKS_BASE_URL")
+                &std::env::var("CODEXIST_CLOUD_TASKS_BASE_URL")
                     .unwrap_or_else(|_| "https://chatgpt.com/backend-api".to_string()),
             );
             // Build headers: UA + ChatGPT auth if available
@@ -509,7 +509,7 @@ pub async fn run_main(cli: Cli, _codex_linux_sandbox_exe: Option<PathBuf>) -> an
                 if let Some(page) = app.new_task.as_mut() {
                     if page.composer.flush_paste_burst_if_due() { needs_redraw = true; }
                     if page.composer.is_in_paste_burst() {
-                        let _ = frame_tx.send(Instant::now() + codex_tui::ComposerInput::recommended_flush_delay());
+                        let _ = frame_tx.send(Instant::now() + codexist_tui::ComposerInput::recommended_flush_delay());
                     }
                 }
                 // Keep spinner pulsing only while loading.
@@ -660,7 +660,7 @@ pub async fn run_main(cli: Cli, _codex_linux_sandbox_exe: Option<PathBuf>) -> an
                                         let tx = tx.clone();
                                         tokio::spawn(async move {
                                             let base_url = crate::util::normalize_base_url(
-                                                &std::env::var("CODEX_CLOUD_TASKS_BASE_URL")
+                                                &std::env::var("CODEXIST_CLOUD_TASKS_BASE_URL")
                                                     .unwrap_or_else(|_| "https://chatgpt.com/backend-api".to_string()),
                                             );
                                             let headers = crate::util::build_chatgpt_headers().await;
@@ -742,7 +742,7 @@ pub async fn run_main(cli: Cli, _codex_linux_sandbox_exe: Option<PathBuf>) -> an
                                         let tx = tx.clone();
                                         let task_id = id.clone();
                                         tokio::spawn(async move {
-                                            match codex_cloud_tasks_client::CloudBackend::list_sibling_attempts(
+                                            match codexist_cloud_tasks_client::CloudBackend::list_sibling_attempts(
                                                 &*backend,
                                                 task_id.clone(),
                                                 turn_id,
@@ -871,7 +871,7 @@ pub async fn run_main(cli: Cli, _codex_linux_sandbox_exe: Option<PathBuf>) -> an
                             match result {
                                 Ok(outcome) => {
                                     app.status = outcome.message.clone();
-                                    if matches!(outcome.status, codex_cloud_tasks_client::ApplyStatus::Success) {
+                                    if matches!(outcome.status, codexist_cloud_tasks_client::ApplyStatus::Success) {
                                         app.apply_modal = None;
                                         app.diff_overlay = None;
                                         // Refresh tasks after successful apply
@@ -1045,7 +1045,7 @@ pub async fn run_main(cli: Cli, _codex_linux_sandbox_exe: Option<PathBuf>) -> an
                             if should_fetch {
                                     let tx = tx.clone();
                                     tokio::spawn(async move {
-            let base_url = crate::util::normalize_base_url(&std::env::var("CODEX_CLOUD_TASKS_BASE_URL").unwrap_or_else(|_| "https://chatgpt.com/backend-api".to_string()));
+            let base_url = crate::util::normalize_base_url(&std::env::var("CODEXIST_CLOUD_TASKS_BASE_URL").unwrap_or_else(|_| "https://chatgpt.com/backend-api".to_string()));
             let headers = crate::util::build_chatgpt_headers().await;
                                         let res = crate::env_detect::list_environments(&base_url, &headers).await;
                                         let _ = tx.send(app::AppEvent::EnvironmentsLoaded(res));
@@ -1070,7 +1070,7 @@ pub async fn run_main(cli: Cli, _codex_linux_sandbox_exe: Option<PathBuf>) -> an
                                 _ => {
                                     if page.submitting {
                                         // Ignore input while submitting
-                                    } else if let codex_tui::ComposerAction::Submitted(text) = page.composer.input(key) {
+                                    } else if let codexist_tui::ComposerAction::Submitted(text) = page.composer.input(key) {
                                             // Submit only if we have an env id
                                             if let Some(env) = page.env_id.clone() {
                                                 append_error_log(format!(
@@ -1085,9 +1085,9 @@ pub async fn run_main(cli: Cli, _codex_linux_sandbox_exe: Option<PathBuf>) -> an
                                                 let best_of_n = page.best_of_n;
                                                 tokio::spawn(async move {
                                                     let git_ref = if let Ok(cwd) = std::env::current_dir() {
-                                                        if let Some(branch) = codex_core::git_info::default_branch_name(&cwd).await {
+                                                        if let Some(branch) = codexist_core::git_info::default_branch_name(&cwd).await {
                                                             branch
-                                                        } else if let Some(branch) = codex_core::git_info::current_branch_name(&cwd).await {
+                                                        } else if let Some(branch) = codexist_core::git_info::current_branch_name(&cwd).await {
                                                             branch
                                                         } else {
                                                             "main".to_string()
@@ -1096,7 +1096,7 @@ pub async fn run_main(cli: Cli, _codex_linux_sandbox_exe: Option<PathBuf>) -> an
                                                         "main".to_string()
                                                     };
 
-                                                    let result = codex_cloud_tasks_client::CloudBackend::create_task(&*backend, &env, &text, &git_ref, false, best_of_n).await;
+                                                    let result = codexist_cloud_tasks_client::CloudBackend::create_task(&*backend, &env, &text, &git_ref, false, best_of_n).await;
                                                     let evt = match result {
                                                         Ok(ok) => app::AppEvent::NewTaskSubmitted(Ok(ok)),
                                                         Err(e) => app::AppEvent::NewTaskSubmitted(Err(format!("{e}"))),
@@ -1110,7 +1110,7 @@ pub async fn run_main(cli: Cli, _codex_linux_sandbox_exe: Option<PathBuf>) -> an
                                     needs_redraw = true;
                                     // If paste‑burst is active, schedule a micro‑flush frame.
                                     if page.composer.is_in_paste_burst() {
-                                        let _ = frame_tx.send(Instant::now() + codex_tui::ComposerInput::recommended_flush_delay());
+                                        let _ = frame_tx.send(Instant::now() + codexist_tui::ComposerInput::recommended_flush_delay());
                                     }
                                     // Always schedule an immediate redraw for key edits in the composer.
                                     let _ = frame_tx.send(Instant::now());
@@ -1237,7 +1237,7 @@ pub async fn run_main(cli: Cli, _codex_linux_sandbox_exe: Option<PathBuf>) -> an
                                         let tx = tx.clone();
                                         tokio::spawn(async move {
                                             let base_url = crate::util::normalize_base_url(
-                                                &std::env::var("CODEX_CLOUD_TASKS_BASE_URL")
+                                                &std::env::var("CODEXIST_CLOUD_TASKS_BASE_URL")
                                                     .unwrap_or_else(|_| "https://chatgpt.com/backend-api".to_string()),
                                             );
                                             let headers = crate::util::build_chatgpt_headers().await;
@@ -1415,7 +1415,7 @@ pub async fn run_main(cli: Cli, _codex_linux_sandbox_exe: Option<PathBuf>) -> an
                                     if should_fetch {
                                     let tx = tx.clone();
                                     tokio::spawn(async move {
-                                        let base_url = crate::util::normalize_base_url(&std::env::var("CODEX_CLOUD_TASKS_BASE_URL").unwrap_or_else(|_| "https://chatgpt.com/backend-api".to_string()));
+                                        let base_url = crate::util::normalize_base_url(&std::env::var("CODEXIST_CLOUD_TASKS_BASE_URL").unwrap_or_else(|_| "https://chatgpt.com/backend-api".to_string()));
                                         let headers = crate::util::build_chatgpt_headers().await;
                                         let res = crate::env_detect::list_environments(&base_url, &headers).await;
                                         let _ = tx.send(app::AppEvent::EnvironmentsLoaded(res));
@@ -1449,12 +1449,12 @@ pub async fn run_main(cli: Cli, _codex_linux_sandbox_exe: Option<PathBuf>) -> an
                                             let diff_id = id.clone();
                                             let diff_title = title.clone();
                                             tokio::spawn(async move {
-                                                match codex_cloud_tasks_client::CloudBackend::get_task_diff(&*backend, diff_id.clone()).await {
+                                                match codexist_cloud_tasks_client::CloudBackend::get_task_diff(&*backend, diff_id.clone()).await {
                                                     Ok(Some(diff)) => {
                                                         let _ = tx.send(app::AppEvent::DetailsDiffLoaded { id: diff_id, title: diff_title, diff });
                                                     }
                                                     Ok(None) => {
-                                                        match codex_cloud_tasks_client::CloudBackend::get_task_text(&*backend, diff_id.clone()).await {
+                                                        match codexist_cloud_tasks_client::CloudBackend::get_task_text(&*backend, diff_id.clone()).await {
                                                             Ok(text) => {
                                                                 let evt = app::AppEvent::DetailsMessagesLoaded {
                                                                     id: diff_id,
@@ -1475,7 +1475,7 @@ pub async fn run_main(cli: Cli, _codex_linux_sandbox_exe: Option<PathBuf>) -> an
                                                     }
                                                     Err(e) => {
                                                         append_error_log(format!("get_task_diff failed for {}: {e}", diff_id.0));
-                                                        match codex_cloud_tasks_client::CloudBackend::get_task_text(&*backend, diff_id.clone()).await {
+                                                        match codexist_cloud_tasks_client::CloudBackend::get_task_text(&*backend, diff_id.clone()).await {
                                                             Ok(text) => {
                                                                 let evt = app::AppEvent::DetailsMessagesLoaded {
                                                                     id: diff_id,
@@ -1504,7 +1504,7 @@ pub async fn run_main(cli: Cli, _codex_linux_sandbox_exe: Option<PathBuf>) -> an
                                             let msg_id = id;
                                             let msg_title = title;
                                             tokio::spawn(async move {
-                                                if let Ok(text) = codex_cloud_tasks_client::CloudBackend::get_task_text(&*backend, msg_id.clone()).await {
+                                                if let Ok(text) = codexist_cloud_tasks_client::CloudBackend::get_task_text(&*backend, msg_id.clone()).await {
                                                     let evt = app::AppEvent::DetailsMessagesLoaded {
                                                         id: msg_id,
                                                         title: msg_title,
@@ -1531,7 +1531,7 @@ pub async fn run_main(cli: Cli, _codex_linux_sandbox_exe: Option<PathBuf>) -> an
                                     }
 
                                     if let Some(task) = app.tasks.get(app.selected).cloned() {
-                                        match codex_cloud_tasks_client::CloudBackend::get_task_diff(&*backend, task.id.clone()).await {
+                                        match codexist_cloud_tasks_client::CloudBackend::get_task_diff(&*backend, task.id.clone()).await {
                                             Ok(Some(diff)) => {
                                                 let diff_override = Some(diff.clone());
                                                 let task_id = task.id.clone();
@@ -1712,8 +1712,8 @@ fn pretty_lines_from_error(raw: &str) -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
-    use codex_tui::ComposerAction;
-    use codex_tui::ComposerInput;
+    use codexist_tui::ComposerAction;
+    use codexist_tui::ComposerInput;
     use crossterm::event::KeyCode;
     use crossterm::event::KeyEvent;
     use crossterm::event::KeyModifiers;

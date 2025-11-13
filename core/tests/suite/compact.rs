@@ -1,16 +1,16 @@
-use codex_core::CodexAuth;
-use codex_core::ConversationManager;
-use codex_core::ModelProviderInfo;
-use codex_core::NewConversation;
-use codex_core::built_in_model_providers;
-use codex_core::config::Config;
-use codex_core::protocol::ErrorEvent;
-use codex_core::protocol::EventMsg;
-use codex_core::protocol::Op;
-use codex_core::protocol::RolloutItem;
-use codex_core::protocol::RolloutLine;
-use codex_core::protocol::WarningEvent;
-use codex_protocol::user_input::UserInput;
+use codexist_core::CodexistAuth;
+use codexist_core::ConversationManager;
+use codexist_core::ModelProviderInfo;
+use codexist_core::NewConversation;
+use codexist_core::built_in_model_providers;
+use codexist_core::config::Config;
+use codexist_core::protocol::ErrorEvent;
+use codexist_core::protocol::EventMsg;
+use codexist_core::protocol::Op;
+use codexist_core::protocol::RolloutItem;
+use codexist_core::protocol::RolloutLine;
+use codexist_core::protocol::WarningEvent;
+use codexist_protocol::user_input::UserInput;
 use core_test_support::load_default_config_for_test;
 use core_test_support::skip_if_no_network;
 use core_test_support::wait_for_event;
@@ -122,7 +122,7 @@ async fn summarize_context_three_requests_and_instructions() {
     };
     let third_request_mock = mount_sse_once_match(&server, third_matcher, sse3).await;
 
-    // Build config pointing to the mock server and spawn Codex.
+    // Build config pointing to the mock server and spawn Codexist.
     let model_provider = ModelProviderInfo {
         base_url: Some(format!("{}/v1", server.uri())),
         ..built_in_model_providers()["openai"].clone()
@@ -132,16 +132,16 @@ async fn summarize_context_three_requests_and_instructions() {
     config.model_provider = model_provider;
     set_test_compact_prompt(&mut config);
     config.model_auto_compact_token_limit = Some(200_000);
-    let conversation_manager = ConversationManager::with_auth(CodexAuth::from_api_key("dummy"));
+    let conversation_manager = ConversationManager::with_auth(CodexistAuth::from_api_key("dummy"));
     let NewConversation {
-        conversation: codex,
+        conversation: codexist,
         session_configured,
         ..
     } = conversation_manager.new_conversation(config).await.unwrap();
     let rollout_path = session_configured.rollout_path;
 
     // 1) Normal user input – should hit server once.
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello world".into(),
@@ -149,19 +149,19 @@ async fn summarize_context_three_requests_and_instructions() {
         })
         .await
         .unwrap();
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     // 2) Summarize – second hit should include the summarization prompt.
-    codex.submit(Op::Compact).await.unwrap();
-    let warning_event = wait_for_event(&codex, |ev| matches!(ev, EventMsg::Warning(_))).await;
+    codexist.submit(Op::Compact).await.unwrap();
+    let warning_event = wait_for_event(&codexist, |ev| matches!(ev, EventMsg::Warning(_))).await;
     let EventMsg::Warning(WarningEvent { message }) = warning_event else {
         panic!("expected warning event after compact");
     };
     assert_eq!(message, COMPACT_WARNING_MESSAGE);
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     // 3) Next user input – third hit; history should include only the summary.
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: THIRD_USER_MSG.into(),
@@ -169,7 +169,7 @@ async fn summarize_context_three_requests_and_instructions() {
         })
         .await
         .unwrap();
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     // Inspect the three captured requests.
     let req1 = first_request_mock.single_request();
@@ -257,9 +257,9 @@ async fn summarize_context_three_requests_and_instructions() {
         "third request should not include the summarize trigger"
     );
 
-    // Shut down Codex to flush rollout entries before inspecting the file.
-    codex.submit(Op::Shutdown).await.unwrap();
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::ShutdownComplete)).await;
+    // Shut down Codexist to flush rollout entries before inspecting the file.
+    codexist.submit(Op::Shutdown).await.unwrap();
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::ShutdownComplete)).await;
 
     // Verify rollout contains APITurn entries for each API call and a Compacted entry.
     println!("rollout path: {}", rollout_path.display());
@@ -321,20 +321,20 @@ async fn manual_compact_uses_custom_prompt() {
     config.model_provider = model_provider;
     config.compact_prompt = Some(custom_prompt.to_string());
 
-    let conversation_manager = ConversationManager::with_auth(CodexAuth::from_api_key("dummy"));
-    let codex = conversation_manager
+    let conversation_manager = ConversationManager::with_auth(CodexistAuth::from_api_key("dummy"));
+    let codexist = conversation_manager
         .new_conversation(config)
         .await
         .expect("create conversation")
         .conversation;
 
-    codex.submit(Op::Compact).await.expect("trigger compact");
-    let warning_event = wait_for_event(&codex, |ev| matches!(ev, EventMsg::Warning(_))).await;
+    codexist.submit(Op::Compact).await.expect("trigger compact");
+    let warning_event = wait_for_event(&codexist, |ev| matches!(ev, EventMsg::Warning(_))).await;
     let EventMsg::Warning(WarningEvent { message }) = warning_event else {
         panic!("expected warning event after compact");
     };
     assert_eq!(message, COMPACT_WARNING_MESSAGE);
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     let requests = server.received_requests().await.expect("collect requests");
     let body = requests
@@ -440,14 +440,14 @@ async fn auto_compact_runs_after_token_limit_hit() {
     config.model_provider = model_provider;
     set_test_compact_prompt(&mut config);
     config.model_auto_compact_token_limit = Some(200_000);
-    let conversation_manager = ConversationManager::with_auth(CodexAuth::from_api_key("dummy"));
-    let codex = conversation_manager
+    let conversation_manager = ConversationManager::with_auth(CodexistAuth::from_api_key("dummy"));
+    let codexist = conversation_manager
         .new_conversation(config)
         .await
         .unwrap()
         .conversation;
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: FIRST_AUTO_MSG.into(),
@@ -456,9 +456,9 @@ async fn auto_compact_runs_after_token_limit_hit() {
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: SECOND_AUTO_MSG.into(),
@@ -467,9 +467,9 @@ async fn auto_compact_runs_after_token_limit_hit() {
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: POST_AUTO_USER_MSG.into(),
@@ -478,7 +478,7 @@ async fn auto_compact_runs_after_token_limit_hit() {
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     let requests = server.received_requests().await.unwrap();
     assert_eq!(
@@ -680,14 +680,14 @@ async fn auto_compact_persists_rollout_entries() {
     let mut config = load_default_config_for_test(&home);
     config.model_provider = model_provider;
     set_test_compact_prompt(&mut config);
-    let conversation_manager = ConversationManager::with_auth(CodexAuth::from_api_key("dummy"));
+    let conversation_manager = ConversationManager::with_auth(CodexistAuth::from_api_key("dummy"));
     let NewConversation {
-        conversation: codex,
+        conversation: codexist,
         session_configured,
         ..
     } = conversation_manager.new_conversation(config).await.unwrap();
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: FIRST_AUTO_MSG.into(),
@@ -695,9 +695,9 @@ async fn auto_compact_persists_rollout_entries() {
         })
         .await
         .unwrap();
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: SECOND_AUTO_MSG.into(),
@@ -705,10 +705,10 @@ async fn auto_compact_persists_rollout_entries() {
         })
         .await
         .unwrap();
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
-    codex.submit(Op::Shutdown).await.unwrap();
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::ShutdownComplete)).await;
+    codexist.submit(Op::Shutdown).await.unwrap();
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::ShutdownComplete)).await;
 
     let rollout_path = session_configured.rollout_path;
     let text = std::fs::read_to_string(&rollout_path).unwrap_or_else(|e| {
@@ -792,14 +792,14 @@ async fn auto_compact_stops_after_failed_attempt() {
     config.model_provider = model_provider;
     set_test_compact_prompt(&mut config);
     config.model_auto_compact_token_limit = Some(200);
-    let conversation_manager = ConversationManager::with_auth(CodexAuth::from_api_key("dummy"));
-    let codex = conversation_manager
+    let conversation_manager = ConversationManager::with_auth(CodexistAuth::from_api_key("dummy"));
+    let codexist = conversation_manager
         .new_conversation(config)
         .await
         .unwrap()
         .conversation;
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: FIRST_AUTO_MSG.into(),
@@ -808,7 +808,7 @@ async fn auto_compact_stops_after_failed_attempt() {
         .await
         .unwrap();
 
-    let error_event = wait_for_event(&codex, |ev| matches!(ev, EventMsg::Error(_))).await;
+    let error_event = wait_for_event(&codexist, |ev| matches!(ev, EventMsg::Error(_))).await;
     let EventMsg::Error(ErrorEvent { message }) = error_event else {
         panic!("expected error event");
     };
@@ -816,7 +816,7 @@ async fn auto_compact_stops_after_failed_attempt() {
         message.contains("limit"),
         "error message should include limit information: {message}"
     );
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     let requests = server.received_requests().await.unwrap();
     assert_eq!(
@@ -888,13 +888,13 @@ async fn manual_compact_retries_after_context_window_error() {
     config.model_provider = model_provider;
     set_test_compact_prompt(&mut config);
     config.model_auto_compact_token_limit = Some(200_000);
-    let codex = ConversationManager::with_auth(CodexAuth::from_api_key("dummy"))
+    let codexist = ConversationManager::with_auth(CodexistAuth::from_api_key("dummy"))
         .new_conversation(config)
         .await
         .unwrap()
         .conversation;
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "first turn".into(),
@@ -902,11 +902,11 @@ async fn manual_compact_retries_after_context_window_error() {
         })
         .await
         .unwrap();
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
-    codex.submit(Op::Compact).await.unwrap();
+    codexist.submit(Op::Compact).await.unwrap();
     let EventMsg::BackgroundEvent(event) =
-        wait_for_event(&codex, |ev| matches!(ev, EventMsg::BackgroundEvent(_))).await
+        wait_for_event(&codexist, |ev| matches!(ev, EventMsg::BackgroundEvent(_))).await
     else {
         panic!("expected background event after compact retry");
     };
@@ -915,12 +915,12 @@ async fn manual_compact_retries_after_context_window_error() {
         "background event should mention trimmed item count: {}",
         event.message
     );
-    let warning_event = wait_for_event(&codex, |ev| matches!(ev, EventMsg::Warning(_))).await;
+    let warning_event = wait_for_event(&codexist, |ev| matches!(ev, EventMsg::Warning(_))).await;
     let EventMsg::Warning(WarningEvent { message }) = warning_event else {
         panic!("expected warning event after compact retry");
     };
     assert_eq!(message, COMPACT_WARNING_MESSAGE);
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     let requests = request_log.requests();
     assert_eq!(
@@ -1033,13 +1033,13 @@ async fn manual_compact_twice_preserves_latest_user_messages() {
     let mut config = load_default_config_for_test(&home);
     config.model_provider = model_provider;
     set_test_compact_prompt(&mut config);
-    let codex = ConversationManager::with_auth(CodexAuth::from_api_key("dummy"))
+    let codexist = ConversationManager::with_auth(CodexistAuth::from_api_key("dummy"))
         .new_conversation(config)
         .await
         .unwrap()
         .conversation;
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: first_user_message.into(),
@@ -1047,12 +1047,12 @@ async fn manual_compact_twice_preserves_latest_user_messages() {
         })
         .await
         .unwrap();
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
-    codex.submit(Op::Compact).await.unwrap();
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    codexist.submit(Op::Compact).await.unwrap();
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: second_user_message.into(),
@@ -1060,12 +1060,12 @@ async fn manual_compact_twice_preserves_latest_user_messages() {
         })
         .await
         .unwrap();
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
-    codex.submit(Op::Compact).await.unwrap();
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    codexist.submit(Op::Compact).await.unwrap();
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: final_user_message.into(),
@@ -1073,7 +1073,7 @@ async fn manual_compact_twice_preserves_latest_user_messages() {
         })
         .await
         .unwrap();
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     let requests = responses_mock.requests();
     assert_eq!(
@@ -1244,14 +1244,14 @@ async fn auto_compact_allows_multiple_attempts_when_interleaved_with_other_turn_
     config.model_provider = model_provider;
     set_test_compact_prompt(&mut config);
     config.model_auto_compact_token_limit = Some(200);
-    let conversation_manager = ConversationManager::with_auth(CodexAuth::from_api_key("dummy"));
-    let codex = conversation_manager
+    let conversation_manager = ConversationManager::with_auth(CodexistAuth::from_api_key("dummy"));
+    let codexist = conversation_manager
         .new_conversation(config)
         .await
         .unwrap()
         .conversation;
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: MULTI_AUTO_MSG.into(),
@@ -1262,7 +1262,7 @@ async fn auto_compact_allows_multiple_attempts_when_interleaved_with_other_turn_
 
     let mut auto_compact_lifecycle_events = Vec::new();
     loop {
-        let event = codex.next_event().await.unwrap();
+        let event = codexist.next_event().await.unwrap();
         if event.id.starts_with("auto-compact-")
             && matches!(
                 event.msg,
@@ -1358,13 +1358,13 @@ async fn auto_compact_triggers_after_function_call_over_95_percent_usage() {
     config.model_context_window = Some(context_window);
     config.model_auto_compact_token_limit = Some(limit);
 
-    let codex = ConversationManager::with_auth(CodexAuth::from_api_key("dummy"))
+    let codexist = ConversationManager::with_auth(CodexistAuth::from_api_key("dummy"))
         .new_conversation(config)
         .await
         .unwrap()
         .conversation;
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: FUNCTION_CALL_LIMIT_MSG.into(),
@@ -1373,7 +1373,7 @@ async fn auto_compact_triggers_after_function_call_over_95_percent_usage() {
         .await
         .unwrap();
 
-    wait_for_event(&codex, |msg| matches!(msg, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |msg| matches!(msg, EventMsg::TaskComplete(_))).await;
 
     // Assert first request captured expected user message that triggers function call.
     let first_request = first_turn_mock.single_request().input();

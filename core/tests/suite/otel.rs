@@ -1,10 +1,10 @@
-use codex_core::features::Feature;
-use codex_protocol::protocol::AskForApproval;
-use codex_protocol::protocol::EventMsg;
-use codex_protocol::protocol::Op;
-use codex_protocol::protocol::ReviewDecision;
-use codex_protocol::protocol::SandboxPolicy;
-use codex_protocol::user_input::UserInput;
+use codexist_core::features::Feature;
+use codexist_protocol::protocol::AskForApproval;
+use codexist_protocol::protocol::EventMsg;
+use codexist_protocol::protocol::Op;
+use codexist_protocol::protocol::ReviewDecision;
+use codexist_protocol::protocol::SandboxPolicy;
+use codexist_protocol::user_input::UserInput;
 use core_test_support::responses::ev_assistant_message;
 use core_test_support::responses::ev_completed;
 use core_test_support::responses::ev_custom_tool_call;
@@ -12,8 +12,8 @@ use core_test_support::responses::ev_function_call;
 use core_test_support::responses::mount_sse_once;
 use core_test_support::responses::sse;
 use core_test_support::responses::start_mock_server;
-use core_test_support::test_codex::TestCodex;
-use core_test_support::test_codex::test_codex;
+use core_test_support::test_codexist::TestCodexist;
+use core_test_support::test_codexist::test_codexist;
 use core_test_support::wait_for_event;
 use tracing_test::traced_test;
 
@@ -26,9 +26,9 @@ async fn responses_api_emits_api_request_event() {
 
     mount_sse_once(&server, sse(vec![ev_completed("done")])).await;
 
-    let TestCodex { codex, .. } = test_codex().build(&server).await.unwrap();
+    let TestCodexist { codexist, .. } = test_codexist().build(&server).await.unwrap();
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello".into(),
@@ -37,22 +37,22 @@ async fn responses_api_emits_api_request_event() {
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     logs_assert(|lines: &[&str]| {
         lines
             .iter()
-            .find(|line| line.contains("codex.api_request"))
+            .find(|line| line.contains("codexist.api_request"))
             .map(|_| Ok(()))
-            .unwrap_or_else(|| Err("expected codex.api_request event".to_string()))
+            .unwrap_or_else(|| Err("expected codexist.api_request event".to_string()))
     });
 
     logs_assert(|lines: &[&str]| {
         lines
             .iter()
-            .find(|line| line.contains("codex.conversation_starts"))
+            .find(|line| line.contains("codexist.conversation_starts"))
             .map(|_| Ok(()))
-            .unwrap_or_else(|| Err("expected codex.conversation_starts event".to_string()))
+            .unwrap_or_else(|| Err("expected codexist.conversation_starts event".to_string()))
     });
 }
 
@@ -67,9 +67,9 @@ async fn process_sse_emits_tracing_for_output_item() {
     )
     .await;
 
-    let TestCodex { codex, .. } = test_codex().build(&server).await.unwrap();
+    let TestCodexist { codexist, .. } = test_codexist().build(&server).await.unwrap();
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello".into(),
@@ -78,13 +78,13 @@ async fn process_sse_emits_tracing_for_output_item() {
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     logs_assert(|lines: &[&str]| {
         lines
             .iter()
             .find(|line| {
-                line.contains("codex.sse_event")
+                line.contains("codexist.sse_event")
                     && line.contains("event.kind=response.output_item.done")
             })
             .map(|_| Ok(()))
@@ -99,7 +99,7 @@ async fn process_sse_emits_failed_event_on_parse_error() {
 
     mount_sse_once(&server, "data: not-json\n\n".to_string()).await;
 
-    let TestCodex { codex, .. } = test_codex()
+    let TestCodexist { codexist, .. } = test_codexist()
         .with_config(move |config| {
             config.features.disable(Feature::GhostCommit);
         })
@@ -107,7 +107,7 @@ async fn process_sse_emits_failed_event_on_parse_error() {
         .await
         .unwrap();
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello".into(),
@@ -116,18 +116,18 @@ async fn process_sse_emits_failed_event_on_parse_error() {
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     logs_assert(|lines: &[&str]| {
         lines
             .iter()
             .find(|line| {
-                line.contains("codex.sse_event")
+                line.contains("codexist.sse_event")
                     && line.contains("error.message")
                     && line.contains("expected ident at line 1 column 2")
             })
             .map(|_| Ok(()))
-            .unwrap_or(Err("missing codex.sse_event".to_string()))
+            .unwrap_or(Err("missing codexist.sse_event".to_string()))
     });
 }
 
@@ -138,7 +138,7 @@ async fn process_sse_records_failed_event_when_stream_closes_without_completed()
 
     mount_sse_once(&server, sse(vec![ev_assistant_message("id", "hi")])).await;
 
-    let TestCodex { codex, .. } = test_codex()
+    let TestCodexist { codexist, .. } = test_codexist()
         .with_config(move |config| {
             config.features.disable(Feature::GhostCommit);
         })
@@ -146,7 +146,7 @@ async fn process_sse_records_failed_event_when_stream_closes_without_completed()
         .await
         .unwrap();
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello".into(),
@@ -155,18 +155,18 @@ async fn process_sse_records_failed_event_when_stream_closes_without_completed()
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     logs_assert(|lines: &[&str]| {
         lines
             .iter()
             .find(|line| {
-                line.contains("codex.sse_event")
+                line.contains("codexist.sse_event")
                     && line.contains("error.message")
                     && line.contains("stream closed before response.completed")
             })
             .map(|_| Ok(()))
-            .unwrap_or(Err("missing codex.sse_event".to_string()))
+            .unwrap_or(Err("missing codexist.sse_event".to_string()))
     });
 }
 
@@ -197,7 +197,7 @@ async fn process_sse_failed_event_records_response_error_message() {
     )
     .await;
 
-    let TestCodex { codex, .. } = test_codex()
+    let TestCodexist { codexist, .. } = test_codexist()
         .with_config(move |config| {
             config.features.disable(Feature::GhostCommit);
         })
@@ -205,7 +205,7 @@ async fn process_sse_failed_event_records_response_error_message() {
         .await
         .unwrap();
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello".into(),
@@ -214,19 +214,19 @@ async fn process_sse_failed_event_records_response_error_message() {
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     logs_assert(|lines: &[&str]| {
         lines
             .iter()
             .find(|line| {
-                line.contains("codex.sse_event")
+                line.contains("codexist.sse_event")
                     && line.contains("event.kind=response.failed")
                     && line.contains("error.message")
                     && line.contains("boom")
             })
             .map(|_| Ok(()))
-            .unwrap_or(Err("missing codex.sse_event".to_string()))
+            .unwrap_or(Err("missing codexist.sse_event".to_string()))
     });
 }
 
@@ -254,7 +254,7 @@ async fn process_sse_failed_event_logs_parse_error() {
     )
     .await;
 
-    let TestCodex { codex, .. } = test_codex()
+    let TestCodexist { codexist, .. } = test_codexist()
         .with_config(move |config| {
             config.features.disable(Feature::GhostCommit);
         })
@@ -262,7 +262,7 @@ async fn process_sse_failed_event_logs_parse_error() {
         .await
         .unwrap();
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello".into(),
@@ -271,16 +271,16 @@ async fn process_sse_failed_event_logs_parse_error() {
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     logs_assert(|lines: &[&str]| {
         lines
             .iter()
             .find(|line| {
-                line.contains("codex.sse_event") && line.contains("event.kind=response.failed")
+                line.contains("codexist.sse_event") && line.contains("event.kind=response.failed")
             })
             .map(|_| Ok(()))
-            .unwrap_or(Err("missing codex.sse_event".to_string()))
+            .unwrap_or(Err("missing codexist.sse_event".to_string()))
     });
 }
 
@@ -298,7 +298,7 @@ async fn process_sse_failed_event_logs_missing_error() {
     )
     .await;
 
-    let TestCodex { codex, .. } = test_codex()
+    let TestCodexist { codexist, .. } = test_codexist()
         .with_config(move |config| {
             config.features.disable(Feature::GhostCommit);
         })
@@ -306,7 +306,7 @@ async fn process_sse_failed_event_logs_missing_error() {
         .await
         .unwrap();
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello".into(),
@@ -315,16 +315,16 @@ async fn process_sse_failed_event_logs_missing_error() {
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     logs_assert(|lines: &[&str]| {
         lines
             .iter()
             .find(|line| {
-                line.contains("codex.sse_event") && line.contains("event.kind=response.failed")
+                line.contains("codexist.sse_event") && line.contains("event.kind=response.failed")
             })
             .map(|_| Ok(()))
-            .unwrap_or(Err("missing codex.sse_event".to_string()))
+            .unwrap_or(Err("missing codexist.sse_event".to_string()))
     });
 }
 
@@ -351,7 +351,7 @@ async fn process_sse_failed_event_logs_response_completed_parse_error() {
     )
     .await;
 
-    let TestCodex { codex, .. } = test_codex()
+    let TestCodexist { codexist, .. } = test_codexist()
         .with_config(move |config| {
             config.features.disable(Feature::GhostCommit);
         })
@@ -359,7 +359,7 @@ async fn process_sse_failed_event_logs_response_completed_parse_error() {
         .await
         .unwrap();
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello".into(),
@@ -368,19 +368,19 @@ async fn process_sse_failed_event_logs_response_completed_parse_error() {
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     logs_assert(|lines: &[&str]| {
         lines
             .iter()
             .find(|line| {
-                line.contains("codex.sse_event")
+                line.contains("codexist.sse_event")
                     && line.contains("event.kind=response.completed")
                     && line.contains("error.message")
                     && line.contains("failed to parse ResponseCompleted")
             })
             .map(|_| Ok(()))
-            .unwrap_or(Err("missing codex.sse_event".to_string()))
+            .unwrap_or(Err("missing codexist.sse_event".to_string()))
     });
 }
 
@@ -407,9 +407,9 @@ async fn process_sse_emits_completed_telemetry() {
     )
     .await;
 
-    let TestCodex { codex, .. } = test_codex().build(&server).await.unwrap();
+    let TestCodexist { codexist, .. } = test_codexist().build(&server).await.unwrap();
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello".into(),
@@ -418,13 +418,13 @@ async fn process_sse_emits_completed_telemetry() {
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     logs_assert(|lines: &[&str]| {
         lines
             .iter()
             .find(|line| {
-                line.contains("codex.sse_event")
+                line.contains("codexist.sse_event")
                     && line.contains("event.kind=response.completed")
                     && line.contains("input_token_count=3")
                     && line.contains("output_token_count=5")
@@ -463,7 +463,7 @@ async fn handle_response_item_records_tool_result_for_custom_tool_call() {
     )
     .await;
 
-    let TestCodex { codex, .. } = test_codex()
+    let TestCodexist { codexist, .. } = test_codexist()
         .with_config(move |config| {
             config.features.disable(Feature::GhostCommit);
         })
@@ -471,7 +471,7 @@ async fn handle_response_item_records_tool_result_for_custom_tool_call() {
         .await
         .unwrap();
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello".into(),
@@ -480,15 +480,15 @@ async fn handle_response_item_records_tool_result_for_custom_tool_call() {
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TokenCount(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TokenCount(_))).await;
 
     logs_assert(|lines: &[&str]| {
         let line = lines
             .iter()
             .find(|line| {
-                line.contains("codex.tool_result") && line.contains("call_id=custom-tool-call")
+                line.contains("codexist.tool_result") && line.contains("call_id=custom-tool-call")
             })
-            .ok_or_else(|| "missing codex.tool_result event".to_string())?;
+            .ok_or_else(|| "missing codexist.tool_result event".to_string())?;
 
         if !line.contains("tool_name=unsupported_tool") {
             return Err("missing tool_name field".to_string());
@@ -530,7 +530,7 @@ async fn handle_response_item_records_tool_result_for_function_call() {
     )
     .await;
 
-    let TestCodex { codex, .. } = test_codex()
+    let TestCodexist { codexist, .. } = test_codexist()
         .with_config(move |config| {
             config.features.disable(Feature::GhostCommit);
         })
@@ -538,7 +538,7 @@ async fn handle_response_item_records_tool_result_for_function_call() {
         .await
         .unwrap();
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello".into(),
@@ -547,15 +547,15 @@ async fn handle_response_item_records_tool_result_for_function_call() {
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TokenCount(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TokenCount(_))).await;
 
     logs_assert(|lines: &[&str]| {
         let line = lines
             .iter()
             .find(|line| {
-                line.contains("codex.tool_result") && line.contains("call_id=function-call")
+                line.contains("codexist.tool_result") && line.contains("call_id=function-call")
             })
-            .ok_or_else(|| "missing codex.tool_result event".to_string())?;
+            .ok_or_else(|| "missing codexist.tool_result event".to_string())?;
 
         if !line.contains("tool_name=nonexistent") {
             return Err("missing tool_name field".to_string());
@@ -607,7 +607,7 @@ async fn handle_response_item_records_tool_result_for_local_shell_missing_ids() 
     )
     .await;
 
-    let TestCodex { codex, .. } = test_codex()
+    let TestCodexist { codexist, .. } = test_codexist()
         .with_config(move |config| {
             config.features.disable(Feature::GhostCommit);
         })
@@ -615,7 +615,7 @@ async fn handle_response_item_records_tool_result_for_local_shell_missing_ids() 
         .await
         .unwrap();
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello".into(),
@@ -624,17 +624,17 @@ async fn handle_response_item_records_tool_result_for_local_shell_missing_ids() 
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TokenCount(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TokenCount(_))).await;
 
     logs_assert(|lines: &[&str]| {
         let line = lines
             .iter()
             .find(|line| {
-                line.contains("codex.tool_result")
+                line.contains("codexist.tool_result")
                     && line.contains(&"tool_name=local_shell".to_string())
                     && line.contains("output=LocalShellCall without call_id or id")
             })
-            .ok_or_else(|| "missing codex.tool_result event".to_string())?;
+            .ok_or_else(|| "missing codexist.tool_result event".to_string())?;
 
         if !line.contains("success=false") {
             return Err("missing success field".to_string());
@@ -668,7 +668,7 @@ async fn handle_response_item_records_tool_result_for_local_shell_call() {
     )
     .await;
 
-    let TestCodex { codex, .. } = test_codex()
+    let TestCodexist { codexist, .. } = test_codexist()
         .with_config(move |config| {
             config.features.disable(Feature::GhostCommit);
         })
@@ -676,7 +676,7 @@ async fn handle_response_item_records_tool_result_for_local_shell_call() {
         .await
         .unwrap();
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello".into(),
@@ -685,13 +685,13 @@ async fn handle_response_item_records_tool_result_for_local_shell_call() {
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TokenCount(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TokenCount(_))).await;
 
     logs_assert(|lines: &[&str]| {
         let line = lines
             .iter()
-            .find(|line| line.contains("codex.tool_result") && line.contains("call_id=shell-call"))
-            .ok_or_else(|| "missing codex.tool_result event".to_string())?;
+            .find(|line| line.contains("codexist.tool_result") && line.contains("call_id=shell-call"))
+            .ok_or_else(|| "missing codexist.tool_result event".to_string())?;
 
         if !line.contains("tool_name=local_shell") {
             return Err("missing tool_name field".to_string());
@@ -726,9 +726,9 @@ fn tool_decision_assertion<'a>(
         let line = lines
             .iter()
             .find(|line| {
-                line.contains("codex.tool_decision") && line.contains(&format!("call_id={call_id}"))
+                line.contains("codexist.tool_decision") && line.contains(&format!("call_id={call_id}"))
             })
-            .ok_or_else(|| format!("missing codex.tool_decision event for {call_id}"))?;
+            .ok_or_else(|| format!("missing codexist.tool_decision event for {call_id}"))?;
 
         let lower = line.to_lowercase();
         if !lower.contains("tool_name=local_shell") {
@@ -771,7 +771,7 @@ async fn handle_container_exec_autoapprove_from_config_records_tool_decision() {
     )
     .await;
 
-    let TestCodex { codex, .. } = test_codex()
+    let TestCodexist { codexist, .. } = test_codexist()
         .with_config(|config| {
             config.approval_policy = AskForApproval::OnRequest;
             config.sandbox_policy = SandboxPolicy::DangerFullAccess;
@@ -780,7 +780,7 @@ async fn handle_container_exec_autoapprove_from_config_records_tool_decision() {
         .await
         .unwrap();
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello".into(),
@@ -789,7 +789,7 @@ async fn handle_container_exec_autoapprove_from_config_records_tool_decision() {
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     logs_assert(tool_decision_assertion(
         "auto_config_call",
@@ -820,7 +820,7 @@ async fn handle_container_exec_user_approved_records_tool_decision() {
     )
     .await;
 
-    let TestCodex { codex, .. } = test_codex()
+    let TestCodexist { codexist, .. } = test_codexist()
         .with_config(|config| {
             config.approval_policy = AskForApproval::UnlessTrusted;
         })
@@ -828,7 +828,7 @@ async fn handle_container_exec_user_approved_records_tool_decision() {
         .await
         .unwrap();
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "approved".into(),
@@ -837,9 +837,9 @@ async fn handle_container_exec_user_approved_records_tool_decision() {
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::ExecApprovalRequest(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::ExecApprovalRequest(_))).await;
 
-    codex
+    codexist
         .submit(Op::ExecApproval {
             id: "0".into(),
             decision: ReviewDecision::Approved,
@@ -847,7 +847,7 @@ async fn handle_container_exec_user_approved_records_tool_decision() {
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TokenCount(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TokenCount(_))).await;
 
     logs_assert(tool_decision_assertion(
         "user_approved_call",
@@ -878,7 +878,7 @@ async fn handle_container_exec_user_approved_for_session_records_tool_decision()
     )
     .await;
 
-    let TestCodex { codex, .. } = test_codex()
+    let TestCodexist { codexist, .. } = test_codexist()
         .with_config(|config| {
             config.approval_policy = AskForApproval::UnlessTrusted;
         })
@@ -886,7 +886,7 @@ async fn handle_container_exec_user_approved_for_session_records_tool_decision()
         .await
         .unwrap();
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "persist".into(),
@@ -895,9 +895,9 @@ async fn handle_container_exec_user_approved_for_session_records_tool_decision()
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::ExecApprovalRequest(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::ExecApprovalRequest(_))).await;
 
-    codex
+    codexist
         .submit(Op::ExecApproval {
             id: "0".into(),
             decision: ReviewDecision::ApprovedForSession,
@@ -905,7 +905,7 @@ async fn handle_container_exec_user_approved_for_session_records_tool_decision()
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TokenCount(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TokenCount(_))).await;
 
     logs_assert(tool_decision_assertion(
         "user_approved_session_call",
@@ -936,7 +936,7 @@ async fn handle_sandbox_error_user_approves_retry_records_tool_decision() {
     )
     .await;
 
-    let TestCodex { codex, .. } = test_codex()
+    let TestCodexist { codexist, .. } = test_codexist()
         .with_config(|config| {
             config.approval_policy = AskForApproval::UnlessTrusted;
         })
@@ -944,7 +944,7 @@ async fn handle_sandbox_error_user_approves_retry_records_tool_decision() {
         .await
         .unwrap();
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "retry".into(),
@@ -953,9 +953,9 @@ async fn handle_sandbox_error_user_approves_retry_records_tool_decision() {
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::ExecApprovalRequest(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::ExecApprovalRequest(_))).await;
 
-    codex
+    codexist
         .submit(Op::ExecApproval {
             id: "0".into(),
             decision: ReviewDecision::Approved,
@@ -963,7 +963,7 @@ async fn handle_sandbox_error_user_approves_retry_records_tool_decision() {
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TokenCount(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TokenCount(_))).await;
 
     logs_assert(tool_decision_assertion(
         "sandbox_retry_call",
@@ -994,7 +994,7 @@ async fn handle_container_exec_user_denies_records_tool_decision() {
         ]),
     )
     .await;
-    let TestCodex { codex, .. } = test_codex()
+    let TestCodexist { codexist, .. } = test_codexist()
         .with_config(|config| {
             config.approval_policy = AskForApproval::UnlessTrusted;
         })
@@ -1002,7 +1002,7 @@ async fn handle_container_exec_user_denies_records_tool_decision() {
         .await
         .unwrap();
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "deny".into(),
@@ -1011,9 +1011,9 @@ async fn handle_container_exec_user_denies_records_tool_decision() {
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::ExecApprovalRequest(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::ExecApprovalRequest(_))).await;
 
-    codex
+    codexist
         .submit(Op::ExecApproval {
             id: "0".into(),
             decision: ReviewDecision::Denied,
@@ -1021,7 +1021,7 @@ async fn handle_container_exec_user_denies_records_tool_decision() {
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TokenCount(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TokenCount(_))).await;
 
     logs_assert(tool_decision_assertion(
         "user_denied_call",
@@ -1052,7 +1052,7 @@ async fn handle_sandbox_error_user_approves_for_session_records_tool_decision() 
     )
     .await;
 
-    let TestCodex { codex, .. } = test_codex()
+    let TestCodexist { codexist, .. } = test_codexist()
         .with_config(|config| {
             config.approval_policy = AskForApproval::UnlessTrusted;
         })
@@ -1060,7 +1060,7 @@ async fn handle_sandbox_error_user_approves_for_session_records_tool_decision() 
         .await
         .unwrap();
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "persist".into(),
@@ -1069,9 +1069,9 @@ async fn handle_sandbox_error_user_approves_for_session_records_tool_decision() 
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::ExecApprovalRequest(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::ExecApprovalRequest(_))).await;
 
-    codex
+    codexist
         .submit(Op::ExecApproval {
             id: "0".into(),
             decision: ReviewDecision::ApprovedForSession,
@@ -1079,7 +1079,7 @@ async fn handle_sandbox_error_user_approves_for_session_records_tool_decision() 
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TokenCount(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TokenCount(_))).await;
 
     logs_assert(tool_decision_assertion(
         "sandbox_session_call",
@@ -1111,7 +1111,7 @@ async fn handle_sandbox_error_user_denies_records_tool_decision() {
     )
     .await;
 
-    let TestCodex { codex, .. } = test_codex()
+    let TestCodexist { codexist, .. } = test_codexist()
         .with_config(|config| {
             config.approval_policy = AskForApproval::UnlessTrusted;
         })
@@ -1119,7 +1119,7 @@ async fn handle_sandbox_error_user_denies_records_tool_decision() {
         .await
         .unwrap();
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "deny".into(),
@@ -1128,9 +1128,9 @@ async fn handle_sandbox_error_user_denies_records_tool_decision() {
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::ExecApprovalRequest(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::ExecApprovalRequest(_))).await;
 
-    codex
+    codexist
         .submit(Op::ExecApproval {
             id: "0".into(),
             decision: ReviewDecision::Denied,
@@ -1138,7 +1138,7 @@ async fn handle_sandbox_error_user_denies_records_tool_decision() {
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TokenCount(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TokenCount(_))).await;
 
     logs_assert(tool_decision_assertion(
         "sandbox_deny_call",

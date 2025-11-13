@@ -75,7 +75,7 @@ async fn request_user_code(
         let status = resp.status();
         if status == StatusCode::NOT_FOUND {
             return Err(std::io::Error::other(
-                "device code login is not enabled for this Codex server. Use the browser login or verify the server URL.",
+                "device code login is not enabled for this Codexist server. Use the browser login or verify the server URL.",
             ));
         }
 
@@ -157,7 +157,7 @@ pub async fn run_device_code_login(opts: ServerOptions) -> std::io::Result<()> {
     let uc = request_user_code(&client, &api_base_url, &opts.client_id).await?;
 
     println!(
-        "To authenticate:\n  1. Open in your browser: {ANSI_BOLD}https://auth.openai.com/codex/device{ANSI_RESET}\n  2. Enter the one-time code below within 15 minutes:\n\n     {ANSI_BOLD}{}{ANSI_RESET}\n",
+        "To authenticate:\n  1. Open in your browser: {ANSI_BOLD}https://auth.openai.com/codexist/device{ANSI_RESET}\n  2. Enter the one-time code below within 15 minutes:\n\n     {ANSI_BOLD}{}{ANSI_RESET}\n",
         uc.user_code
     );
 
@@ -194,7 +194,7 @@ pub async fn run_device_code_login(opts: ServerOptions) -> std::io::Result<()> {
     }
 
     crate::server::persist_tokens_async(
-        &opts.codex_home,
+        &opts.codexist_home,
         None,
         tokens.id_token,
         tokens.access_token,

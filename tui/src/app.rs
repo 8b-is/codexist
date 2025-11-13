@@ -14,16 +14,16 @@ use crate::resume_picker::ResumeSelection;
 use crate::tui;
 use crate::tui::TuiEvent;
 use crate::update_action::UpdateAction;
-use codex_ansi_escape::ansi_escape_line;
-use codex_core::AuthManager;
-use codex_core::ConversationManager;
-use codex_core::config::Config;
-use codex_core::config::edit::ConfigEditsBuilder;
-use codex_core::model_family::find_family_for_model;
-use codex_core::protocol::SessionSource;
-use codex_core::protocol::TokenUsage;
-use codex_core::protocol_config_types::ReasoningEffort as ReasoningEffortConfig;
-use codex_protocol::ConversationId;
+use codexist_ansi_escape::ansi_escape_line;
+use codexist_core::AuthManager;
+use codexist_core::ConversationManager;
+use codexist_core::config::Config;
+use codexist_core::config::edit::ConfigEditsBuilder;
+use codexist_core::model_family::find_family_for_model;
+use codexist_core::protocol::SessionSource;
+use codexist_core::protocol::TokenUsage;
+use codexist_core::protocol_config_types::ReasoningEffort as ReasoningEffortConfig;
+use codexist_protocol::ConversationId;
 use color_eyre::eyre::Result;
 use color_eyre::eyre::WrapErr;
 use crossterm::event::KeyCode;
@@ -76,7 +76,7 @@ pub(crate) struct App {
 
     // Esc-backtracking state grouped
     pub(crate) backtrack: crate::app_backtrack::BacktrackState,
-    pub(crate) feedback: codex_feedback::CodexFeedback,
+    pub(crate) feedback: codexist_feedback::CodexistFeedback,
     /// Set when the user confirms an update; propagated on exit.
     pub(crate) pending_update_action: Option<UpdateAction>,
 
@@ -94,7 +94,7 @@ impl App {
         initial_prompt: Option<String>,
         initial_images: Vec<PathBuf>,
         resume_selection: ResumeSelection,
-        feedback: codex_feedback::CodexFeedback,
+        feedback: codexist_feedback::CodexistFeedback,
     ) -> Result<AppExitInfo> {
         use tokio_stream::StreamExt;
         let (app_event_tx, mut app_event_rx) = unbounded_channel();
@@ -177,11 +177,11 @@ impl App {
         // On startup, if Auto mode (workspace-write) or ReadOnly is active, warn about world-writable dirs on Windows.
         #[cfg(target_os = "windows")]
         {
-            let should_check = codex_core::get_platform_sandbox().is_some()
+            let should_check = codexist_core::get_platform_sandbox().is_some()
                 && matches!(
                     app.config.sandbox_policy,
-                    codex_core::protocol::SandboxPolicy::WorkspaceWrite { .. }
-                        | codex_core::protocol::SandboxPolicy::ReadOnly
+                    codexist_core::protocol::SandboxPolicy::WorkspaceWrite { .. }
+                        | codexist_core::protocol::SandboxPolicy::ReadOnly
                 )
                 && !app
                     .config
@@ -192,7 +192,7 @@ impl App {
                 let cwd = app.config.cwd.clone();
                 let env_map: std::collections::HashMap<String, String> = std::env::vars().collect();
                 let tx = app.app_event_tx.clone();
-                let logs_base_dir = app.config.codex_home.clone();
+                let logs_base_dir = app.config.codexist_home.clone();
                 Self::spawn_world_writable_scan(cwd, env_map, logs_base_dir, tx);
             }
         }
@@ -337,8 +337,8 @@ impl App {
             AppEvent::CommitTick => {
                 self.chat_widget.on_commit_tick();
             }
-            AppEvent::CodexEvent(event) => {
-                self.chat_widget.handle_codex_event(event);
+            AppEvent::CodexistEvent(event) => {
+                self.chat_widget.handle_codexist_event(event);
             }
             AppEvent::ConversationHistory(ev) => {
                 self.on_conversation_history_for_backtrack(tui, ev).await?;
@@ -346,7 +346,7 @@ impl App {
             AppEvent::ExitRequest => {
                 return Ok(false);
             }
-            AppEvent::CodexOp(op) => self.chat_widget.submit_op(op),
+            AppEvent::CodexistOp(op) => self.chat_widget.submit_op(op),
             AppEvent::DiffResult(text) => {
                 // Clear the in-progress state in the bottom pane
                 self.chat_widget.on_diff_complete();
@@ -414,7 +414,7 @@ impl App {
             }
             AppEvent::PersistModelSelection { model, effort } => {
                 let profile = self.active_profile.as_deref();
-                match ConfigEditsBuilder::new(&self.config.codex_home)
+                match ConfigEditsBuilder::new(&self.config.codexist_home)
                     .with_profile(profile)
                     .set_model(Some(model.as_str()), effort)
                     .apply()
@@ -461,8 +461,8 @@ impl App {
                 #[cfg(target_os = "windows")]
                 let policy_is_workspace_write_or_ro = matches!(
                     policy,
-                    codex_core::protocol::SandboxPolicy::WorkspaceWrite { .. }
-                        | codex_core::protocol::SandboxPolicy::ReadOnly
+                    codexist_core::protocol::SandboxPolicy::WorkspaceWrite { .. }
+                        | codexist_core::protocol::SandboxPolicy::ReadOnly
                 );
 
                 self.chat_widget.set_sandbox_policy(policy);
@@ -476,7 +476,7 @@ impl App {
                         return Ok(true);
                     }
 
-                    let should_check = codex_core::get_platform_sandbox().is_some()
+                    let should_check = codexist_core::get_platform_sandbox().is_some()
                         && policy_is_workspace_write_or_ro
                         && !self.chat_widget.world_writable_warning_hidden();
                     if should_check {
@@ -484,7 +484,7 @@ impl App {
                         let env_map: std::collections::HashMap<String, String> =
                             std::env::vars().collect();
                         let tx = self.app_event_tx.clone();
-                        let logs_base_dir = self.config.codex_home.clone();
+                        let logs_base_dir = self.config.codexist_home.clone();
                         Self::spawn_world_writable_scan(cwd, env_map, logs_base_dir, tx);
                     }
                 }
@@ -503,7 +503,7 @@ impl App {
                 self.chat_widget.set_rate_limit_switch_prompt_hidden(hidden);
             }
             AppEvent::PersistFullAccessWarningAcknowledged => {
-                if let Err(err) = ConfigEditsBuilder::new(&self.config.codex_home)
+                if let Err(err) = ConfigEditsBuilder::new(&self.config.codexist_home)
                     .set_hide_full_access_warning(true)
                     .apply()
                     .await
@@ -518,7 +518,7 @@ impl App {
                 }
             }
             AppEvent::PersistWorldWritableWarningAcknowledged => {
-                if let Err(err) = ConfigEditsBuilder::new(&self.config.codex_home)
+                if let Err(err) = ConfigEditsBuilder::new(&self.config.codexist_home)
                     .set_hide_world_writable_warning(true)
                     .apply()
                     .await
@@ -533,7 +533,7 @@ impl App {
                 }
             }
             AppEvent::PersistRateLimitSwitchPromptHidden => {
-                if let Err(err) = ConfigEditsBuilder::new(&self.config.codex_home)
+                if let Err(err) = ConfigEditsBuilder::new(&self.config.codexist_home)
                     .set_hide_rate_limit_model_nudge(true)
                     .apply()
                     .await
@@ -582,7 +582,7 @@ impl App {
         Ok(true)
     }
 
-    pub(crate) fn token_usage(&self) -> codex_core::protocol::TokenUsage {
+    pub(crate) fn token_usage(&self) -> codexist_core::protocol::TokenUsage {
         self.chat_widget.token_usage()
     }
 
@@ -664,7 +664,7 @@ impl App {
             canon.display().to_string().replace('/', "\\")
         }
         tokio::task::spawn_blocking(move || {
-            let result = codex_windows_sandbox::preflight_audit_everyone_writable(
+            let result = codexist_windows_sandbox::preflight_audit_everyone_writable(
                 &cwd,
                 &env_map,
                 Some(logs_base_dir.as_path()),
@@ -715,11 +715,11 @@ mod tests {
     use crate::history_cell::HistoryCell;
     use crate::history_cell::UserHistoryCell;
     use crate::history_cell::new_session_info;
-    use codex_core::AuthManager;
-    use codex_core::CodexAuth;
-    use codex_core::ConversationManager;
-    use codex_core::protocol::SessionConfiguredEvent;
-    use codex_protocol::ConversationId;
+    use codexist_core::AuthManager;
+    use codexist_core::CodexistAuth;
+    use codexist_core::ConversationManager;
+    use codexist_core::protocol::SessionConfiguredEvent;
+    use codexist_protocol::ConversationId;
     use ratatui::prelude::Line;
     use std::path::PathBuf;
     use std::sync::Arc;
@@ -729,11 +729,11 @@ mod tests {
         let (chat_widget, app_event_tx, _rx, _op_rx) = make_chatwidget_manual_with_sender();
         let config = chat_widget.config_ref().clone();
 
-        let server = Arc::new(ConversationManager::with_auth(CodexAuth::from_api_key(
+        let server = Arc::new(ConversationManager::with_auth(CodexistAuth::from_api_key(
             "Test API Key",
         )));
         let auth_manager =
-            AuthManager::from_auth_for_testing(CodexAuth::from_api_key("Test API Key"));
+            AuthManager::from_auth_for_testing(CodexistAuth::from_api_key("Test API Key"));
         let file_search = FileSearchManager::new(config.cwd.clone(), app_event_tx.clone());
 
         App {
@@ -751,7 +751,7 @@ mod tests {
             enhanced_keys_supported: false,
             commit_anim_running: Arc::new(AtomicBool::new(false)),
             backtrack: BacktrackState::default(),
-            feedback: codex_feedback::CodexFeedback::new(),
+            feedback: codexist_feedback::CodexistFeedback::new(),
             pending_update_action: None,
             skip_world_writable_scan_once: false,
         }

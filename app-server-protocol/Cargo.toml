@@ -1,10 +1,10 @@
 [package]
 edition = "2024"
-name = "codex-app-server-protocol"
+name = "codexist-app-server-protocol"
 version = { workspace = true }
 
 [lib]
-name = "codex_app_server_protocol"
+name = "codexist_app_server_protocol"
 path = "src/lib.rs"
 
 [lints]
@@ -13,7 +13,7 @@ workspace = true
 [dependencies]
 anyhow = { workspace = true }
 clap = { workspace = true, features = ["derive"] }
-codex-protocol = { workspace = true }
+codexist-protocol = { workspace = true }
 mcp-types = { workspace = true }
 paste = { workspace = true }
 schemars = { workspace = true }

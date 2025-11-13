@@ -1,49 +1,49 @@
-use codex_core::protocol::AgentMessageEvent;
-use codex_core::protocol::AgentReasoningEvent;
-use codex_core::protocol::ErrorEvent;
-use codex_core::protocol::Event;
-use codex_core::protocol::EventMsg;
-use codex_core::protocol::ExecCommandBeginEvent;
-use codex_core::protocol::ExecCommandEndEvent;
-use codex_core::protocol::FileChange;
-use codex_core::protocol::McpInvocation;
-use codex_core::protocol::McpToolCallBeginEvent;
-use codex_core::protocol::McpToolCallEndEvent;
-use codex_core::protocol::PatchApplyBeginEvent;
-use codex_core::protocol::PatchApplyEndEvent;
-use codex_core::protocol::SessionConfiguredEvent;
-use codex_core::protocol::WarningEvent;
-use codex_core::protocol::WebSearchEndEvent;
-use codex_exec::event_processor_with_jsonl_output::EventProcessorWithJsonOutput;
-use codex_exec::exec_events::AgentMessageItem;
-use codex_exec::exec_events::CommandExecutionItem;
-use codex_exec::exec_events::CommandExecutionStatus;
-use codex_exec::exec_events::ErrorItem;
-use codex_exec::exec_events::ItemCompletedEvent;
-use codex_exec::exec_events::ItemStartedEvent;
-use codex_exec::exec_events::ItemUpdatedEvent;
-use codex_exec::exec_events::McpToolCallItem;
-use codex_exec::exec_events::McpToolCallItemError;
-use codex_exec::exec_events::McpToolCallItemResult;
-use codex_exec::exec_events::McpToolCallStatus;
-use codex_exec::exec_events::PatchApplyStatus;
-use codex_exec::exec_events::PatchChangeKind;
-use codex_exec::exec_events::ReasoningItem;
-use codex_exec::exec_events::ThreadErrorEvent;
-use codex_exec::exec_events::ThreadEvent;
-use codex_exec::exec_events::ThreadItem;
-use codex_exec::exec_events::ThreadItemDetails;
-use codex_exec::exec_events::ThreadStartedEvent;
-use codex_exec::exec_events::TodoItem as ExecTodoItem;
-use codex_exec::exec_events::TodoListItem as ExecTodoListItem;
-use codex_exec::exec_events::TurnCompletedEvent;
-use codex_exec::exec_events::TurnFailedEvent;
-use codex_exec::exec_events::TurnStartedEvent;
-use codex_exec::exec_events::Usage;
-use codex_exec::exec_events::WebSearchItem;
-use codex_protocol::plan_tool::PlanItemArg;
-use codex_protocol::plan_tool::StepStatus;
-use codex_protocol::plan_tool::UpdatePlanArgs;
+use codexist_core::protocol::AgentMessageEvent;
+use codexist_core::protocol::AgentReasoningEvent;
+use codexist_core::protocol::ErrorEvent;
+use codexist_core::protocol::Event;
+use codexist_core::protocol::EventMsg;
+use codexist_core::protocol::ExecCommandBeginEvent;
+use codexist_core::protocol::ExecCommandEndEvent;
+use codexist_core::protocol::FileChange;
+use codexist_core::protocol::McpInvocation;
+use codexist_core::protocol::McpToolCallBeginEvent;
+use codexist_core::protocol::McpToolCallEndEvent;
+use codexist_core::protocol::PatchApplyBeginEvent;
+use codexist_core::protocol::PatchApplyEndEvent;
+use codexist_core::protocol::SessionConfiguredEvent;
+use codexist_core::protocol::WarningEvent;
+use codexist_core::protocol::WebSearchEndEvent;
+use codexist_exec::event_processor_with_jsonl_output::EventProcessorWithJsonOutput;
+use codexist_exec::exec_events::AgentMessageItem;
+use codexist_exec::exec_events::CommandExecutionItem;
+use codexist_exec::exec_events::CommandExecutionStatus;
+use codexist_exec::exec_events::ErrorItem;
+use codexist_exec::exec_events::ItemCompletedEvent;
+use codexist_exec::exec_events::ItemStartedEvent;
+use codexist_exec::exec_events::ItemUpdatedEvent;
+use codexist_exec::exec_events::McpToolCallItem;
+use codexist_exec::exec_events::McpToolCallItemError;
+use codexist_exec::exec_events::McpToolCallItemResult;
+use codexist_exec::exec_events::McpToolCallStatus;
+use codexist_exec::exec_events::PatchApplyStatus;
+use codexist_exec::exec_events::PatchChangeKind;
+use codexist_exec::exec_events::ReasoningItem;
+use codexist_exec::exec_events::ThreadErrorEvent;
+use codexist_exec::exec_events::ThreadEvent;
+use codexist_exec::exec_events::ThreadItem;
+use codexist_exec::exec_events::ThreadItemDetails;
+use codexist_exec::exec_events::ThreadStartedEvent;
+use codexist_exec::exec_events::TodoItem as ExecTodoItem;
+use codexist_exec::exec_events::TodoListItem as ExecTodoListItem;
+use codexist_exec::exec_events::TurnCompletedEvent;
+use codexist_exec::exec_events::TurnFailedEvent;
+use codexist_exec::exec_events::TurnStartedEvent;
+use codexist_exec::exec_events::Usage;
+use codexist_exec::exec_events::WebSearchItem;
+use codexist_protocol::plan_tool::PlanItemArg;
+use codexist_protocol::plan_tool::StepStatus;
+use codexist_protocol::plan_tool::UpdatePlanArgs;
 use mcp_types::CallToolResult;
 use mcp_types::ContentBlock;
 use mcp_types::TextContent;
@@ -63,14 +63,14 @@ fn event(id: &str, msg: EventMsg) -> Event {
 fn session_configured_produces_thread_started_event() {
     let mut ep = EventProcessorWithJsonOutput::new(None);
     let session_id =
-        codex_protocol::ConversationId::from_string("67e55044-10b1-426f-9247-bb680e5fe0c8")
+        codexist_protocol::ConversationId::from_string("67e55044-10b1-426f-9247-bb680e5fe0c8")
             .unwrap();
     let rollout_path = PathBuf::from("/tmp/rollout.json");
     let ev = event(
         "e1",
         EventMsg::SessionConfigured(SessionConfiguredEvent {
             session_id,
-            model: "codex-mini-latest".to_string(),
+            model: "codexist-mini-latest".to_string(),
             reasoning_effort: None,
             history_log_id: 0,
             history_entry_count: 0,
@@ -92,7 +92,7 @@ fn task_started_produces_turn_started_event() {
     let mut ep = EventProcessorWithJsonOutput::new(None);
     let out = ep.collect_thread_events(&event(
         "t1",
-        EventMsg::TaskStarted(codex_core::protocol::TaskStartedEvent {
+        EventMsg::TaskStarted(codexist_core::protocol::TaskStartedEvent {
             model_context_window: Some(32_000),
         }),
     ));
@@ -208,7 +208,7 @@ fn plan_update_emits_todo_list_started_updated_and_completed() {
     // Task completes => item.completed (same id, latest state)
     let complete = event(
         "p3",
-        EventMsg::TaskComplete(codex_core::protocol::TaskCompleteEvent {
+        EventMsg::TaskComplete(codexist_core::protocol::TaskCompleteEvent {
             last_agent_message: None,
         }),
     );
@@ -452,7 +452,7 @@ fn plan_update_after_complete_starts_new_todo_list_with_new_id() {
     let _ = ep.collect_thread_events(&start);
     let complete = event(
         "t2",
-        EventMsg::TaskComplete(codex_core::protocol::TaskCompleteEvent {
+        EventMsg::TaskComplete(codexist_core::protocol::TaskCompleteEvent {
             last_agent_message: None,
         }),
     );
@@ -530,7 +530,7 @@ fn error_event_produces_error() {
     let mut ep = EventProcessorWithJsonOutput::new(None);
     let out = ep.collect_thread_events(&event(
         "e1",
-        EventMsg::Error(codex_core::protocol::ErrorEvent {
+        EventMsg::Error(codexist_core::protocol::ErrorEvent {
             message: "boom".to_string(),
         }),
     ));
@@ -569,7 +569,7 @@ fn stream_error_event_produces_error() {
     let mut ep = EventProcessorWithJsonOutput::new(None);
     let out = ep.collect_thread_events(&event(
         "e1",
-        EventMsg::StreamError(codex_core::protocol::StreamErrorEvent {
+        EventMsg::StreamError(codexist_core::protocol::StreamErrorEvent {
             message: "retrying".to_string(),
         }),
     ));
@@ -600,7 +600,7 @@ fn error_followed_by_task_complete_produces_turn_failed() {
 
     let complete_event = event(
         "e2",
-        EventMsg::TaskComplete(codex_core::protocol::TaskCompleteEvent {
+        EventMsg::TaskComplete(codexist_core::protocol::TaskCompleteEvent {
             last_agent_message: None,
         }),
     );
@@ -897,21 +897,21 @@ fn task_complete_produces_turn_completed_with_usage() {
     let mut ep = EventProcessorWithJsonOutput::new(None);
 
     // First, feed a TokenCount event with known totals.
-    let usage = codex_core::protocol::TokenUsage {
+    let usage = codexist_core::protocol::TokenUsage {
         input_tokens: 1200,
         cached_input_tokens: 200,
         output_tokens: 345,
         reasoning_output_tokens: 0,
         total_tokens: 0,
     };
-    let info = codex_core::protocol::TokenUsageInfo {
+    let info = codexist_core::protocol::TokenUsageInfo {
         total_token_usage: usage.clone(),
         last_token_usage: usage,
         model_context_window: None,
     };
     let token_count_event = event(
         "e1",
-        EventMsg::TokenCount(codex_core::protocol::TokenCountEvent {
+        EventMsg::TokenCount(codexist_core::protocol::TokenCountEvent {
             info: Some(info),
             rate_limits: None,
         }),
@@ -921,7 +921,7 @@ fn task_complete_produces_turn_completed_with_usage() {
     // Then TaskComplete should produce turn.completed with the captured usage.
     let complete_event = event(
         "e2",
-        EventMsg::TaskComplete(codex_core::protocol::TaskCompleteEvent {
+        EventMsg::TaskComplete(codexist_core::protocol::TaskCompleteEvent {
             last_agent_message: Some("done".to_string()),
         }),
     );

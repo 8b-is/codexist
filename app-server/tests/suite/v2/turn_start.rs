@@ -5,21 +5,21 @@ use app_test_support::create_mock_chat_completions_server;
 use app_test_support::create_mock_chat_completions_server_unchecked;
 use app_test_support::create_shell_sse_response;
 use app_test_support::to_response;
-use codex_app_server_protocol::JSONRPCNotification;
-use codex_app_server_protocol::JSONRPCResponse;
-use codex_app_server_protocol::RequestId;
-use codex_app_server_protocol::ServerRequest;
-use codex_app_server_protocol::ThreadStartParams;
-use codex_app_server_protocol::ThreadStartResponse;
-use codex_app_server_protocol::TurnStartParams;
-use codex_app_server_protocol::TurnStartResponse;
-use codex_app_server_protocol::TurnStartedNotification;
-use codex_app_server_protocol::UserInput as V2UserInput;
-use codex_core::protocol_config_types::ReasoningEffort;
-use codex_core::protocol_config_types::ReasoningSummary;
-use codex_protocol::parse_command::ParsedCommand;
-use codex_protocol::protocol::Event;
-use codex_protocol::protocol::EventMsg;
+use codexist_app_server_protocol::JSONRPCNotification;
+use codexist_app_server_protocol::JSONRPCResponse;
+use codexist_app_server_protocol::RequestId;
+use codexist_app_server_protocol::ServerRequest;
+use codexist_app_server_protocol::ThreadStartParams;
+use codexist_app_server_protocol::ThreadStartResponse;
+use codexist_app_server_protocol::TurnStartParams;
+use codexist_app_server_protocol::TurnStartResponse;
+use codexist_app_server_protocol::TurnStartedNotification;
+use codexist_app_server_protocol::UserInput as V2UserInput;
+use codexist_core::protocol_config_types::ReasoningEffort;
+use codexist_core::protocol_config_types::ReasoningSummary;
+use codexist_protocol::parse_command::ParsedCommand;
+use codexist_protocol::protocol::Event;
+use codexist_protocol::protocol::EventMsg;
 use core_test_support::skip_if_no_network;
 use pretty_assertions::assert_eq;
 use std::path::Path;
@@ -31,7 +31,7 @@ const DEFAULT_READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs
 #[tokio::test]
 async fn turn_start_emits_notifications_and_accepts_model_override() -> Result<()> {
     // Provide a mock server and config so model wiring is valid.
-    // Three Codex turns hit the mock model (session start + two turn/start calls).
+    // Three Codexist turns hit the mock model (session start + two turn/start calls).
     let responses = vec![
         create_final_assistant_message_sse_response("Done")?,
         create_final_assistant_message_sse_response("Done")?,
@@ -39,10 +39,10 @@ async fn turn_start_emits_notifications_and_accepts_model_override() -> Result<(
     ];
     let server = create_mock_chat_completions_server_unchecked(responses).await;
 
-    let codex_home = TempDir::new()?;
-    create_config_toml(codex_home.path(), &server.uri(), "never")?;
+    let codexist_home = TempDir::new()?;
+    create_config_toml(codexist_home.path(), &server.uri(), "never")?;
 
-    let mut mcp = McpProcess::new(codex_home.path()).await?;
+    let mut mcp = McpProcess::new(codexist_home.path()).await?;
     timeout(DEFAULT_READ_TIMEOUT, mcp.initialize()).await??;
 
     // Start a thread (v2) and capture its id.
@@ -87,7 +87,7 @@ async fn turn_start_emits_notifications_and_accepts_model_override() -> Result<(
         serde_json::from_value(notif.params.expect("params must be present"))?;
     assert_eq!(
         started.turn.status,
-        codex_app_server_protocol::TurnStatus::InProgress
+        codexist_app_server_protocol::TurnStatus::InProgress
     );
 
     // Send a second turn that exercises the overrides path: change the model.
@@ -122,7 +122,7 @@ async fn turn_start_emits_notifications_and_accepts_model_override() -> Result<(
     // legacy conversation listener explicitly (auto-attached by thread/start).
     let _task_complete: JSONRPCNotification = timeout(
         DEFAULT_READ_TIMEOUT,
-        mcp.read_stream_until_notification_message("codex/event/task_complete"),
+        mcp.read_stream_until_notification_message("codexist/event/task_complete"),
     )
     .await??;
 
@@ -131,7 +131,7 @@ async fn turn_start_emits_notifications_and_accepts_model_override() -> Result<(
 
 #[tokio::test]
 async fn turn_start_accepts_local_image_input() -> Result<()> {
-    // Two Codex turns hit the mock model (session start + turn/start).
+    // Two Codexist turns hit the mock model (session start + turn/start).
     let responses = vec![
         create_final_assistant_message_sse_response("Done")?,
         create_final_assistant_message_sse_response("Done")?,
@@ -140,10 +140,10 @@ async fn turn_start_accepts_local_image_input() -> Result<()> {
     // which the strict matcher does not currently cover.
     let server = create_mock_chat_completions_server_unchecked(responses).await;
 
-    let codex_home = TempDir::new()?;
-    create_config_toml(codex_home.path(), &server.uri(), "never")?;
+    let codexist_home = TempDir::new()?;
+    create_config_toml(codexist_home.path(), &server.uri(), "never")?;
 
-    let mut mcp = McpProcess::new(codex_home.path()).await?;
+    let mut mcp = McpProcess::new(codexist_home.path()).await?;
     timeout(DEFAULT_READ_TIMEOUT, mcp.initialize()).await??;
 
     let thread_req = mcp
@@ -159,7 +159,7 @@ async fn turn_start_accepts_local_image_input() -> Result<()> {
     .await??;
     let ThreadStartResponse { thread } = to_response::<ThreadStartResponse>(thread_resp)?;
 
-    let image_path = codex_home.path().join("image.png");
+    let image_path = codexist_home.path().join("image.png");
     // No need to actually write the file; we just exercise the input path.
 
     let turn_req = mcp
@@ -186,7 +186,7 @@ async fn turn_start_exec_approval_toggle_v2() -> Result<()> {
     skip_if_no_network!(Ok(()));
 
     let tmp = TempDir::new()?;
-    let codex_home = tmp.path().to_path_buf();
+    let codexist_home = tmp.path().to_path_buf();
 
     // Mock server: first turn requests a shell call (elicitation), then completes.
     // Second turn same, but we'll set approval_policy=never to avoid elicitation.
@@ -216,9 +216,9 @@ async fn turn_start_exec_approval_toggle_v2() -> Result<()> {
     ];
     let server = create_mock_chat_completions_server(responses).await;
     // Default approval is untrusted to force elicitation on first turn.
-    create_config_toml(codex_home.as_path(), &server.uri(), "untrusted")?;
+    create_config_toml(codexist_home.as_path(), &server.uri(), "untrusted")?;
 
-    let mut mcp = McpProcess::new(codex_home.as_path()).await?;
+    let mut mcp = McpProcess::new(codexist_home.as_path()).await?;
     timeout(DEFAULT_READ_TIMEOUT, mcp.initialize()).await??;
 
     // thread/start
@@ -272,12 +272,12 @@ async fn turn_start_exec_approval_toggle_v2() -> Result<()> {
     // Approve and wait for task completion
     mcp.send_response(
         request_id,
-        serde_json::json!({ "decision": codex_core::protocol::ReviewDecision::Approved }),
+        serde_json::json!({ "decision": codexist_core::protocol::ReviewDecision::Approved }),
     )
     .await?;
     timeout(
         DEFAULT_READ_TIMEOUT,
-        mcp.read_stream_until_notification_message("codex/event/task_complete"),
+        mcp.read_stream_until_notification_message("codexist/event/task_complete"),
     )
     .await??;
 
@@ -288,8 +288,8 @@ async fn turn_start_exec_approval_toggle_v2() -> Result<()> {
             input: vec![V2UserInput::Text {
                 text: "run python again".to_string(),
             }],
-            approval_policy: Some(codex_app_server_protocol::AskForApproval::Never),
-            sandbox_policy: Some(codex_app_server_protocol::SandboxPolicy::DangerFullAccess),
+            approval_policy: Some(codexist_app_server_protocol::AskForApproval::Never),
+            sandbox_policy: Some(codexist_app_server_protocol::SandboxPolicy::DangerFullAccess),
             model: Some("mock-model".to_string()),
             effort: Some(ReasoningEffort::Medium),
             summary: Some(ReasoningSummary::Auto),
@@ -305,7 +305,7 @@ async fn turn_start_exec_approval_toggle_v2() -> Result<()> {
     // Ensure we do NOT receive an ExecCommandApproval request before task completes
     timeout(
         DEFAULT_READ_TIMEOUT,
-        mcp.read_stream_until_notification_message("codex/event/task_complete"),
+        mcp.read_stream_until_notification_message("codexist/event/task_complete"),
     )
     .await??;
 
@@ -319,8 +319,8 @@ async fn turn_start_updates_sandbox_and_cwd_between_turns_v2() -> Result<()> {
     skip_if_no_network!(Ok(()));
 
     let tmp = TempDir::new()?;
-    let codex_home = tmp.path().join("codex_home");
-    std::fs::create_dir(&codex_home)?;
+    let codexist_home = tmp.path().join("codexist_home");
+    std::fs::create_dir(&codexist_home)?;
     let workspace_root = tmp.path().join("workspace");
     std::fs::create_dir(&workspace_root)?;
     let first_cwd = workspace_root.join("turn1");
@@ -353,9 +353,9 @@ async fn turn_start_updates_sandbox_and_cwd_between_turns_v2() -> Result<()> {
         create_final_assistant_message_sse_response("done second")?,
     ];
     let server = create_mock_chat_completions_server(responses).await;
-    create_config_toml(&codex_home, &server.uri(), "untrusted")?;
+    create_config_toml(&codexist_home, &server.uri(), "untrusted")?;
 
-    let mut mcp = McpProcess::new(&codex_home).await?;
+    let mut mcp = McpProcess::new(&codexist_home).await?;
     timeout(DEFAULT_READ_TIMEOUT, mcp.initialize()).await??;
 
     // thread/start
@@ -380,8 +380,8 @@ async fn turn_start_updates_sandbox_and_cwd_between_turns_v2() -> Result<()> {
                 text: "first turn".to_string(),
             }],
             cwd: Some(first_cwd.clone()),
-            approval_policy: Some(codex_app_server_protocol::AskForApproval::Never),
-            sandbox_policy: Some(codex_app_server_protocol::SandboxPolicy::WorkspaceWrite {
+            approval_policy: Some(codexist_app_server_protocol::AskForApproval::Never),
+            sandbox_policy: Some(codexist_app_server_protocol::SandboxPolicy::WorkspaceWrite {
                 writable_roots: vec![first_cwd.clone()],
                 network_access: false,
                 exclude_tmpdir_env_var: false,
@@ -399,7 +399,7 @@ async fn turn_start_updates_sandbox_and_cwd_between_turns_v2() -> Result<()> {
     .await??;
     timeout(
         DEFAULT_READ_TIMEOUT,
-        mcp.read_stream_until_notification_message("codex/event/task_complete"),
+        mcp.read_stream_until_notification_message("codexist/event/task_complete"),
     )
     .await??;
 
@@ -411,8 +411,8 @@ async fn turn_start_updates_sandbox_and_cwd_between_turns_v2() -> Result<()> {
                 text: "second turn".to_string(),
             }],
             cwd: Some(second_cwd.clone()),
-            approval_policy: Some(codex_app_server_protocol::AskForApproval::Never),
-            sandbox_policy: Some(codex_app_server_protocol::SandboxPolicy::DangerFullAccess),
+            approval_policy: Some(codexist_app_server_protocol::AskForApproval::Never),
+            sandbox_policy: Some(codexist_app_server_protocol::SandboxPolicy::DangerFullAccess),
             model: Some("mock-model".to_string()),
             effort: Some(ReasoningEffort::Medium),
             summary: Some(ReasoningSummary::Auto),
@@ -426,7 +426,7 @@ async fn turn_start_updates_sandbox_and_cwd_between_turns_v2() -> Result<()> {
 
     let exec_begin_notification = timeout(
         DEFAULT_READ_TIMEOUT,
-        mcp.read_stream_until_notification_message("codex/event/exec_command_begin"),
+        mcp.read_stream_until_notification_message("codexist/event/exec_command_begin"),
     )
     .await??;
     let params = exec_begin_notification
@@ -450,7 +450,7 @@ async fn turn_start_updates_sandbox_and_cwd_between_turns_v2() -> Result<()> {
 
     timeout(
         DEFAULT_READ_TIMEOUT,
-        mcp.read_stream_until_notification_message("codex/event/task_complete"),
+        mcp.read_stream_until_notification_message("codexist/event/task_complete"),
     )
     .await??;
 
@@ -459,11 +459,11 @@ async fn turn_start_updates_sandbox_and_cwd_between_turns_v2() -> Result<()> {
 
 // Helper to create a config.toml pointing at the mock model server.
 fn create_config_toml(
-    codex_home: &Path,
+    codexist_home: &Path,
     server_uri: &str,
     approval_policy: &str,
 ) -> std::io::Result<()> {
-    let config_toml = codex_home.join("config.toml");
+    let config_toml = codexist_home.join("config.toml");
     std::fs::write(
         config_toml,
         format!(

@@ -1,22 +1,22 @@
 use std::path::PathBuf;
 
-use codex_common::approval_presets::ApprovalPreset;
-use codex_common::model_presets::ModelPreset;
-use codex_core::protocol::ConversationPathResponseEvent;
-use codex_core::protocol::Event;
-use codex_file_search::FileMatch;
+use codexist_common::approval_presets::ApprovalPreset;
+use codexist_common::model_presets::ModelPreset;
+use codexist_core::protocol::ConversationPathResponseEvent;
+use codexist_core::protocol::Event;
+use codexist_file_search::FileMatch;
 
 use crate::bottom_pane::ApprovalRequest;
 use crate::history_cell::HistoryCell;
 
-use codex_core::protocol::AskForApproval;
-use codex_core::protocol::SandboxPolicy;
-use codex_core::protocol_config_types::ReasoningEffort;
+use codexist_core::protocol::AskForApproval;
+use codexist_core::protocol::SandboxPolicy;
+use codexist_core::protocol_config_types::ReasoningEffort;
 
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug)]
 pub(crate) enum AppEvent {
-    CodexEvent(Event),
+    CodexistEvent(Event),
 
     /// Start a new session.
     NewSession,
@@ -26,7 +26,7 @@ pub(crate) enum AppEvent {
 
     /// Forward an `Op` to the Agent. Using an `AppEvent` for this avoids
     /// bubbling channels through layers of widgets.
-    CodexOp(codex_core::protocol::Op),
+    CodexistOp(codexist_core::protocol::Op),
 
     /// Kick off an asynchronous file search for the given query (text after
     /// the `@`). Previous searches may be cancelled by the app layer so there

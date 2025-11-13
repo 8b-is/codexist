@@ -19,19 +19,19 @@ use crate::user_notification::UserNotifier;
 use crate::util::error_or_panic;
 use async_channel::Receiver;
 use async_channel::Sender;
-use codex_protocol::ConversationId;
-use codex_protocol::items::TurnItem;
-use codex_protocol::protocol::FileChange;
-use codex_protocol::protocol::HasLegacyEvent;
-use codex_protocol::protocol::ItemCompletedEvent;
-use codex_protocol::protocol::ItemStartedEvent;
-use codex_protocol::protocol::RawResponseItemEvent;
-use codex_protocol::protocol::ReviewRequest;
-use codex_protocol::protocol::RolloutItem;
-use codex_protocol::protocol::SessionSource;
-use codex_protocol::protocol::TaskStartedEvent;
-use codex_protocol::protocol::TurnAbortReason;
-use codex_protocol::protocol::TurnContextItem;
+use codexist_protocol::ConversationId;
+use codexist_protocol::items::TurnItem;
+use codexist_protocol::protocol::FileChange;
+use codexist_protocol::protocol::HasLegacyEvent;
+use codexist_protocol::protocol::ItemCompletedEvent;
+use codexist_protocol::protocol::ItemStartedEvent;
+use codexist_protocol::protocol::RawResponseItemEvent;
+use codexist_protocol::protocol::ReviewRequest;
+use codexist_protocol::protocol::RolloutItem;
+use codexist_protocol::protocol::SessionSource;
+use codexist_protocol::protocol::TaskStartedEvent;
+use codexist_protocol::protocol::TurnAbortReason;
+use codexist_protocol::protocol::TurnContextItem;
 use futures::future::BoxFuture;
 use futures::prelude::*;
 use futures::stream::FuturesOrdered;
@@ -61,8 +61,8 @@ use crate::config::types::McpServerTransportConfig;
 use crate::config::types::ShellEnvironmentPolicy;
 use crate::context_manager::ContextManager;
 use crate::environment_context::EnvironmentContext;
-use crate::error::CodexErr;
-use crate::error::Result as CodexResult;
+use crate::error::CodexistErr;
+use crate::error::Result as CodexistResult;
 #[cfg(test)]
 use crate::exec::StreamOutput;
 // Removed: legacy executor wiring replaced by ToolOrchestrator flows.
@@ -120,46 +120,46 @@ use crate::user_instructions::DeveloperInstructions;
 use crate::user_instructions::UserInstructions;
 use crate::user_notification::UserNotification;
 use crate::util::backoff;
-use codex_async_utils::OrCancelExt;
-use codex_otel::otel_event_manager::OtelEventManager;
-use codex_protocol::config_types::ReasoningEffort as ReasoningEffortConfig;
-use codex_protocol::config_types::ReasoningSummary as ReasoningSummaryConfig;
-use codex_protocol::models::ContentItem;
-use codex_protocol::models::FunctionCallOutputPayload;
-use codex_protocol::models::ResponseInputItem;
-use codex_protocol::models::ResponseItem;
-use codex_protocol::protocol::InitialHistory;
-use codex_protocol::user_input::UserInput;
-use codex_utils_readiness::Readiness;
-use codex_utils_readiness::ReadinessFlag;
+use codexist_async_utils::OrCancelExt;
+use codexist_otel::otel_event_manager::OtelEventManager;
+use codexist_protocol::config_types::ReasoningEffort as ReasoningEffortConfig;
+use codexist_protocol::config_types::ReasoningSummary as ReasoningSummaryConfig;
+use codexist_protocol::models::ContentItem;
+use codexist_protocol::models::FunctionCallOutputPayload;
+use codexist_protocol::models::ResponseInputItem;
+use codexist_protocol::models::ResponseItem;
+use codexist_protocol::protocol::InitialHistory;
+use codexist_protocol::user_input::UserInput;
+use codexist_utils_readiness::Readiness;
+use codexist_utils_readiness::ReadinessFlag;
 
-/// The high-level interface to the Codex system.
+/// The high-level interface to the Codexist system.
 /// It operates as a queue pair where you send submissions and receive events.
-pub struct Codex {
+pub struct Codexist {
     pub(crate) next_id: AtomicU64,
     pub(crate) tx_sub: Sender<Submission>,
     pub(crate) rx_event: Receiver<Event>,
 }
 
-/// Wrapper returned by [`Codex::spawn`] containing the spawned [`Codex`],
+/// Wrapper returned by [`Codexist::spawn`] containing the spawned [`Codexist`],
 /// the submission id for the initial `ConfigureSession` request and the
 /// unique session id.
-pub struct CodexSpawnOk {
-    pub codex: Codex,
+pub struct CodexistSpawnOk {
+    pub codexist: Codexist,
     pub conversation_id: ConversationId,
 }
 
 pub(crate) const INITIAL_SUBMIT_ID: &str = "";
 pub(crate) const SUBMISSION_CHANNEL_CAPACITY: usize = 64;
 
-impl Codex {
-    /// Spawn a new [`Codex`] and initialize the session.
+impl Codexist {
+    /// Spawn a new [`Codexist`] and initialize the session.
     pub async fn spawn(
         config: Config,
         auth_manager: Arc<AuthManager>,
         conversation_history: InitialHistory,
         session_source: SessionSource,
-    ) -> CodexResult<CodexSpawnOk> {
+    ) -> CodexistResult<CodexistSpawnOk> {
         let (tx_sub, rx_sub) = async_channel::bounded(SUBMISSION_CHANNEL_CAPACITY);
         let (tx_event, rx_event) = async_channel::unbounded();
 
@@ -184,7 +184,7 @@ impl Codex {
             session_source,
         };
 
-        // Generate a unique ID for the lifetime of this Codex session.
+        // Generate a unique ID for the lifetime of this Codexist session.
         let session_source_clone = session_configuration.session_source.clone();
         let session = Session::new(
             session_configuration,
@@ -197,26 +197,26 @@ impl Codex {
         .await
         .map_err(|e| {
             error!("Failed to create session: {e:#}");
-            CodexErr::InternalAgentDied
+            CodexistErr::InternalAgentDied
         })?;
         let conversation_id = session.conversation_id;
 
         // This task will run until Op::Shutdown is received.
         tokio::spawn(submission_loop(session, config, rx_sub));
-        let codex = Codex {
+        let codexist = Codexist {
             next_id: AtomicU64::new(0),
             tx_sub,
             rx_event,
         };
 
-        Ok(CodexSpawnOk {
-            codex,
+        Ok(CodexistSpawnOk {
+            codexist,
             conversation_id,
         })
     }
 
     /// Submit the `op` wrapped in a `Submission` with a unique ID.
-    pub async fn submit(&self, op: Op) -> CodexResult<String> {
+    pub async fn submit(&self, op: Op) -> CodexistResult<String> {
         let id = self
             .next_id
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
@@ -226,22 +226,22 @@ impl Codex {
         Ok(id)
     }
 
-    /// Use sparingly: prefer `submit()` so Codex is responsible for generating
+    /// Use sparingly: prefer `submit()` so Codexist is responsible for generating
     /// unique IDs for each submission.
-    pub async fn submit_with_id(&self, sub: Submission) -> CodexResult<()> {
+    pub async fn submit_with_id(&self, sub: Submission) -> CodexistResult<()> {
         self.tx_sub
             .send(sub)
             .await
-            .map_err(|_| CodexErr::InternalAgentDied)?;
+            .map_err(|_| CodexistErr::InternalAgentDied)?;
         Ok(())
     }
 
-    pub async fn next_event(&self) -> CodexResult<Event> {
+    pub async fn next_event(&self) -> CodexistResult<Event> {
         let event = self
             .rx_event
             .recv()
             .await
-            .map_err(|_| CodexErr::InternalAgentDied)?;
+            .map_err(|_| CodexistErr::InternalAgentDied)?;
         Ok(event)
     }
 }
@@ -276,7 +276,7 @@ pub(crate) struct TurnContext {
     pub(crate) shell_environment_policy: ShellEnvironmentPolicy,
     pub(crate) tools_config: ToolsConfig,
     pub(crate) final_output_json_schema: Option<Value>,
-    pub(crate) codex_linux_sandbox_exe: Option<PathBuf>,
+    pub(crate) codexist_linux_sandbox_exe: Option<PathBuf>,
     pub(crate) tool_call_gate: Arc<ReadinessFlag>,
 }
 
@@ -432,7 +432,7 @@ impl Session {
             shell_environment_policy: config.shell_environment_policy.clone(),
             tools_config,
             final_output_json_schema: None,
-            codex_linux_sandbox_exe: config.codex_linux_sandbox_exe.clone(),
+            codexist_linux_sandbox_exe: config.codexist_linux_sandbox_exe.clone(),
             tool_call_gate: Arc::new(ReadinessFlag::new()),
         }
     }
@@ -553,7 +553,7 @@ impl Session {
                 None
             } else {
                 Some(format!(
-                    "Enable it with `--enable {canonical}` or `[features].{canonical}` in config.toml. See https://github.com/openai/codex/blob/main/docs/config.md#feature-flags for details."
+                    "Enable it with `--enable {canonical}` or `[features].{canonical}` in config.toml. See https://github.com/openai/codexist/blob/main/docs/config.md#feature-flags for details."
                 ))
             };
             post_session_configured_events.push(Event {
@@ -695,7 +695,7 @@ impl Session {
                                 EventMsg::Warning(WarningEvent {
                                     message: format!(
                                         "This session was recorded with model `{prev}` but is resuming with `{curr}`. \
-                         Consider switching back to `{prev}` as it may affect Codex performance."
+                         Consider switching back to `{prev}` as it may affect Codexist performance."
                                     ),
                                 }),
                             )
@@ -1370,27 +1370,27 @@ async fn submission_loop(sess: Arc<Session>, config: Arc<Config>, rx_sub: Receiv
 
 /// Operation handlers
 mod handlers {
-    use crate::codex::Session;
-    use crate::codex::SessionSettingsUpdate;
-    use crate::codex::TurnContext;
+    use crate::codexist::Session;
+    use crate::codexist::SessionSettingsUpdate;
+    use crate::codexist::TurnContext;
 
-    use crate::codex::spawn_review_thread;
+    use crate::codexist::spawn_review_thread;
     use crate::config::Config;
     use crate::mcp::auth::compute_auth_statuses;
     use crate::tasks::CompactTask;
     use crate::tasks::RegularTask;
     use crate::tasks::UndoTask;
     use crate::tasks::UserShellCommandTask;
-    use codex_protocol::custom_prompts::CustomPrompt;
-    use codex_protocol::protocol::ErrorEvent;
-    use codex_protocol::protocol::Event;
-    use codex_protocol::protocol::EventMsg;
-    use codex_protocol::protocol::ListCustomPromptsResponseEvent;
-    use codex_protocol::protocol::Op;
-    use codex_protocol::protocol::ReviewDecision;
-    use codex_protocol::protocol::ReviewRequest;
-    use codex_protocol::protocol::TurnAbortReason;
-    use codex_protocol::user_input::UserInput;
+    use codexist_protocol::custom_prompts::CustomPrompt;
+    use codexist_protocol::protocol::ErrorEvent;
+    use codexist_protocol::protocol::Event;
+    use codexist_protocol::protocol::EventMsg;
+    use codexist_protocol::protocol::ListCustomPromptsResponseEvent;
+    use codexist_protocol::protocol::Op;
+    use codexist_protocol::protocol::ReviewDecision;
+    use codexist_protocol::protocol::ReviewRequest;
+    use codexist_protocol::protocol::TurnAbortReason;
+    use codexist_protocol::user_input::UserInput;
     use std::sync::Arc;
     use tracing::info;
     use tracing::warn;
@@ -1526,7 +1526,7 @@ mod handlers {
                     crate::protocol::GetHistoryEntryResponseEvent {
                         offset,
                         log_id,
-                        entry: entry_opt.map(|e| codex_protocol::message_history::HistoryEntry {
+                        entry: entry_opt.map(|e| codexist_protocol::message_history::HistoryEntry {
                             conversation_id: e.session_id,
                             ts: e.ts,
                             text: e.text,
@@ -1611,7 +1611,7 @@ mod handlers {
 
     pub async fn shutdown(sess: &Arc<Session>, sub_id: String) -> bool {
         sess.abort_all_tasks(TurnAbortReason::Interrupted).await;
-        info!("Shutting down Codex instance");
+        info!("Shutting down Codexist instance");
 
         // Gracefully flush and shutdown rollout recorder on session end so tests
         // that inspect the rollout file do not race with the background writer.
@@ -1730,7 +1730,7 @@ async fn spawn_review_thread(
         shell_environment_policy: parent_turn_context.shell_environment_policy.clone(),
         cwd: parent_turn_context.cwd.clone(),
         final_output_json_schema: None,
-        codex_linux_sandbox_exe: parent_turn_context.codex_linux_sandbox_exe.clone(),
+        codexist_linux_sandbox_exe: parent_turn_context.codexist_linux_sandbox_exe.clone(),
         tool_call_gate: Arc::new(ReadinessFlag::new()),
     };
 
@@ -1781,7 +1781,7 @@ pub(crate) async fn run_task(
     sess.maybe_start_ghost_snapshot(Arc::clone(&turn_context), cancellation_token.child_token())
         .await;
     let mut last_agent_message: Option<String> = None;
-    // Although from the perspective of codex.rs, TurnDiffTracker has the lifecycle of a Task which contains
+    // Although from the perspective of codexist.rs, TurnDiffTracker has the lifecycle of a Task which contains
     // many turns, from the perspective of the user, it is a single turn.
     let turn_diff_tracker = Arc::new(tokio::sync::Mutex::new(TurnDiffTracker::new()));
     let mut auto_compact_recently_attempted = false;
@@ -1876,7 +1876,7 @@ pub(crate) async fn run_task(
                 }
                 continue;
             }
-            Err(CodexErr::TurnAborted {
+            Err(CodexistErr::TurnAborted {
                 dangling_artifacts: processed_items,
             }) => {
                 let _ = process_items(processed_items, &sess, &turn_context).await;
@@ -1904,7 +1904,7 @@ async fn run_turn(
     turn_diff_tracker: SharedTurnDiffTracker,
     input: Vec<ResponseItem>,
     cancellation_token: CancellationToken,
-) -> CodexResult<TurnRunResult> {
+) -> CodexistResult<TurnRunResult> {
     let mcp_tools = sess.services.mcp_connection_manager.list_all_tools();
     let router = Arc::new(ToolRouter::from_config(
         &turn_context.tools_config,
@@ -1937,37 +1937,37 @@ async fn run_turn(
         .await
         {
             Ok(output) => return Ok(output),
-            Err(CodexErr::TurnAborted {
+            Err(CodexistErr::TurnAborted {
                 dangling_artifacts: processed_items,
             }) => {
-                return Err(CodexErr::TurnAborted {
+                return Err(CodexistErr::TurnAborted {
                     dangling_artifacts: processed_items,
                 });
             }
-            Err(CodexErr::Interrupted) => return Err(CodexErr::Interrupted),
-            Err(CodexErr::EnvVar(var)) => return Err(CodexErr::EnvVar(var)),
-            Err(e @ CodexErr::Fatal(_)) => return Err(e),
-            Err(e @ CodexErr::ContextWindowExceeded) => {
+            Err(CodexistErr::Interrupted) => return Err(CodexistErr::Interrupted),
+            Err(CodexistErr::EnvVar(var)) => return Err(CodexistErr::EnvVar(var)),
+            Err(e @ CodexistErr::Fatal(_)) => return Err(e),
+            Err(e @ CodexistErr::ContextWindowExceeded) => {
                 sess.set_total_tokens_full(&turn_context).await;
                 return Err(e);
             }
-            Err(CodexErr::UsageLimitReached(e)) => {
+            Err(CodexistErr::UsageLimitReached(e)) => {
                 let rate_limits = e.rate_limits.clone();
                 if let Some(rate_limits) = rate_limits {
                     sess.update_rate_limits(&turn_context, rate_limits).await;
                 }
-                return Err(CodexErr::UsageLimitReached(e));
+                return Err(CodexistErr::UsageLimitReached(e));
             }
-            Err(CodexErr::UsageNotIncluded) => return Err(CodexErr::UsageNotIncluded),
-            Err(e @ CodexErr::QuotaExceeded) => return Err(e),
-            Err(e @ CodexErr::RefreshTokenFailed(_)) => return Err(e),
+            Err(CodexistErr::UsageNotIncluded) => return Err(CodexistErr::UsageNotIncluded),
+            Err(e @ CodexistErr::QuotaExceeded) => return Err(e),
+            Err(e @ CodexistErr::RefreshTokenFailed(_)) => return Err(e),
             Err(e) => {
                 // Use the configured provider-specific stream retry budget.
                 let max_retries = turn_context.client.get_provider().stream_max_retries();
                 if retries < max_retries {
                     retries += 1;
                     let delay = match e {
-                        CodexErr::Stream(_, Some(delay)) => delay,
+                        CodexistErr::Stream(_, Some(delay)) => delay,
                         _ => backoff(retries),
                     };
                     warn!(
@@ -2016,7 +2016,7 @@ async fn try_run_turn(
     turn_diff_tracker: SharedTurnDiffTracker,
     prompt: &Prompt,
     cancellation_token: CancellationToken,
-) -> CodexResult<TurnRunResult> {
+) -> CodexistResult<TurnRunResult> {
     let rollout_item = RolloutItem::TurnContext(TurnContextItem {
         cwd: turn_context.cwd.clone(),
         approval_policy: turn_context.approval_policy,
@@ -2040,7 +2040,7 @@ async fn try_run_turn(
         Arc::clone(&turn_context),
         Arc::clone(&turn_diff_tracker),
     );
-    let mut output: FuturesOrdered<BoxFuture<CodexResult<ProcessedResponseItem>>> =
+    let mut output: FuturesOrdered<BoxFuture<CodexistResult<ProcessedResponseItem>>> =
         FuturesOrdered::new();
 
     let mut active_item: Option<TurnItem> = None;
@@ -2051,9 +2051,9 @@ async fn try_run_turn(
         // `response.completed`) bubble up and trigger the caller's retry logic.
         let event = match stream.next().or_cancel(&cancellation_token).await {
             Ok(event) => event,
-            Err(codex_async_utils::CancelErr::Cancelled) => {
+            Err(codexist_async_utils::CancelErr::Cancelled) => {
                 let processed_items = output.try_collect().await?;
-                return Err(CodexErr::TurnAborted {
+                return Err(CodexistErr::TurnAborted {
                     dangling_artifacts: processed_items,
                 });
             }
@@ -2062,7 +2062,7 @@ async fn try_run_turn(
         let event = match event {
             Some(res) => res?,
             None => {
-                return Err(CodexErr::Stream(
+                return Err(CodexistErr::Stream(
                     "stream closed before response.completed".into(),
                     None,
                 ));
@@ -2145,7 +2145,7 @@ async fn try_run_turn(
                         });
                     }
                     Err(FunctionCallError::Fatal(message)) => {
-                        return Err(CodexErr::Fatal(message));
+                        return Err(CodexistErr::Fatal(message));
                     }
                 }
             }
@@ -2292,11 +2292,11 @@ fn mcp_init_error_display(
         // That means that the user has to specify a personal access token either via bearer_token_env_var or http_headers.
         // https://github.com/github/github-mcp-server/issues/921#issuecomment-3221026448
         format!(
-            "GitHub MCP does not support OAuth. Log in by adding a personal access token (https://github.com/settings/personal-access-tokens) to your environment and config.toml:\n[mcp_servers.{server_name}]\nbearer_token_env_var = CODEX_GITHUB_PERSONAL_ACCESS_TOKEN"
+            "GitHub MCP does not support OAuth. Log in by adding a personal access token (https://github.com/settings/personal-access-tokens) to your environment and config.toml:\n[mcp_servers.{server_name}]\nbearer_token_env_var = CODEXIST_GITHUB_PERSONAL_ACCESS_TOKEN"
         )
     } else if is_mcp_client_auth_required_error(err) {
         format!(
-            "The {server_name} MCP server is not logged in. Run `codex mcp login {server_name}`."
+            "The {server_name} MCP server is not logged in. Run `codexist mcp login {server_name}`."
         )
     } else if is_mcp_client_startup_timeout_error(err) {
         let startup_timeout_secs = match entry {
@@ -2355,10 +2355,10 @@ mod tests {
     use crate::tools::handlers::UnifiedExecHandler;
     use crate::tools::registry::ToolHandler;
     use crate::turn_diff_tracker::TurnDiffTracker;
-    use codex_app_server_protocol::AuthMode;
-    use codex_protocol::models::ContentItem;
-    use codex_protocol::models::ResponseItem;
-    use codex_protocol::protocol::McpAuthStatus;
+    use codexist_app_server_protocol::AuthMode;
+    use codexist_protocol::models::ContentItem;
+    use codexist_protocol::models::ResponseItem;
+    use codexist_protocol::protocol::McpAuthStatus;
     use std::time::Duration;
     use tokio::time::sleep;
 
@@ -2536,11 +2536,11 @@ mod tests {
 
     pub(crate) fn make_session_and_context() -> (Session, TurnContext) {
         let (tx_event, _rx_event) = async_channel::unbounded();
-        let codex_home = tempfile::tempdir().expect("create temp dir");
+        let codexist_home = tempfile::tempdir().expect("create temp dir");
         let config = Config::load_from_base_config_with_overrides(
             ConfigToml::default(),
             ConfigOverrides::default(),
-            codex_home.path().to_path_buf(),
+            codexist_home.path().to_path_buf(),
         )
         .expect("load default test config");
         let config = Arc::new(config);
@@ -2612,11 +2612,11 @@ mod tests {
         async_channel::Receiver<Event>,
     ) {
         let (tx_event, rx_event) = async_channel::unbounded();
-        let codex_home = tempfile::tempdir().expect("create temp dir");
+        let codexist_home = tempfile::tempdir().expect("create temp dir");
         let config = Config::load_from_base_config_with_overrides(
             ConfigToml::default(),
             ConfigOverrides::default(),
-            codex_home.path().to_path_buf(),
+            codexist_home.path().to_path_buf(),
         )
         .expect("load default test config");
         let config = Arc::new(config);
@@ -3158,7 +3158,7 @@ mod tests {
         let display = mcp_init_error_display(server_name, Some(&entry), &err);
 
         let expected = format!(
-            "GitHub MCP does not support OAuth. Log in by adding a personal access token (https://github.com/settings/personal-access-tokens) to your environment and config.toml:\n[mcp_servers.{server_name}]\nbearer_token_env_var = CODEX_GITHUB_PERSONAL_ACCESS_TOKEN"
+            "GitHub MCP does not support OAuth. Log in by adding a personal access token (https://github.com/settings/personal-access-tokens) to your environment and config.toml:\n[mcp_servers.{server_name}]\nbearer_token_env_var = CODEXIST_GITHUB_PERSONAL_ACCESS_TOKEN"
         );
 
         assert_eq!(expected, display);
@@ -3172,7 +3172,7 @@ mod tests {
         let display = mcp_init_error_display(server_name, None, &err);
 
         let expected = format!(
-            "The {server_name} MCP server is not logged in. Run `codex mcp login {server_name}`."
+            "The {server_name} MCP server is not logged in. Run `codexist mcp login {server_name}`."
         );
 
         assert_eq!(expected, display);

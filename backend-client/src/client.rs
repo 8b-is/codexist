@@ -4,10 +4,10 @@ use crate::types::RateLimitStatusPayload;
 use crate::types::RateLimitWindowSnapshot;
 use crate::types::TurnAttemptsSiblingTurnsResponse;
 use anyhow::Result;
-use codex_core::auth::CodexAuth;
-use codex_core::default_client::get_codex_user_agent;
-use codex_protocol::protocol::RateLimitSnapshot;
-use codex_protocol::protocol::RateLimitWindow;
+use codexist_core::auth::CodexistAuth;
+use codexist_core::default_client::get_codexist_user_agent;
+use codexist_protocol::protocol::RateLimitSnapshot;
+use codexist_protocol::protocol::RateLimitWindow;
 use reqwest::header::AUTHORIZATION;
 use reqwest::header::CONTENT_TYPE;
 use reqwest::header::HeaderMap;
@@ -18,8 +18,8 @@ use serde::de::DeserializeOwned;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PathStyle {
-    /// /api/codex/…
-    CodexApi,
+    /// /api/codexist/…
+    CodexistApi,
     /// /wham/…
     ChatGptApi,
 }
@@ -29,7 +29,7 @@ impl PathStyle {
         if base_url.contains("/backend-api") {
             PathStyle::ChatGptApi
         } else {
-            PathStyle::CodexApi
+            PathStyle::CodexistApi
         }
     }
 }
@@ -70,10 +70,10 @@ impl Client {
         })
     }
 
-    pub async fn from_auth(base_url: impl Into<String>, auth: &CodexAuth) -> Result<Self> {
+    pub async fn from_auth(base_url: impl Into<String>, auth: &CodexistAuth) -> Result<Self> {
         let token = auth.get_token().await.map_err(anyhow::Error::from)?;
         let mut client = Self::new(base_url)?
-            .with_user_agent(get_codex_user_agent())
+            .with_user_agent(get_codexist_user_agent())
             .with_bearer_token(token);
         if let Some(account_id) = auth.get_account_id() {
             client = client.with_chatgpt_account_id(account_id);
@@ -108,7 +108,7 @@ impl Client {
         if let Some(ua) = &self.user_agent {
             h.insert(USER_AGENT, ua.clone());
         } else {
-            h.insert(USER_AGENT, HeaderValue::from_static("codex-cli"));
+            h.insert(USER_AGENT, HeaderValue::from_static("codexist-cli"));
         }
         if let Some(token) = &self.bearer_token {
             let value = format!("Bearer {token}");
@@ -157,7 +157,7 @@ impl Client {
 
     pub async fn get_rate_limits(&self) -> Result<RateLimitSnapshot> {
         let url = match self.path_style {
-            PathStyle::CodexApi => format!("{}/api/codex/usage", self.base_url),
+            PathStyle::CodexistApi => format!("{}/api/codexist/usage", self.base_url),
             PathStyle::ChatGptApi => format!("{}/wham/usage", self.base_url),
         };
         let req = self.http.get(&url).headers(self.headers());
@@ -173,7 +173,7 @@ impl Client {
         environment_id: Option<&str>,
     ) -> Result<PaginatedListTaskListItem> {
         let url = match self.path_style {
-            PathStyle::CodexApi => format!("{}/api/codex/tasks/list", self.base_url),
+            PathStyle::CodexistApi => format!("{}/api/codexist/tasks/list", self.base_url),
             PathStyle::ChatGptApi => format!("{}/wham/tasks/list", self.base_url),
         };
         let req = self.http.get(&url).headers(self.headers());
@@ -206,7 +206,7 @@ impl Client {
         task_id: &str,
     ) -> Result<(CodeTaskDetailsResponse, String, String)> {
         let url = match self.path_style {
-            PathStyle::CodexApi => format!("{}/api/codex/tasks/{}", self.base_url, task_id),
+            PathStyle::CodexistApi => format!("{}/api/codexist/tasks/{}", self.base_url, task_id),
             PathStyle::ChatGptApi => format!("{}/wham/tasks/{}", self.base_url, task_id),
         };
         let req = self.http.get(&url).headers(self.headers());
@@ -221,8 +221,8 @@ impl Client {
         turn_id: &str,
     ) -> Result<TurnAttemptsSiblingTurnsResponse> {
         let url = match self.path_style {
-            PathStyle::CodexApi => format!(
-                "{}/api/codex/tasks/{}/turns/{}/sibling_turns",
+            PathStyle::CodexistApi => format!(
+                "{}/api/codexist/tasks/{}/turns/{}/sibling_turns",
                 self.base_url, task_id, turn_id
             ),
             PathStyle::ChatGptApi => format!(
@@ -239,7 +239,7 @@ impl Client {
     /// based on `path_style`. Returns the created task id.
     pub async fn create_task(&self, request_body: serde_json::Value) -> Result<String> {
         let url = match self.path_style {
-            PathStyle::CodexApi => format!("{}/api/codex/tasks", self.base_url),
+            PathStyle::CodexistApi => format!("{}/api/codexist/tasks", self.base_url),
             PathStyle::ChatGptApi => format!("{}/wham/tasks", self.base_url),
         };
         let req = self

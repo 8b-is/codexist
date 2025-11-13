@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
-use codex_core::config::set_project_trusted;
-use codex_core::git_info::resolve_root_git_project_for_trust;
+use codexist_core::config::set_project_trusted;
+use codexist_core::git_info::resolve_root_git_project_for_trust;
 use crossterm::event::KeyCode;
 use crossterm::event::KeyEvent;
 use crossterm::event::KeyEventKind;
@@ -24,7 +24,7 @@ use crate::selection_list::selection_option_row;
 
 use super::onboarding_screen::StepState;
 pub(crate) struct TrustDirectoryWidget {
-    pub codex_home: PathBuf,
+    pub codexist_home: PathBuf,
     pub cwd: PathBuf,
     pub is_git_repo: bool,
     pub selection: Option<TrustDirectorySelection>,
@@ -44,13 +44,13 @@ impl WidgetRef for &TrustDirectoryWidget {
 
         column.push(Line::from(vec![
             "> ".into(),
-            "You are running Codex in ".bold(),
+            "You are running Codexist in ".bold(),
             self.cwd.to_string_lossy().to_string().into(),
         ]));
         column.push("");
 
         let guidance = if self.is_git_repo {
-            "Since this folder is version controlled, you may wish to allow Codex to work in this folder without asking for approval."
+            "Since this folder is version controlled, you may wish to allow Codexist to work in this folder without asking for approval."
         } else {
             "Since this folder is not version controlled, we recommend requiring approval of all edits and commands."
         };
@@ -65,7 +65,7 @@ impl WidgetRef for &TrustDirectoryWidget {
         let mut options: Vec<(&str, TrustDirectorySelection)> = Vec::new();
         if self.is_git_repo {
             options.push((
-                "Yes, allow Codex to work in this folder without asking for approval",
+                "Yes, allow Codexist to work in this folder without asking for approval",
                 TrustDirectorySelection::Trust,
             ));
             options.push((
@@ -74,7 +74,7 @@ impl WidgetRef for &TrustDirectoryWidget {
             ));
         } else {
             options.push((
-                "Allow Codex to work in this folder without asking for approval",
+                "Allow Codexist to work in this folder without asking for approval",
                 TrustDirectorySelection::Trust,
             ));
             options.push((
@@ -153,7 +153,7 @@ impl TrustDirectoryWidget {
     fn handle_trust(&mut self) {
         let target =
             resolve_root_git_project_for_trust(&self.cwd).unwrap_or_else(|| self.cwd.clone());
-        if let Err(e) = set_project_trusted(&self.codex_home, &target) {
+        if let Err(e) = set_project_trusted(&self.codexist_home, &target) {
             tracing::error!("Failed to set project trusted: {e:?}");
             self.error = Some(format!("Failed to set trust for {}: {e}", target.display()));
         }
@@ -184,7 +184,7 @@ mod tests {
     #[test]
     fn release_event_does_not_change_selection() {
         let mut widget = TrustDirectoryWidget {
-            codex_home: PathBuf::from("."),
+            codexist_home: PathBuf::from("."),
             cwd: PathBuf::from("."),
             is_git_repo: false,
             selection: None,
@@ -207,7 +207,7 @@ mod tests {
     #[test]
     fn renders_snapshot_for_git_repo() {
         let widget = TrustDirectoryWidget {
-            codex_home: PathBuf::from("."),
+            codexist_home: PathBuf::from("."),
             cwd: PathBuf::from("/workspace/project"),
             is_git_repo: true,
             selection: None,

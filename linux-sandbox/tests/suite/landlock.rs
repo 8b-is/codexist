@@ -1,12 +1,12 @@
 #![cfg(target_os = "linux")]
-use codex_core::config::types::ShellEnvironmentPolicy;
-use codex_core::error::CodexErr;
-use codex_core::error::SandboxErr;
-use codex_core::exec::ExecParams;
-use codex_core::exec::SandboxType;
-use codex_core::exec::process_exec_tool_call;
-use codex_core::exec_env::create_env;
-use codex_core::protocol::SandboxPolicy;
+use codexist_core::config::types::ShellEnvironmentPolicy;
+use codexist_core::error::CodexistErr;
+use codexist_core::error::SandboxErr;
+use codexist_core::exec::ExecParams;
+use codexist_core::exec::SandboxType;
+use codexist_core::exec::process_exec_tool_call;
+use codexist_core::exec_env::create_env;
+use codexist_core::protocol::SandboxPolicy;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use tempfile::NamedTempFile;
@@ -56,14 +56,14 @@ async fn run_cmd(cmd: &[&str], writable_roots: &[PathBuf], timeout_ms: u64) {
         exclude_tmpdir_env_var: true,
         exclude_slash_tmp: true,
     };
-    let sandbox_program = env!("CARGO_BIN_EXE_codex-linux-sandbox");
-    let codex_linux_sandbox_exe = Some(PathBuf::from(sandbox_program));
+    let sandbox_program = env!("CARGO_BIN_EXE_codexist-linux-sandbox");
+    let codexist_linux_sandbox_exe = Some(PathBuf::from(sandbox_program));
     let res = process_exec_tool_call(
         params,
         SandboxType::LinuxSeccomp,
         &sandbox_policy,
         sandbox_cwd.as_path(),
-        &codex_linux_sandbox_exe,
+        &codexist_linux_sandbox_exe,
         None,
     )
     .await
@@ -151,21 +151,21 @@ async fn assert_network_blocked(cmd: &[&str]) {
     };
 
     let sandbox_policy = SandboxPolicy::new_read_only_policy();
-    let sandbox_program = env!("CARGO_BIN_EXE_codex-linux-sandbox");
-    let codex_linux_sandbox_exe: Option<PathBuf> = Some(PathBuf::from(sandbox_program));
+    let sandbox_program = env!("CARGO_BIN_EXE_codexist-linux-sandbox");
+    let codexist_linux_sandbox_exe: Option<PathBuf> = Some(PathBuf::from(sandbox_program));
     let result = process_exec_tool_call(
         params,
         SandboxType::LinuxSeccomp,
         &sandbox_policy,
         sandbox_cwd.as_path(),
-        &codex_linux_sandbox_exe,
+        &codexist_linux_sandbox_exe,
         None,
     )
     .await;
 
     let output = match result {
         Ok(output) => output,
-        Err(CodexErr::Sandbox(SandboxErr::Denied { output })) => *output,
+        Err(CodexistErr::Sandbox(SandboxErr::Denied { output })) => *output,
         _ => {
             panic!("expected sandbox denied error, got: {result:?}");
         }

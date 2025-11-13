@@ -9,7 +9,7 @@ rustPlatform.buildRustPackage (_: {
   env = {
     PKG_CONFIG_PATH = "${openssl.dev}/lib/pkgconfig:$PKG_CONFIG_PATH";
   };
-  pname = "codex-rs";
+  pname = "codexist-rs";
   version = "0.1.0";
   cargoLock.lockFile = ./Cargo.lock;
   doCheck = false;
@@ -25,8 +25,8 @@ rustPlatform.buildRustPackage (_: {
   };
 
   meta = with lib; {
-    description = "OpenAI Codex command‑line interface rust implementation";
+    description = "8b.is/codexist command‑line interface rust implementation";
     license = licenses.asl20;
-    homepage = "https://github.com/openai/codex";
+    homepage = "https://github.com/openai/codexist";
   };
 })

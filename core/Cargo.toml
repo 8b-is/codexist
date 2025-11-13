@@ -1,11 +1,11 @@
 [package]
 edition = "2024"
-name = "codex-core"
+name = "codexist-core"
 version = { workspace = true }
 
 [lib]
 doctest = false
-name = "codex_core"
+name = "codexist_core"
 path = "src/lib.rs"
 
 [lints]
@@ -19,20 +19,20 @@ async-trait = { workspace = true }
 base64 = { workspace = true }
 bytes = { workspace = true }
 chrono = { workspace = true, features = ["serde"] }
-codex-app-server-protocol = { workspace = true }
-codex-apply-patch = { workspace = true }
-codex-async-utils = { workspace = true }
-codex-file-search = { workspace = true }
-codex-git = { workspace = true }
-codex-keyring-store = { workspace = true }
-codex-otel = { workspace = true, features = ["otel"] }
-codex-protocol = { workspace = true }
-codex-rmcp-client = { workspace = true }
-codex-utils-pty = { workspace = true }
-codex-utils-readiness = { workspace = true }
-codex-utils-string = { workspace = true }
-codex-utils-tokenizer = { workspace = true }
-codex-windows-sandbox = { package = "codex-windows-sandbox", path = "../windows-sandbox-rs" }
+codexist-app-server-protocol = { workspace = true }
+codexist-apply-patch = { workspace = true }
+codexist-async-utils = { workspace = true }
+codexist-file-search = { workspace = true }
+codexist-git = { workspace = true }
+codexist-keyring-store = { workspace = true }
+codexist-otel = { workspace = true, features = ["otel"] }
+codexist-protocol = { workspace = true }
+codexist-rmcp-client = { workspace = true }
+codexist-utils-pty = { workspace = true }
+codexist-utils-readiness = { workspace = true }
+codexist-utils-string = { workspace = true }
+codexist-utils-tokenizer = { workspace = true }
+codexist-windows-sandbox = { package = "codexist-windows-sandbox", path = "../windows-sandbox-rs" }
 dirs = { workspace = true }
 dunce = { workspace = true }
 env-flags = { workspace = true }
@@ -104,7 +104,7 @@ openssl-sys = { workspace = true, features = ["vendored"] }
 [dev-dependencies]
 assert_cmd = { workspace = true }
 assert_matches = { workspace = true }
-codex-arg0 = { workspace = true }
+codexist-arg0 = { workspace = true }
 core_test_support = { workspace = true }
 ctor = { workspace = true }
 escargot = { workspace = true }

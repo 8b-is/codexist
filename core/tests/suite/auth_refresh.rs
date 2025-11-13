@@ -3,16 +3,16 @@ use anyhow::Result;
 use base64::Engine;
 use chrono::Duration;
 use chrono::Utc;
-use codex_core::CodexAuth;
-use codex_core::auth::AuthCredentialsStoreMode;
-use codex_core::auth::AuthDotJson;
-use codex_core::auth::REFRESH_TOKEN_URL_OVERRIDE_ENV_VAR;
-use codex_core::auth::RefreshTokenError;
-use codex_core::auth::load_auth_dot_json;
-use codex_core::auth::save_auth;
-use codex_core::error::RefreshTokenFailedReason;
-use codex_core::token_data::IdTokenInfo;
-use codex_core::token_data::TokenData;
+use codexist_core::CodexistAuth;
+use codexist_core::auth::AuthCredentialsStoreMode;
+use codexist_core::auth::AuthDotJson;
+use codexist_core::auth::REFRESH_TOKEN_URL_OVERRIDE_ENV_VAR;
+use codexist_core::auth::RefreshTokenError;
+use codexist_core::auth::load_auth_dot_json;
+use codexist_core::auth::save_auth;
+use codexist_core::error::RefreshTokenFailedReason;
+use codexist_core::token_data::IdTokenInfo;
+use codexist_core::token_data::TokenData;
 use core_test_support::skip_if_no_network;
 use pretty_assertions::assert_eq;
 use serde::Serialize;
@@ -162,15 +162,15 @@ async fn refresh_token_returns_transient_error_on_server_failure() -> Result<()>
 }
 
 struct RefreshTokenTestContext {
-    codex_home: TempDir,
-    auth: CodexAuth,
+    codexist_home: TempDir,
+    auth: CodexistAuth,
     initial_last_refresh: chrono::DateTime<Utc>,
     _env_guard: EnvGuard,
 }
 
 impl RefreshTokenTestContext {
     fn new(server: &MockServer) -> Result<Self> {
-        let codex_home = TempDir::new()?;
+        let codexist_home = TempDir::new()?;
         let initial_last_refresh = Utc::now() - Duration::days(1);
         let mut id_token = IdTokenInfo::default();
         id_token.raw_jwt = minimal_jwt();
@@ -186,7 +186,7 @@ impl RefreshTokenTestContext {
             last_refresh: Some(initial_last_refresh),
         };
         save_auth(
-            codex_home.path(),
+            codexist_home.path(),
             &auth_dot_json,
             AuthCredentialsStoreMode::File,
         )?;
@@ -194,11 +194,11 @@ impl RefreshTokenTestContext {
         let endpoint = format!("{}/oauth/token", server.uri());
         let env_guard = EnvGuard::set(REFRESH_TOKEN_URL_OVERRIDE_ENV_VAR, endpoint);
 
-        let auth = CodexAuth::from_auth_storage(codex_home.path(), AuthCredentialsStoreMode::File)?
+        let auth = CodexistAuth::from_auth_storage(codexist_home.path(), AuthCredentialsStoreMode::File)?
             .context("auth should load from storage")?;
 
         Ok(Self {
-            codex_home,
+            codexist_home,
             auth,
             initial_last_refresh,
             _env_guard: env_guard,
@@ -206,7 +206,7 @@ impl RefreshTokenTestContext {
     }
 
     fn load_auth(&self) -> Result<AuthDotJson> {
-        load_auth_dot_json(self.codex_home.path(), AuthCredentialsStoreMode::File)
+        load_auth_dot_json(self.codexist_home.path(), AuthCredentialsStoreMode::File)
             .context("load auth.json")?
             .context("auth.json should exist")
     }

@@ -1,11 +1,11 @@
 #![cfg(not(target_os = "windows"))]
 
-use codex_core::protocol::AskForApproval;
-use codex_core::protocol::EventMsg;
-use codex_core::protocol::Op;
-use codex_core::protocol::SandboxPolicy;
-use codex_protocol::config_types::ReasoningSummary;
-use codex_protocol::user_input::UserInput;
+use codexist_core::protocol::AskForApproval;
+use codexist_core::protocol::EventMsg;
+use codexist_core::protocol::Op;
+use codexist_core::protocol::SandboxPolicy;
+use codexist_protocol::config_types::ReasoningSummary;
+use codexist_protocol::user_input::UserInput;
 use core_test_support::responses;
 use core_test_support::responses::ev_assistant_message;
 use core_test_support::responses::ev_completed;
@@ -14,8 +14,8 @@ use core_test_support::responses::ev_response_created;
 use core_test_support::responses::sse;
 use core_test_support::responses::start_mock_server;
 use core_test_support::skip_if_no_network;
-use core_test_support::test_codex::TestCodex;
-use core_test_support::test_codex::test_codex;
+use core_test_support::test_codexist::TestCodexist;
+use core_test_support::test_codexist::test_codexist;
 use core_test_support::wait_for_event;
 use pretty_assertions::assert_eq;
 use serde_json::Value;
@@ -28,12 +28,12 @@ async fn read_file_tool_returns_requested_lines() -> anyhow::Result<()> {
 
     let server = start_mock_server().await;
 
-    let TestCodex {
-        codex,
+    let TestCodexist {
+        codexist,
         cwd,
         session_configured,
         ..
-    } = test_codex().build(&server).await?;
+    } = test_codexist().build(&server).await?;
 
     let file_path = cwd.path().join("sample.txt");
     std::fs::write(&file_path, "first\nsecond\nthird\nfourth\n")?;
@@ -62,7 +62,7 @@ async fn read_file_tool_returns_requested_lines() -> anyhow::Result<()> {
 
     let session_model = session_configured.model.clone();
 
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "please inspect sample.txt".into(),
@@ -77,7 +77,7 @@ async fn read_file_tool_returns_requested_lines() -> anyhow::Result<()> {
         })
         .await?;
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     let req = second_mock.single_request();
     let tool_output_item = req.function_call_output(call_id);

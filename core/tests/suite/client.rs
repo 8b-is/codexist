@@ -1,36 +1,36 @@
-use codex_app_server_protocol::AuthMode;
-use codex_core::CodexAuth;
-use codex_core::ContentItem;
-use codex_core::ConversationManager;
-use codex_core::LocalShellAction;
-use codex_core::LocalShellExecAction;
-use codex_core::LocalShellStatus;
-use codex_core::ModelClient;
-use codex_core::ModelProviderInfo;
-use codex_core::NewConversation;
-use codex_core::Prompt;
-use codex_core::ResponseEvent;
-use codex_core::ResponseItem;
-use codex_core::WireApi;
-use codex_core::auth::AuthCredentialsStoreMode;
-use codex_core::built_in_model_providers;
-use codex_core::error::CodexErr;
-use codex_core::model_family::find_family_for_model;
-use codex_core::protocol::EventMsg;
-use codex_core::protocol::Op;
-use codex_core::protocol::SessionSource;
-use codex_otel::otel_event_manager::OtelEventManager;
-use codex_protocol::ConversationId;
-use codex_protocol::models::ReasoningItemContent;
-use codex_protocol::models::ReasoningItemReasoningSummary;
-use codex_protocol::models::WebSearchAction;
-use codex_protocol::user_input::UserInput;
+use codexist_app_server_protocol::AuthMode;
+use codexist_core::CodexistAuth;
+use codexist_core::ContentItem;
+use codexist_core::ConversationManager;
+use codexist_core::LocalShellAction;
+use codexist_core::LocalShellExecAction;
+use codexist_core::LocalShellStatus;
+use codexist_core::ModelClient;
+use codexist_core::ModelProviderInfo;
+use codexist_core::NewConversation;
+use codexist_core::Prompt;
+use codexist_core::ResponseEvent;
+use codexist_core::ResponseItem;
+use codexist_core::WireApi;
+use codexist_core::auth::AuthCredentialsStoreMode;
+use codexist_core::built_in_model_providers;
+use codexist_core::error::CodexistErr;
+use codexist_core::model_family::find_family_for_model;
+use codexist_core::protocol::EventMsg;
+use codexist_core::protocol::Op;
+use codexist_core::protocol::SessionSource;
+use codexist_otel::otel_event_manager::OtelEventManager;
+use codexist_protocol::ConversationId;
+use codexist_protocol::models::ReasoningItemContent;
+use codexist_protocol::models::ReasoningItemReasoningSummary;
+use codexist_protocol::models::WebSearchAction;
+use codexist_protocol::user_input::UserInput;
 use core_test_support::load_default_config_for_test;
 use core_test_support::load_sse_fixture_with_id;
 use core_test_support::responses;
 use core_test_support::skip_if_no_network;
-use core_test_support::test_codex::TestCodex;
-use core_test_support::test_codex::test_codex;
+use core_test_support::test_codexist::TestCodexist;
+use core_test_support::test_codexist::test_codexist;
 use core_test_support::wait_for_event;
 use futures::StreamExt;
 use serde_json::json;
@@ -93,11 +93,11 @@ fn assert_message_ends_with(request_body: &serde_json::Value, text: &str) {
     );
 }
 
-/// Writes an `auth.json` into the provided `codex_home` with the specified parameters.
+/// Writes an `auth.json` into the provided `codexist_home` with the specified parameters.
 /// Returns the fake JWT string written to `tokens.id_token`.
 #[expect(clippy::unwrap_used)]
 fn write_auth_json(
-    codex_home: &TempDir,
+    codexist_home: &TempDir,
     openai_api_key: Option<&str>,
     chatgpt_plan_type: &str,
     access_token: &str,
@@ -137,7 +137,7 @@ fn write_auth_json(
     });
 
     std::fs::write(
-        codex_home.path().join("auth.json"),
+        codexist_home.path().join("auth.json"),
         serde_json::to_string_pretty(&auth_json).unwrap(),
     )
     .unwrap();
@@ -174,10 +174,10 @@ async fn resume_includes_initial_messages_and_sends_prior_items() {
     .unwrap();
 
     // Prior item: user message (should be delivered)
-    let prior_user = codex_protocol::models::ResponseItem::Message {
+    let prior_user = codexist_protocol::models::ResponseItem::Message {
         id: None,
         role: "user".to_string(),
-        content: vec![codex_protocol::models::ContentItem::InputText {
+        content: vec![codexist_protocol::models::ContentItem::InputText {
             text: "resumed user message".to_string(),
         }],
     };
@@ -194,10 +194,10 @@ async fn resume_includes_initial_messages_and_sends_prior_items() {
     .unwrap();
 
     // Prior item: system message (excluded from API history)
-    let prior_system = codex_protocol::models::ResponseItem::Message {
+    let prior_system = codexist_protocol::models::ResponseItem::Message {
         id: None,
         role: "system".to_string(),
-        content: vec![codex_protocol::models::ContentItem::OutputText {
+        content: vec![codexist_protocol::models::ContentItem::OutputText {
             text: "resumed system instruction".to_string(),
         }],
     };
@@ -214,10 +214,10 @@ async fn resume_includes_initial_messages_and_sends_prior_items() {
     .unwrap();
 
     // Prior item: assistant message
-    let prior_item = codex_protocol::models::ResponseItem::Message {
+    let prior_item = codexist_protocol::models::ResponseItem::Message {
         id: None,
         role: "assistant".to_string(),
-        content: vec![codex_protocol::models::ContentItem::OutputText {
+        content: vec![codexist_protocol::models::ContentItem::OutputText {
             text: "resumed assistant message".to_string(),
         }],
     };
@@ -240,23 +240,23 @@ async fn resume_includes_initial_messages_and_sends_prior_items() {
         responses::mount_sse_once_match(&server, path("/v1/responses"), sse_completed("resp1"))
             .await;
 
-    // Configure Codex to resume from our file
+    // Configure Codexist to resume from our file
     let model_provider = ModelProviderInfo {
         base_url: Some(format!("{}/v1", server.uri())),
         ..built_in_model_providers()["openai"].clone()
     };
-    let codex_home = TempDir::new().unwrap();
-    let mut config = load_default_config_for_test(&codex_home);
+    let codexist_home = TempDir::new().unwrap();
+    let mut config = load_default_config_for_test(&codexist_home);
     config.model_provider = model_provider;
     // Also configure user instructions to ensure they are NOT delivered on resume.
     config.user_instructions = Some("be nice".to_string());
 
     let conversation_manager =
-        ConversationManager::with_auth(CodexAuth::from_api_key("Test API Key"));
+        ConversationManager::with_auth(CodexistAuth::from_api_key("Test API Key"));
     let auth_manager =
-        codex_core::AuthManager::from_auth_for_testing(CodexAuth::from_api_key("Test API Key"));
+        codexist_core::AuthManager::from_auth_for_testing(CodexistAuth::from_api_key("Test API Key"));
     let NewConversation {
-        conversation: codex,
+        conversation: codexist,
         session_configured,
         ..
     } = conversation_manager
@@ -274,7 +274,7 @@ async fn resume_includes_initial_messages_and_sends_prior_items() {
     assert_eq!(initial_json, expected_initial_json);
 
     // 2) Submit new input; the request body must include the prior item followed by the new user input.
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello".into(),
@@ -282,7 +282,7 @@ async fn resume_includes_initial_messages_and_sends_prior_items() {
         })
         .await
         .unwrap();
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     let request = resp_mock.single_request();
     let request_body = request.body_json();
@@ -331,14 +331,14 @@ async fn includes_conversation_id_and_model_headers_in_request() {
     };
 
     // Init session
-    let codex_home = TempDir::new().unwrap();
-    let mut config = load_default_config_for_test(&codex_home);
+    let codexist_home = TempDir::new().unwrap();
+    let mut config = load_default_config_for_test(&codexist_home);
     config.model_provider = model_provider;
 
     let conversation_manager =
-        ConversationManager::with_auth(CodexAuth::from_api_key("Test API Key"));
+        ConversationManager::with_auth(CodexistAuth::from_api_key("Test API Key"));
     let NewConversation {
-        conversation: codex,
+        conversation: codexist,
         conversation_id,
         session_configured: _,
     } = conversation_manager
@@ -346,7 +346,7 @@ async fn includes_conversation_id_and_model_headers_in_request() {
         .await
         .expect("create new conversation");
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello".into(),
@@ -355,7 +355,7 @@ async fn includes_conversation_id_and_model_headers_in_request() {
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     // get request from the server
     let request = &server.received_requests().await.unwrap()[0];
@@ -367,7 +367,7 @@ async fn includes_conversation_id_and_model_headers_in_request() {
         request_conversation_id.to_str().unwrap(),
         conversation_id.to_string()
     );
-    assert_eq!(request_originator.to_str().unwrap(), "codex_cli_rs");
+    assert_eq!(request_originator.to_str().unwrap(), "codexist_cli_rs");
     assert_eq!(
         request_authorization.to_str().unwrap(),
         "Bearer Test API Key"
@@ -387,21 +387,21 @@ async fn includes_base_instructions_override_in_request() {
         base_url: Some(format!("{}/v1", server.uri())),
         ..built_in_model_providers()["openai"].clone()
     };
-    let codex_home = TempDir::new().unwrap();
-    let mut config = load_default_config_for_test(&codex_home);
+    let codexist_home = TempDir::new().unwrap();
+    let mut config = load_default_config_for_test(&codexist_home);
 
     config.base_instructions = Some("test instructions".to_string());
     config.model_provider = model_provider;
 
     let conversation_manager =
-        ConversationManager::with_auth(CodexAuth::from_api_key("Test API Key"));
-    let codex = conversation_manager
+        ConversationManager::with_auth(CodexistAuth::from_api_key("Test API Key"));
+    let codexist = conversation_manager
         .new_conversation(config)
         .await
         .expect("create new conversation")
         .conversation;
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello".into(),
@@ -410,7 +410,7 @@ async fn includes_base_instructions_override_in_request() {
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     let request = resp_mock.single_request();
     let request_body = request.body_json();
@@ -436,24 +436,24 @@ async fn chatgpt_auth_sends_correct_request() {
         .set_body_raw(sse_completed("resp1"), "text/event-stream");
 
     Mock::given(method("POST"))
-        .and(path("/api/codex/responses"))
+        .and(path("/api/codexist/responses"))
         .respond_with(first)
         .expect(1)
         .mount(&server)
         .await;
 
     let model_provider = ModelProviderInfo {
-        base_url: Some(format!("{}/api/codex", server.uri())),
+        base_url: Some(format!("{}/api/codexist", server.uri())),
         ..built_in_model_providers()["openai"].clone()
     };
 
     // Init session
-    let codex_home = TempDir::new().unwrap();
-    let mut config = load_default_config_for_test(&codex_home);
+    let codexist_home = TempDir::new().unwrap();
+    let mut config = load_default_config_for_test(&codexist_home);
     config.model_provider = model_provider;
-    let conversation_manager = ConversationManager::with_auth(create_dummy_codex_auth());
+    let conversation_manager = ConversationManager::with_auth(create_dummy_codexist_auth());
     let NewConversation {
-        conversation: codex,
+        conversation: codexist,
         conversation_id,
         session_configured: _,
     } = conversation_manager
@@ -461,7 +461,7 @@ async fn chatgpt_auth_sends_correct_request() {
         .await
         .expect("create new conversation");
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello".into(),
@@ -470,7 +470,7 @@ async fn chatgpt_auth_sends_correct_request() {
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     // get request from the server
     let request = &server.received_requests().await.unwrap()[0];
@@ -484,7 +484,7 @@ async fn chatgpt_auth_sends_correct_request() {
         request_conversation_id.to_str().unwrap(),
         conversation_id.to_string()
     );
-    assert_eq!(request_originator.to_str().unwrap(), "codex_cli_rs");
+    assert_eq!(request_originator.to_str().unwrap(), "codexist_cli_rs");
     assert_eq!(
         request_authorization.to_str().unwrap(),
         "Bearer Access Token"
@@ -523,36 +523,36 @@ async fn prefers_apikey_when_config_prefers_apikey_even_with_chatgpt_tokens() {
     };
 
     // Init session
-    let codex_home = TempDir::new().unwrap();
+    let codexist_home = TempDir::new().unwrap();
     // Write auth.json that contains both API key and ChatGPT tokens for a plan that should prefer ChatGPT,
     // but config will force API key preference.
     let _jwt = write_auth_json(
-        &codex_home,
+        &codexist_home,
         Some("sk-test-key"),
         "pro",
         "Access-123",
         Some("acc-123"),
     );
 
-    let mut config = load_default_config_for_test(&codex_home);
+    let mut config = load_default_config_for_test(&codexist_home);
     config.model_provider = model_provider;
 
     let auth_manager =
-        match CodexAuth::from_auth_storage(codex_home.path(), AuthCredentialsStoreMode::File) {
-            Ok(Some(auth)) => codex_core::AuthManager::from_auth_for_testing(auth),
-            Ok(None) => panic!("No CodexAuth found in codex_home"),
-            Err(e) => panic!("Failed to load CodexAuth: {e}"),
+        match CodexistAuth::from_auth_storage(codexist_home.path(), AuthCredentialsStoreMode::File) {
+            Ok(Some(auth)) => codexist_core::AuthManager::from_auth_for_testing(auth),
+            Ok(None) => panic!("No CodexistAuth found in codexist_home"),
+            Err(e) => panic!("Failed to load CodexistAuth: {e}"),
         };
     let conversation_manager = ConversationManager::new(auth_manager, SessionSource::Exec);
     let NewConversation {
-        conversation: codex,
+        conversation: codexist,
         ..
     } = conversation_manager
         .new_conversation(config)
         .await
         .expect("create new conversation");
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello".into(),
@@ -561,7 +561,7 @@ async fn prefers_apikey_when_config_prefers_apikey_even_with_chatgpt_tokens() {
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -578,20 +578,20 @@ async fn includes_user_instructions_message_in_request() {
         ..built_in_model_providers()["openai"].clone()
     };
 
-    let codex_home = TempDir::new().unwrap();
-    let mut config = load_default_config_for_test(&codex_home);
+    let codexist_home = TempDir::new().unwrap();
+    let mut config = load_default_config_for_test(&codexist_home);
     config.model_provider = model_provider;
     config.user_instructions = Some("be nice".to_string());
 
     let conversation_manager =
-        ConversationManager::with_auth(CodexAuth::from_api_key("Test API Key"));
-    let codex = conversation_manager
+        ConversationManager::with_auth(CodexistAuth::from_api_key("Test API Key"));
+    let codexist = conversation_manager
         .new_conversation(config)
         .await
         .expect("create new conversation")
         .conversation;
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello".into(),
@@ -600,7 +600,7 @@ async fn includes_user_instructions_message_in_request() {
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     let request = resp_mock.single_request();
     let request_body = request.body_json();
@@ -638,21 +638,21 @@ async fn includes_developer_instructions_message_in_request() {
         ..built_in_model_providers()["openai"].clone()
     };
 
-    let codex_home = TempDir::new().unwrap();
-    let mut config = load_default_config_for_test(&codex_home);
+    let codexist_home = TempDir::new().unwrap();
+    let mut config = load_default_config_for_test(&codexist_home);
     config.model_provider = model_provider;
     config.user_instructions = Some("be nice".to_string());
     config.developer_instructions = Some("be useful".to_string());
 
     let conversation_manager =
-        ConversationManager::with_auth(CodexAuth::from_api_key("Test API Key"));
-    let codex = conversation_manager
+        ConversationManager::with_auth(CodexistAuth::from_api_key("Test API Key"));
+    let codexist = conversation_manager
         .new_conversation(config)
         .await
         .expect("create new conversation")
         .conversation;
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello".into(),
@@ -661,7 +661,7 @@ async fn includes_developer_instructions_message_in_request() {
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     let request = resp_mock.single_request();
     let request_body = request.body_json();
@@ -725,8 +725,8 @@ async fn azure_responses_request_includes_store_and_reasoning_ids() {
         requires_openai_auth: false,
     };
 
-    let codex_home = TempDir::new().unwrap();
-    let mut config = load_default_config_for_test(&codex_home);
+    let codexist_home = TempDir::new().unwrap();
+    let mut config = load_default_config_for_test(&codexist_home);
     config.model_provider_id = provider.name.clone();
     config.model_provider = provider.clone();
     let effort = config.model_reasoning_effort;
@@ -754,7 +754,7 @@ async fn azure_responses_request_includes_store_and_reasoning_ids() {
         effort,
         summary,
         conversation_id,
-        codex_protocol::protocol::SessionSource::Exec,
+        codexist_protocol::protocol::SessionSource::Exec,
     );
 
     let mut prompt = Prompt::default();
@@ -848,12 +848,12 @@ async fn token_count_includes_rate_limits_snapshot() {
 
     let response = ResponseTemplate::new(200)
         .insert_header("content-type", "text/event-stream")
-        .insert_header("x-codex-primary-used-percent", "12.5")
-        .insert_header("x-codex-secondary-used-percent", "40.0")
-        .insert_header("x-codex-primary-window-minutes", "10")
-        .insert_header("x-codex-secondary-window-minutes", "60")
-        .insert_header("x-codex-primary-reset-at", "1704069000")
-        .insert_header("x-codex-secondary-reset-at", "1704074400")
+        .insert_header("x-codexist-primary-used-percent", "12.5")
+        .insert_header("x-codexist-secondary-used-percent", "40.0")
+        .insert_header("x-codexist-primary-window-minutes", "10")
+        .insert_header("x-codexist-secondary-window-minutes", "60")
+        .insert_header("x-codexist-primary-reset-at", "1704069000")
+        .insert_header("x-codexist-secondary-reset-at", "1704074400")
         .set_body_raw(sse_body, "text/event-stream");
 
     Mock::given(method("POST"))
@@ -870,14 +870,14 @@ async fn token_count_includes_rate_limits_snapshot() {
     let mut config = load_default_config_for_test(&home);
     config.model_provider = provider;
 
-    let conversation_manager = ConversationManager::with_auth(CodexAuth::from_api_key("test"));
-    let codex = conversation_manager
+    let conversation_manager = ConversationManager::with_auth(CodexistAuth::from_api_key("test"));
+    let codexist = conversation_manager
         .new_conversation(config)
         .await
         .expect("create conversation")
         .conversation;
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello".into(),
@@ -887,7 +887,7 @@ async fn token_count_includes_rate_limits_snapshot() {
         .unwrap();
 
     let first_token_event =
-        wait_for_event(&codex, |msg| matches!(msg, EventMsg::TokenCount(_))).await;
+        wait_for_event(&codexist, |msg| matches!(msg, EventMsg::TokenCount(_))).await;
     let rate_limit_only = match first_token_event {
         EventMsg::TokenCount(ev) => ev,
         _ => unreachable!(),
@@ -914,7 +914,7 @@ async fn token_count_includes_rate_limits_snapshot() {
     );
 
     let token_event = wait_for_event(
-        &codex,
+        &codexist,
         |msg| matches!(msg, EventMsg::TokenCount(ev) if ev.info.is_some()),
     )
     .await;
@@ -942,7 +942,7 @@ async fn token_count_includes_rate_limits_snapshot() {
                     "reasoning_output_tokens": 0,
                     "total_tokens": 123
                 },
-                // Default model is gpt-5-codex in tests → 95% usable context window
+                // Default model is gpt-5-codexist in tests → 95% usable context window
                 "model_context_window": 258400
             },
             "rate_limits": {
@@ -981,7 +981,7 @@ async fn token_count_includes_rate_limits_snapshot() {
         Some(1704069000)
     );
 
-    wait_for_event(&codex, |msg| matches!(msg, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |msg| matches!(msg, EventMsg::TaskComplete(_))).await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -990,11 +990,11 @@ async fn usage_limit_error_emits_rate_limit_event() -> anyhow::Result<()> {
     let server = MockServer::start().await;
 
     let response = ResponseTemplate::new(429)
-        .insert_header("x-codex-primary-used-percent", "100.0")
-        .insert_header("x-codex-secondary-used-percent", "87.5")
-        .insert_header("x-codex-primary-over-secondary-limit-percent", "95.0")
-        .insert_header("x-codex-primary-window-minutes", "15")
-        .insert_header("x-codex-secondary-window-minutes", "60")
+        .insert_header("x-codexist-primary-used-percent", "100.0")
+        .insert_header("x-codexist-secondary-used-percent", "87.5")
+        .insert_header("x-codexist-primary-over-secondary-limit-percent", "95.0")
+        .insert_header("x-codexist-primary-window-minutes", "15")
+        .insert_header("x-codexist-secondary-window-minutes", "60")
         .set_body_json(json!({
             "error": {
                 "type": "usage_limit_reached",
@@ -1011,9 +1011,9 @@ async fn usage_limit_error_emits_rate_limit_event() -> anyhow::Result<()> {
         .mount(&server)
         .await;
 
-    let mut builder = test_codex();
-    let codex_fixture = builder.build(&server).await?;
-    let codex = codex_fixture.codex.clone();
+    let mut builder = test_codexist();
+    let codexist_fixture = builder.build(&server).await?;
+    let codexist = codexist_fixture.codexist.clone();
 
     let expected_limits = json!({
         "primary": {
@@ -1028,7 +1028,7 @@ async fn usage_limit_error_emits_rate_limit_event() -> anyhow::Result<()> {
         }
     });
 
-    let submission_id = codex
+    let submission_id = codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello".into(),
@@ -1037,7 +1037,7 @@ async fn usage_limit_error_emits_rate_limit_event() -> anyhow::Result<()> {
         .await
         .expect("submission should succeed while emitting usage limit error events");
 
-    let token_event = wait_for_event(&codex, |msg| matches!(msg, EventMsg::TokenCount(_))).await;
+    let token_event = wait_for_event(&codexist, |msg| matches!(msg, EventMsg::TokenCount(_))).await;
     let EventMsg::TokenCount(event) = token_event else {
         unreachable!();
     };
@@ -1051,7 +1051,7 @@ async fn usage_limit_error_emits_rate_limit_event() -> anyhow::Result<()> {
         })
     );
 
-    let error_event = wait_for_event(&codex, |msg| matches!(msg, EventMsg::Error(_))).await;
+    let error_event = wait_for_event(&codexist, |msg| matches!(msg, EventMsg::Error(_))).await;
     let EventMsg::Error(error_event) = error_event else {
         unreachable!();
     };
@@ -1089,7 +1089,7 @@ async fn context_window_error_sets_total_tokens_to_model_window() -> anyhow::Res
     )
     .await;
 
-    let TestCodex { codex, .. } = test_codex()
+    let TestCodexist { codexist, .. } = test_codexist()
         .with_config(|config| {
             config.model = "gpt-5".to_string();
             config.model_family = find_family_for_model("gpt-5").expect("known gpt-5 model family");
@@ -1098,7 +1098,7 @@ async fn context_window_error_sets_total_tokens_to_model_window() -> anyhow::Res
         .build(&server)
         .await?;
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "seed turn".into(),
@@ -1106,9 +1106,9 @@ async fn context_window_error_sets_total_tokens_to_model_window() -> anyhow::Res
         })
         .await?;
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "trigger context window".into(),
@@ -1116,7 +1116,7 @@ async fn context_window_error_sets_total_tokens_to_model_window() -> anyhow::Res
         })
         .await?;
 
-    let token_event = wait_for_event(&codex, |event| {
+    let token_event = wait_for_event(&codexist, |event| {
         matches!(
             event,
             EventMsg::TokenCount(payload)
@@ -1142,8 +1142,8 @@ async fn context_window_error_sets_total_tokens_to_model_window() -> anyhow::Res
         EFFECTIVE_CONTEXT_WINDOW
     );
 
-    let error_event = wait_for_event(&codex, |ev| matches!(ev, EventMsg::Error(_))).await;
-    let expected_context_window_message = CodexErr::ContextWindowExceeded.to_string();
+    let error_event = wait_for_event(&codexist, |ev| matches!(ev, EventMsg::Error(_))).await;
+    let expected_context_window_message = CodexistErr::ContextWindowExceeded.to_string();
     assert!(
         matches!(
             error_event,
@@ -1152,7 +1152,7 @@ async fn context_window_error_sets_total_tokens_to_model_window() -> anyhow::Res
         "expected context window error; got {error_event:?}"
     );
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     Ok(())
 }
@@ -1212,18 +1212,18 @@ async fn azure_overrides_assign_properties_used_for_responses_url() {
     };
 
     // Init session
-    let codex_home = TempDir::new().unwrap();
-    let mut config = load_default_config_for_test(&codex_home);
+    let codexist_home = TempDir::new().unwrap();
+    let mut config = load_default_config_for_test(&codexist_home);
     config.model_provider = provider;
 
-    let conversation_manager = ConversationManager::with_auth(create_dummy_codex_auth());
-    let codex = conversation_manager
+    let conversation_manager = ConversationManager::with_auth(create_dummy_codexist_auth());
+    let codexist = conversation_manager
         .new_conversation(config)
         .await
         .expect("create new conversation")
         .conversation;
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello".into(),
@@ -1232,7 +1232,7 @@ async fn azure_overrides_assign_properties_used_for_responses_url() {
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -1290,18 +1290,18 @@ async fn env_var_overrides_loaded_auth() {
     };
 
     // Init session
-    let codex_home = TempDir::new().unwrap();
-    let mut config = load_default_config_for_test(&codex_home);
+    let codexist_home = TempDir::new().unwrap();
+    let mut config = load_default_config_for_test(&codexist_home);
     config.model_provider = provider;
 
-    let conversation_manager = ConversationManager::with_auth(create_dummy_codex_auth());
-    let codex = conversation_manager
+    let conversation_manager = ConversationManager::with_auth(create_dummy_codexist_auth());
+    let codexist = conversation_manager
         .new_conversation(config)
         .await
         .expect("create new conversation")
         .conversation;
 
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text {
                 text: "hello".into(),
@@ -1310,11 +1310,11 @@ async fn env_var_overrides_loaded_auth() {
         .await
         .unwrap();
 
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 }
 
-fn create_dummy_codex_auth() -> CodexAuth {
-    CodexAuth::create_dummy_chatgpt_auth_for_testing()
+fn create_dummy_codexist_auth() -> CodexistAuth {
+    CodexistAuth::create_dummy_chatgpt_auth_for_testing()
 }
 
 /// Scenario:
@@ -1325,7 +1325,7 @@ fn create_dummy_codex_auth() -> CodexAuth {
 /// We assert that the `input` sent on each turn contains the expected conversation history
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn history_dedupes_streamed_and_final_messages_across_turns() {
-    // Skip under Codex sandbox network restrictions (mirrors other tests).
+    // Skip under Codexist sandbox network restrictions (mirrors other tests).
     skip_if_no_network!();
 
     // Mock server that will receive three sequential requests and return the same SSE stream
@@ -1367,15 +1367,15 @@ async fn history_dedupes_streamed_and_final_messages_across_turns() {
         ..built_in_model_providers()["openai"].clone()
     };
 
-    // Init session with isolated codex home.
-    let codex_home = TempDir::new().unwrap();
-    let mut config = load_default_config_for_test(&codex_home);
+    // Init session with isolated codexist home.
+    let codexist_home = TempDir::new().unwrap();
+    let mut config = load_default_config_for_test(&codexist_home);
     config.model_provider = model_provider;
 
     let conversation_manager =
-        ConversationManager::with_auth(CodexAuth::from_api_key("Test API Key"));
+        ConversationManager::with_auth(CodexistAuth::from_api_key("Test API Key"));
     let NewConversation {
-        conversation: codex,
+        conversation: codexist,
         ..
     } = conversation_manager
         .new_conversation(config)
@@ -1383,31 +1383,31 @@ async fn history_dedupes_streamed_and_final_messages_across_turns() {
         .expect("create new conversation");
 
     // Turn 1: user sends U1; wait for completion.
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text { text: "U1".into() }],
         })
         .await
         .unwrap();
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     // Turn 2: user sends U2; wait for completion.
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text { text: "U2".into() }],
         })
         .await
         .unwrap();
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     // Turn 3: user sends U3; wait for completion.
-    codex
+    codexist
         .submit(Op::UserInput {
             items: vec![UserInput::Text { text: "U3".into() }],
         })
         .await
         .unwrap();
-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     // Inspect the three captured requests.
     let requests = server.received_requests().await.unwrap();

@@ -4,13 +4,13 @@ use std::sync::OnceLock;
 
 use anyhow::Context;
 use anyhow::Result;
-use codex_core::features::Feature;
-use codex_core::protocol::AskForApproval;
-use codex_core::protocol::EventMsg;
-use codex_core::protocol::Op;
-use codex_core::protocol::SandboxPolicy;
-use codex_protocol::config_types::ReasoningSummary;
-use codex_protocol::user_input::UserInput;
+use codexist_core::features::Feature;
+use codexist_core::protocol::AskForApproval;
+use codexist_core::protocol::EventMsg;
+use codexist_core::protocol::Op;
+use codexist_core::protocol::SandboxPolicy;
+use codexist_protocol::config_types::ReasoningSummary;
+use codexist_protocol::user_input::UserInput;
 use core_test_support::assert_regex_match;
 use core_test_support::responses::ev_assistant_message;
 use core_test_support::responses::ev_completed;
@@ -21,8 +21,8 @@ use core_test_support::responses::sse;
 use core_test_support::responses::start_mock_server;
 use core_test_support::skip_if_no_network;
 use core_test_support::skip_if_sandbox;
-use core_test_support::test_codex::TestCodex;
-use core_test_support::test_codex::test_codex;
+use core_test_support::test_codexist::TestCodexist;
+use core_test_support::test_codexist::test_codexist;
 use core_test_support::wait_for_event;
 use core_test_support::wait_for_event_match;
 use regex_lite::Regex;
@@ -158,12 +158,12 @@ async fn unified_exec_emits_exec_command_begin_event() -> Result<()> {
 
     let server = start_mock_server().await;
 
-    let mut builder = test_codex().with_config(|config| {
+    let mut builder = test_codexist().with_config(|config| {
         config.use_experimental_unified_exec_tool = true;
         config.features.enable(Feature::UnifiedExec);
     });
-    let TestCodex {
-        codex,
+    let TestCodexist {
+        codexist,
         cwd,
         session_configured,
         ..
@@ -191,7 +191,7 @@ async fn unified_exec_emits_exec_command_begin_event() -> Result<()> {
 
     let session_model = session_configured.model.clone();
 
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "emit begin event".into(),
@@ -206,7 +206,7 @@ async fn unified_exec_emits_exec_command_begin_event() -> Result<()> {
         })
         .await?;
 
-    let begin_event = wait_for_event_match(&codex, |msg| match msg {
+    let begin_event = wait_for_event_match(&codexist, |msg| match msg {
         EventMsg::ExecCommandBegin(event) if event.call_id == call_id => Some(event.clone()),
         _ => None,
     })
@@ -218,7 +218,7 @@ async fn unified_exec_emits_exec_command_begin_event() -> Result<()> {
     );
     assert_eq!(begin_event.cwd, cwd.path());
 
-    wait_for_event(&codex, |event| matches!(event, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |event| matches!(event, EventMsg::TaskComplete(_))).await;
 
     Ok(())
 }
@@ -230,12 +230,12 @@ async fn unified_exec_respects_workdir_override() -> Result<()> {
 
     let server = start_mock_server().await;
 
-    let mut builder = test_codex().with_config(|config| {
+    let mut builder = test_codexist().with_config(|config| {
         config.use_experimental_unified_exec_tool = true;
         config.features.enable(Feature::UnifiedExec);
     });
-    let TestCodex {
-        codex,
+    let TestCodexist {
+        codexist,
         cwd,
         session_configured,
         ..
@@ -267,7 +267,7 @@ async fn unified_exec_respects_workdir_override() -> Result<()> {
 
     let session_model = session_configured.model.clone();
 
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "run workdir test".into(),
@@ -282,7 +282,7 @@ async fn unified_exec_respects_workdir_override() -> Result<()> {
         })
         .await?;
 
-    wait_for_event(&codex, |event| matches!(event, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |event| matches!(event, EventMsg::TaskComplete(_))).await;
 
     let requests = server.received_requests().await.expect("recorded requests");
     assert!(!requests.is_empty(), "expected at least one POST request");
@@ -314,12 +314,12 @@ async fn unified_exec_emits_exec_command_end_event() -> Result<()> {
 
     let server = start_mock_server().await;
 
-    let mut builder = test_codex().with_config(|config| {
+    let mut builder = test_codexist().with_config(|config| {
         config.use_experimental_unified_exec_tool = true;
         config.features.enable(Feature::UnifiedExec);
     });
-    let TestCodex {
-        codex,
+    let TestCodexist {
+        codexist,
         cwd,
         session_configured,
         ..
@@ -362,7 +362,7 @@ async fn unified_exec_emits_exec_command_end_event() -> Result<()> {
 
     let session_model = session_configured.model.clone();
 
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "emit end event".into(),
@@ -377,7 +377,7 @@ async fn unified_exec_emits_exec_command_end_event() -> Result<()> {
         })
         .await?;
 
-    let end_event = wait_for_event_match(&codex, |msg| match msg {
+    let end_event = wait_for_event_match(&codexist, |msg| match msg {
         EventMsg::ExecCommandEnd(ev) if ev.call_id == call_id => Some(ev.clone()),
         _ => None,
     })
@@ -389,7 +389,7 @@ async fn unified_exec_emits_exec_command_end_event() -> Result<()> {
         "expected aggregated output to contain marker"
     );
 
-    wait_for_event(&codex, |event| matches!(event, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |event| matches!(event, EventMsg::TaskComplete(_))).await;
     Ok(())
 }
 
@@ -400,12 +400,12 @@ async fn unified_exec_emits_output_delta_for_exec_command() -> Result<()> {
 
     let server = start_mock_server().await;
 
-    let mut builder = test_codex().with_config(|config| {
+    let mut builder = test_codexist().with_config(|config| {
         config.use_experimental_unified_exec_tool = true;
         config.features.enable(Feature::UnifiedExec);
     });
-    let TestCodex {
-        codex,
+    let TestCodexist {
+        codexist,
         cwd,
         session_configured,
         ..
@@ -433,7 +433,7 @@ async fn unified_exec_emits_output_delta_for_exec_command() -> Result<()> {
 
     let session_model = session_configured.model.clone();
 
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "emit delta".into(),
@@ -448,7 +448,7 @@ async fn unified_exec_emits_output_delta_for_exec_command() -> Result<()> {
         })
         .await?;
 
-    let delta = wait_for_event_match(&codex, |msg| match msg {
+    let delta = wait_for_event_match(&codexist, |msg| match msg {
         EventMsg::ExecCommandOutputDelta(ev) if ev.call_id == call_id => Some(ev.clone()),
         _ => None,
     })
@@ -460,7 +460,7 @@ async fn unified_exec_emits_output_delta_for_exec_command() -> Result<()> {
         "delta chunk missing expected text: {text:?}"
     );
 
-    wait_for_event(&codex, |event| matches!(event, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |event| matches!(event, EventMsg::TaskComplete(_))).await;
     Ok(())
 }
 
@@ -471,12 +471,12 @@ async fn unified_exec_emits_output_delta_for_write_stdin() -> Result<()> {
 
     let server = start_mock_server().await;
 
-    let mut builder = test_codex().with_config(|config| {
+    let mut builder = test_codexist().with_config(|config| {
         config.use_experimental_unified_exec_tool = true;
         config.features.enable(Feature::UnifiedExec);
     });
-    let TestCodex {
-        codex,
+    let TestCodexist {
+        codexist,
         cwd,
         session_configured,
         ..
@@ -524,7 +524,7 @@ async fn unified_exec_emits_output_delta_for_write_stdin() -> Result<()> {
 
     let session_model = session_configured.model.clone();
 
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "stdin delta".into(),
@@ -540,7 +540,7 @@ async fn unified_exec_emits_output_delta_for_write_stdin() -> Result<()> {
         .await?;
 
     // Expect a delta event corresponding to the write_stdin call.
-    let delta = wait_for_event_match(&codex, |msg| match msg {
+    let delta = wait_for_event_match(&codexist, |msg| match msg {
         EventMsg::ExecCommandOutputDelta(ev) if ev.call_id == open_call_id => {
             let text = String::from_utf8_lossy(&ev.chunk);
             if text.contains("WSTDIN-MARK") {
@@ -559,7 +559,7 @@ async fn unified_exec_emits_output_delta_for_write_stdin() -> Result<()> {
         "stdin delta chunk missing expected text: {text:?}"
     );
 
-    wait_for_event(&codex, |event| matches!(event, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |event| matches!(event, EventMsg::TaskComplete(_))).await;
     Ok(())
 }
 
@@ -570,12 +570,12 @@ async fn unified_exec_skips_begin_event_for_empty_input() -> Result<()> {
 
     let server = start_mock_server().await;
 
-    let mut builder = test_codex().with_config(|config| {
+    let mut builder = test_codexist().with_config(|config| {
         config.use_experimental_unified_exec_tool = true;
         config.features.enable(Feature::UnifiedExec);
     });
-    let TestCodex {
-        codex,
+    let TestCodexist {
+        codexist,
         cwd,
         session_configured,
         ..
@@ -623,7 +623,7 @@ async fn unified_exec_skips_begin_event_for_empty_input() -> Result<()> {
 
     let session_model = session_configured.model.clone();
 
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "check poll event behavior".into(),
@@ -640,7 +640,7 @@ async fn unified_exec_skips_begin_event_for_empty_input() -> Result<()> {
 
     let mut begin_events = Vec::new();
     loop {
-        let event_msg = wait_for_event(&codex, |_| true).await;
+        let event_msg = wait_for_event(&codexist, |_| true).await;
         match event_msg {
             EventMsg::ExecCommandBegin(event) => begin_events.push(event),
             EventMsg::TaskComplete(_) => break,
@@ -666,11 +666,11 @@ async fn exec_command_reports_chunk_and_exit_metadata() -> Result<()> {
 
     let server = start_mock_server().await;
 
-    let mut builder = test_codex().with_config(|config| {
+    let mut builder = test_codexist().with_config(|config| {
         config.features.enable(Feature::UnifiedExec);
     });
-    let TestCodex {
-        codex,
+    let TestCodexist {
+        codexist,
         cwd,
         session_configured,
         ..
@@ -698,7 +698,7 @@ async fn exec_command_reports_chunk_and_exit_metadata() -> Result<()> {
 
     let session_model = session_configured.model.clone();
 
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "run metadata test".into(),
@@ -713,7 +713,7 @@ async fn exec_command_reports_chunk_and_exit_metadata() -> Result<()> {
         })
         .await?;
 
-    wait_for_event(&codex, |event| matches!(event, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |event| matches!(event, EventMsg::TaskComplete(_))).await;
 
     let requests = server.received_requests().await.expect("recorded requests");
     assert!(!requests.is_empty(), "expected at least one POST request");
@@ -773,11 +773,11 @@ async fn write_stdin_returns_exit_metadata_and_clears_session() -> Result<()> {
 
     let server = start_mock_server().await;
 
-    let mut builder = test_codex().with_config(|config| {
+    let mut builder = test_codexist().with_config(|config| {
         config.features.enable(Feature::UnifiedExec);
     });
-    let TestCodex {
-        codex,
+    let TestCodexist {
+        codexist,
         cwd,
         session_configured,
         ..
@@ -839,7 +839,7 @@ async fn write_stdin_returns_exit_metadata_and_clears_session() -> Result<()> {
 
     let session_model = session_configured.model.clone();
 
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "test write_stdin exit behavior".into(),
@@ -854,7 +854,7 @@ async fn write_stdin_returns_exit_metadata_and_clears_session() -> Result<()> {
         })
         .await?;
 
-    wait_for_event(&codex, |event| matches!(event, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |event| matches!(event, EventMsg::TaskComplete(_))).await;
 
     let requests = server.received_requests().await.expect("recorded requests");
     assert!(!requests.is_empty(), "expected at least one POST request");
@@ -932,12 +932,12 @@ async fn unified_exec_emits_end_event_when_session_dies_via_stdin() -> Result<()
 
     let server = start_mock_server().await;
 
-    let mut builder = test_codex().with_config(|config| {
+    let mut builder = test_codexist().with_config(|config| {
         config.use_experimental_unified_exec_tool = true;
         config.features.enable(Feature::UnifiedExec);
     });
-    let TestCodex {
-        codex,
+    let TestCodexist {
+        codexist,
         cwd,
         session_configured,
         ..
@@ -1001,7 +1001,7 @@ async fn unified_exec_emits_end_event_when_session_dies_via_stdin() -> Result<()
 
     let session_model = session_configured.model.clone();
 
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "end on exit".into(),
@@ -1017,7 +1017,7 @@ async fn unified_exec_emits_end_event_when_session_dies_via_stdin() -> Result<()
         .await?;
 
     // We expect the ExecCommandEnd event to match the initial exec_command call_id.
-    let end_event = wait_for_event_match(&codex, |msg| match msg {
+    let end_event = wait_for_event_match(&codexist, |msg| match msg {
         EventMsg::ExecCommandEnd(ev) if ev.call_id == start_call_id => Some(ev.clone()),
         _ => None,
     })
@@ -1025,7 +1025,7 @@ async fn unified_exec_emits_end_event_when_session_dies_via_stdin() -> Result<()
 
     assert_eq!(end_event.exit_code, 0);
 
-    wait_for_event(&codex, |event| matches!(event, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |event| matches!(event, EventMsg::TaskComplete(_))).await;
     Ok(())
 }
 
@@ -1036,11 +1036,11 @@ async fn unified_exec_reuses_session_via_stdin() -> Result<()> {
 
     let server = start_mock_server().await;
 
-    let mut builder = test_codex().with_config(|config| {
+    let mut builder = test_codexist().with_config(|config| {
         config.features.enable(Feature::UnifiedExec);
     });
-    let TestCodex {
-        codex,
+    let TestCodexist {
+        codexist,
         cwd,
         session_configured,
         ..
@@ -1087,7 +1087,7 @@ async fn unified_exec_reuses_session_via_stdin() -> Result<()> {
 
     let session_model = session_configured.model.clone();
 
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "run unified exec".into(),
@@ -1102,7 +1102,7 @@ async fn unified_exec_reuses_session_via_stdin() -> Result<()> {
         })
         .await?;
 
-    wait_for_event(&codex, |event| matches!(event, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |event| matches!(event, EventMsg::TaskComplete(_))).await;
 
     let requests = server.received_requests().await.expect("recorded requests");
     assert!(!requests.is_empty(), "expected at least one POST request");
@@ -1144,12 +1144,12 @@ async fn unified_exec_streams_after_lagged_output() -> Result<()> {
 
     let server = start_mock_server().await;
 
-    let mut builder = test_codex().with_config(|config| {
+    let mut builder = test_codexist().with_config(|config| {
         config.use_experimental_unified_exec_tool = true;
         config.features.enable(Feature::UnifiedExec);
     });
-    let TestCodex {
-        codex,
+    let TestCodexist {
+        codexist,
         cwd,
         session_configured,
         ..
@@ -1215,7 +1215,7 @@ PY
 
     let session_model = session_configured.model.clone();
 
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "exercise lag handling".into(),
@@ -1230,7 +1230,7 @@ PY
         })
         .await?;
 
-    wait_for_event(&codex, |event| matches!(event, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |event| matches!(event, EventMsg::TaskComplete(_))).await;
 
     let requests = server.received_requests().await.expect("recorded requests");
     assert!(!requests.is_empty(), "expected at least one POST request");
@@ -1270,11 +1270,11 @@ async fn unified_exec_timeout_and_followup_poll() -> Result<()> {
 
     let server = start_mock_server().await;
 
-    let mut builder = test_codex().with_config(|config| {
+    let mut builder = test_codexist().with_config(|config| {
         config.features.enable(Feature::UnifiedExec);
     });
-    let TestCodex {
-        codex,
+    let TestCodexist {
+        codexist,
         cwd,
         session_configured,
         ..
@@ -1321,7 +1321,7 @@ async fn unified_exec_timeout_and_followup_poll() -> Result<()> {
 
     let session_model = session_configured.model.clone();
 
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "check timeout".into(),
@@ -1337,7 +1337,7 @@ async fn unified_exec_timeout_and_followup_poll() -> Result<()> {
         .await?;
 
     loop {
-        let event = codex.next_event().await.expect("event");
+        let event = codexist.next_event().await.expect("event");
         if matches!(event.msg, EventMsg::TaskComplete(_)) {
             break;
         }
@@ -1376,11 +1376,11 @@ async fn unified_exec_formats_large_output_summary() -> Result<()> {
 
     let server = start_mock_server().await;
 
-    let mut builder = test_codex().with_config(|config| {
+    let mut builder = test_codexist().with_config(|config| {
         config.features.enable(Feature::UnifiedExec);
     });
-    let TestCodex {
-        codex,
+    let TestCodexist {
+        codexist,
         cwd,
         session_configured,
         ..
@@ -1413,7 +1413,7 @@ PY
 
     let session_model = session_configured.model.clone();
 
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "summarize large output".into(),
@@ -1428,7 +1428,7 @@ PY
         })
         .await?;
 
-    wait_for_event(&codex, |event| matches!(event, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |event| matches!(event, EventMsg::TaskComplete(_))).await;
 
     let requests = server.received_requests().await.expect("recorded requests");
     assert!(!requests.is_empty(), "expected at least one POST request");
@@ -1461,11 +1461,11 @@ async fn unified_exec_runs_under_sandbox() -> Result<()> {
 
     let server = start_mock_server().await;
 
-    let mut builder = test_codex().with_config(|config| {
+    let mut builder = test_codexist().with_config(|config| {
         config.features.enable(Feature::UnifiedExec);
     });
-    let TestCodex {
-        codex,
+    let TestCodexist {
+        codexist,
         cwd,
         session_configured,
         ..
@@ -1492,7 +1492,7 @@ async fn unified_exec_runs_under_sandbox() -> Result<()> {
 
     let session_model = session_configured.model.clone();
 
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "summarize large output".into(),
@@ -1508,7 +1508,7 @@ async fn unified_exec_runs_under_sandbox() -> Result<()> {
         })
         .await?;
 
-    wait_for_event(&codex, |event| matches!(event, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&codexist, |event| matches!(event, EventMsg::TaskComplete(_))).await;
 
     let requests = server.received_requests().await.expect("recorded requests");
     assert!(!requests.is_empty(), "expected at least one POST request");

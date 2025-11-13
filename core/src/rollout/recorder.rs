@@ -1,4 +1,4 @@
-//! Persist Codex session rollouts (.jsonl) so sessions can be replayed or inspected later.
+//! Persist Codexist session rollouts (.jsonl) so sessions can be replayed or inspected later.
 
 use std::fs::File;
 use std::fs::{self};
@@ -6,7 +6,7 @@ use std::io::Error as IoError;
 use std::path::Path;
 use std::path::PathBuf;
 
-use codex_protocol::ConversationId;
+use codexist_protocol::ConversationId;
 use serde_json::Value;
 use time::OffsetDateTime;
 use time::format_description::FormatItem;
@@ -26,13 +26,13 @@ use super::policy::is_persisted_response_item;
 use crate::config::Config;
 use crate::default_client::originator;
 use crate::git_info::collect_git_info;
-use codex_protocol::protocol::InitialHistory;
-use codex_protocol::protocol::ResumedHistory;
-use codex_protocol::protocol::RolloutItem;
-use codex_protocol::protocol::RolloutLine;
-use codex_protocol::protocol::SessionMeta;
-use codex_protocol::protocol::SessionMetaLine;
-use codex_protocol::protocol::SessionSource;
+use codexist_protocol::protocol::InitialHistory;
+use codexist_protocol::protocol::ResumedHistory;
+use codexist_protocol::protocol::RolloutItem;
+use codexist_protocol::protocol::RolloutLine;
+use codexist_protocol::protocol::SessionMeta;
+use codexist_protocol::protocol::SessionMetaLine;
+use codexist_protocol::protocol::SessionSource;
 
 /// Records all [`ResponseItem`]s for a session and flushes them to disk after
 /// every update.
@@ -40,8 +40,8 @@ use codex_protocol::protocol::SessionSource;
 /// Rollouts are recorded as JSONL and can be inspected with tools such as:
 ///
 /// ```ignore
-/// $ jq -C . ~/.codex/sessions/rollout-2025-05-07T17-24-21-5973b6c0-94b8-487b-a530-2aeb6098ae0e.jsonl
-/// $ fx ~/.codex/sessions/rollout-2025-05-07T17-24-21-5973b6c0-94b8-487b-a530-2aeb6098ae0e.jsonl
+/// $ jq -C . ~/.codexist/sessions/rollout-2025-05-07T17-24-21-5973b6c0-94b8-487b-a530-2aeb6098ae0e.jsonl
+/// $ fx ~/.codexist/sessions/rollout-2025-05-07T17-24-21-5973b6c0-94b8-487b-a530-2aeb6098ae0e.jsonl
 /// ```
 #[derive(Clone)]
 pub struct RolloutRecorder {
@@ -91,9 +91,9 @@ impl RolloutRecorderParams {
 }
 
 impl RolloutRecorder {
-    /// List conversations (rollout files) under the provided Codex home directory.
+    /// List conversations (rollout files) under the provided Codexist home directory.
     pub async fn list_conversations(
-        codex_home: &Path,
+        codexist_home: &Path,
         page_size: usize,
         cursor: Option<&Cursor>,
         allowed_sources: &[SessionSource],
@@ -101,7 +101,7 @@ impl RolloutRecorder {
         default_provider: &str,
     ) -> std::io::Result<ConversationsPage> {
         get_conversations(
-            codex_home,
+            codexist_home,
             page_size,
             cursor,
             allowed_sources,
@@ -312,10 +312,10 @@ fn create_log_file(
     config: &Config,
     conversation_id: ConversationId,
 ) -> std::io::Result<LogFileInfo> {
-    // Resolve ~/.codex/sessions/YYYY/MM/DD and create it if missing.
+    // Resolve ~/.codexist/sessions/YYYY/MM/DD and create it if missing.
     let timestamp = OffsetDateTime::now_local()
         .map_err(|e| IoError::other(format!("failed to get local time: {e}")))?;
-    let mut dir = config.codex_home.clone();
+    let mut dir = config.codexist_home.clone();
     dir.push(SESSIONS_SUBDIR);
     dir.push(timestamp.year().to_string());
     dir.push(format!("{:02}", u8::from(timestamp.month())));

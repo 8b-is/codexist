@@ -1,12 +1,12 @@
 use async_trait::async_trait;
-use codex_protocol::models::ShellCommandToolCallParams;
-use codex_protocol::models::ShellToolCallParams;
+use codexist_protocol::models::ShellCommandToolCallParams;
+use codexist_protocol::models::ShellToolCallParams;
 use std::sync::Arc;
 
 use crate::apply_patch;
 use crate::apply_patch::InternalApplyPatchInvocation;
 use crate::apply_patch::convert_apply_patch_to_protocol;
-use crate::codex::TurnContext;
+use crate::codexist::TurnContext;
 use crate::exec::ExecParams;
 use crate::exec_env::create_env;
 use crate::function_tool::FunctionCallError;
@@ -46,7 +46,7 @@ impl ShellHandler {
 impl ShellCommandHandler {
     fn to_exec_params(
         params: ShellCommandToolCallParams,
-        session: &crate::codex::Session,
+        session: &crate::codexist::Session,
         turn_context: &TurnContext,
     ) -> ExecParams {
         let shell = session.user_shell();
@@ -187,7 +187,7 @@ impl ShellHandler {
     async fn run_exec_like(
         tool_name: &str,
         exec_params: ExecParams,
-        session: Arc<crate::codex::Session>,
+        session: Arc<crate::codexist::Session>,
         turn: Arc<TurnContext>,
         tracker: crate::tools::context::SharedTurnDiffTracker,
         call_id: String,
@@ -197,7 +197,7 @@ impl ShellHandler {
         if exec_params.with_escalated_permissions.unwrap_or(false)
             && !matches!(
                 turn.approval_policy,
-                codex_protocol::protocol::AskForApproval::OnRequest
+                codexist_protocol::protocol::AskForApproval::OnRequest
             )
         {
             return Err(FunctionCallError::RespondToModel(format!(
@@ -207,11 +207,11 @@ impl ShellHandler {
         }
 
         // Intercept apply_patch if present.
-        match codex_apply_patch::maybe_parse_apply_patch_verified(
+        match codexist_apply_patch::maybe_parse_apply_patch_verified(
             &exec_params.command,
             &exec_params.cwd,
         ) {
-            codex_apply_patch::MaybeApplyPatchVerified::Body(changes) => {
+            codexist_apply_patch::MaybeApplyPatchVerified::Body(changes) => {
                 match apply_patch::apply_patch(session.as_ref(), turn.as_ref(), &call_id, changes)
                     .await
                 {
@@ -242,7 +242,7 @@ impl ShellHandler {
                             cwd: apply.action.cwd.clone(),
                             timeout_ms: exec_params.timeout_ms,
                             user_explicitly_approved: apply.user_explicitly_approved_this_action,
-                            codex_exe: turn.codex_linux_sandbox_exe.clone(),
+                            codexist_exe: turn.codexist_linux_sandbox_exe.clone(),
                         };
                         let mut orchestrator = ToolOrchestrator::new();
                         let mut runtime = ApplyPatchRuntime::new();
@@ -270,16 +270,16 @@ impl ShellHandler {
                     }
                 }
             }
-            codex_apply_patch::MaybeApplyPatchVerified::CorrectnessError(parse_error) => {
+            codexist_apply_patch::MaybeApplyPatchVerified::CorrectnessError(parse_error) => {
                 return Err(FunctionCallError::RespondToModel(format!(
                     "apply_patch verification failed: {parse_error}"
                 )));
             }
-            codex_apply_patch::MaybeApplyPatchVerified::ShellParseError(error) => {
+            codexist_apply_patch::MaybeApplyPatchVerified::ShellParseError(error) => {
                 tracing::trace!("Failed to parse shell command, {error:?}");
                 // Fall through to regular shell execution.
             }
-            codex_apply_patch::MaybeApplyPatchVerified::NotApplyPatch => {
+            codexist_apply_patch::MaybeApplyPatchVerified::NotApplyPatch => {
                 // Fall through to regular shell execution.
             }
         }

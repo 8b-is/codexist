@@ -1,6 +1,6 @@
 use clap::Args;
 use clap::Parser;
-use codex_common::CliConfigOverrides;
+use codexist_common::CliConfigOverrides;
 
 #[derive(Parser, Debug, Default)]
 #[command(version)]
@@ -14,17 +14,17 @@ pub struct Cli {
 
 #[derive(Debug, clap::Subcommand)]
 pub enum Command {
-    /// Submit a new Codex Cloud task without launching the TUI.
+    /// Submit a new Codexist Cloud task without launching the TUI.
     Exec(ExecCommand),
 }
 
 #[derive(Debug, Args)]
 pub struct ExecCommand {
-    /// Task prompt to run in Codex Cloud.
+    /// Task prompt to run in Codexist Cloud.
     #[arg(value_name = "QUERY")]
     pub query: Option<String>,
 
-    /// Target environment identifier (see `codex cloud` to browse).
+    /// Target environment identifier (see `codexist cloud` to browse).
     #[arg(long = "env", value_name = "ENV_ID")]
     pub environment: String,
 

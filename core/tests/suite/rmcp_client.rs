@@ -8,22 +8,22 @@ use std::time::Duration;
 use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
 
-use codex_core::config::types::McpServerConfig;
-use codex_core::config::types::McpServerTransportConfig;
-use codex_core::features::Feature;
+use codexist_core::config::types::McpServerConfig;
+use codexist_core::config::types::McpServerTransportConfig;
+use codexist_core::features::Feature;
 
-use codex_core::protocol::AskForApproval;
-use codex_core::protocol::EventMsg;
-use codex_core::protocol::McpInvocation;
-use codex_core::protocol::McpToolCallBeginEvent;
-use codex_core::protocol::Op;
-use codex_core::protocol::SandboxPolicy;
-use codex_protocol::config_types::ReasoningSummary;
-use codex_protocol::user_input::UserInput;
+use codexist_core::protocol::AskForApproval;
+use codexist_core::protocol::EventMsg;
+use codexist_core::protocol::McpInvocation;
+use codexist_core::protocol::McpToolCallBeginEvent;
+use codexist_core::protocol::Op;
+use codexist_core::protocol::SandboxPolicy;
+use codexist_protocol::config_types::ReasoningSummary;
+use codexist_protocol::user_input::UserInput;
 use core_test_support::responses;
 use core_test_support::responses::mount_sse_once_match;
 use core_test_support::skip_if_no_network;
-use core_test_support::test_codex::test_codex;
+use core_test_support::test_codexist::test_codexist;
 use core_test_support::wait_for_event;
 use escargot::CargoBuild;
 use mcp_types::ContentBlock;
@@ -73,14 +73,14 @@ async fn stdio_server_round_trip() -> anyhow::Result<()> {
 
     let expected_env_value = "propagated-env";
     let rmcp_test_server_bin = CargoBuild::new()
-        .package("codex-rmcp-client")
+        .package("codexist-rmcp-client")
         .bin("test_stdio_server")
         .run()?
         .path()
         .to_string_lossy()
         .into_owned();
 
-    let fixture = test_codex()
+    let fixture = test_codexist()
         .with_config(move |config| {
             config.features.enable(Feature::RmcpClient);
             config.mcp_servers.insert(
@@ -109,7 +109,7 @@ async fn stdio_server_round_trip() -> anyhow::Result<()> {
     let session_model = fixture.session_configured.model.clone();
 
     fixture
-        .codex
+        .codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "call the rmcp echo tool".into(),
@@ -124,7 +124,7 @@ async fn stdio_server_round_trip() -> anyhow::Result<()> {
         })
         .await?;
 
-    let begin_event = wait_for_event(&fixture.codex, |ev| {
+    let begin_event = wait_for_event(&fixture.codexist, |ev| {
         matches!(ev, EventMsg::McpToolCallBegin(_))
     })
     .await;
@@ -135,7 +135,7 @@ async fn stdio_server_round_trip() -> anyhow::Result<()> {
     assert_eq!(begin.invocation.server, server_name);
     assert_eq!(begin.invocation.tool, "echo");
 
-    let end_event = wait_for_event(&fixture.codex, |ev| {
+    let end_event = wait_for_event(&fixture.codexist, |ev| {
         matches!(ev, EventMsg::McpToolCallEnd(_))
     })
     .await;
@@ -171,7 +171,7 @@ async fn stdio_server_round_trip() -> anyhow::Result<()> {
         .expect("env snapshot inserted");
     assert_eq!(env_value, expected_env_value);
 
-    wait_for_event(&fixture.codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&fixture.codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     server.verify().await;
 
@@ -213,14 +213,14 @@ async fn stdio_image_responses_round_trip() -> anyhow::Result<()> {
 
     // Build the stdio rmcp server and pass the image as data URL so it can construct ImageContent.
     let rmcp_test_server_bin = CargoBuild::new()
-        .package("codex-rmcp-client")
+        .package("codexist-rmcp-client")
         .bin("test_stdio_server")
         .run()?
         .path()
         .to_string_lossy()
         .into_owned();
 
-    let fixture = test_codex()
+    let fixture = test_codexist()
         .with_config(move |config| {
             config.features.enable(Feature::RmcpClient);
             config.mcp_servers.insert(
@@ -249,7 +249,7 @@ async fn stdio_image_responses_round_trip() -> anyhow::Result<()> {
     let session_model = fixture.session_configured.model.clone();
 
     fixture
-        .codex
+        .codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "call the rmcp image tool".into(),
@@ -265,7 +265,7 @@ async fn stdio_image_responses_round_trip() -> anyhow::Result<()> {
         .await?;
 
     // Wait for tool begin/end and final completion.
-    let begin_event = wait_for_event(&fixture.codex, |ev| {
+    let begin_event = wait_for_event(&fixture.codexist, |ev| {
         matches!(ev, EventMsg::McpToolCallBegin(_))
     })
     .await;
@@ -284,7 +284,7 @@ async fn stdio_image_responses_round_trip() -> anyhow::Result<()> {
         },
     );
 
-    let end_event = wait_for_event(&fixture.codex, |ev| {
+    let end_event = wait_for_event(&fixture.codexist, |ev| {
         matches!(ev, EventMsg::McpToolCallEnd(_))
     })
     .await;
@@ -315,7 +315,7 @@ async fn stdio_image_responses_round_trip() -> anyhow::Result<()> {
         other => panic!("expected image content, got {other:?}"),
     }
 
-    wait_for_event(&fixture.codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&fixture.codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     let output_item = final_mock.single_request().function_call_output(call_id);
     assert_eq!(
@@ -408,16 +408,16 @@ async fn stdio_image_completions_round_trip() -> anyhow::Result<()> {
         .await;
 
     let rmcp_test_server_bin = CargoBuild::new()
-        .package("codex-rmcp-client")
+        .package("codexist-rmcp-client")
         .bin("test_stdio_server")
         .run()?
         .path()
         .to_string_lossy()
         .into_owned();
 
-    let fixture = test_codex()
+    let fixture = test_codexist()
         .with_config(move |config| {
-            config.model_provider.wire_api = codex_core::WireApi::Chat;
+            config.model_provider.wire_api = codexist_core::WireApi::Chat;
             config.features.enable(Feature::RmcpClient);
             config.mcp_servers.insert(
                 server_name.to_string(),
@@ -445,7 +445,7 @@ async fn stdio_image_completions_round_trip() -> anyhow::Result<()> {
     let session_model = fixture.session_configured.model.clone();
 
     fixture
-        .codex
+        .codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "call the rmcp image tool".into(),
@@ -460,7 +460,7 @@ async fn stdio_image_completions_round_trip() -> anyhow::Result<()> {
         })
         .await?;
 
-    let begin_event = wait_for_event(&fixture.codex, |ev| {
+    let begin_event = wait_for_event(&fixture.codexist, |ev| {
         matches!(ev, EventMsg::McpToolCallBegin(_))
     })
     .await;
@@ -479,7 +479,7 @@ async fn stdio_image_completions_round_trip() -> anyhow::Result<()> {
         },
     );
 
-    let end_event = wait_for_event(&fixture.codex, |ev| {
+    let end_event = wait_for_event(&fixture.codexist, |ev| {
         matches!(ev, EventMsg::McpToolCallEnd(_))
     })
     .await;
@@ -488,7 +488,7 @@ async fn stdio_image_completions_round_trip() -> anyhow::Result<()> {
     };
     assert!(end.result.as_ref().is_ok(), "tool call should succeed");
 
-    wait_for_event(&fixture.codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&fixture.codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     // Chat Completions assertion: the second POST should include a tool role message
     // with an array `content` containing an item with the expected data URL.
@@ -554,14 +554,14 @@ async fn stdio_server_propagates_whitelisted_env_vars() -> anyhow::Result<()> {
     let expected_env_value = "propagated-env-from-whitelist";
     let _guard = EnvVarGuard::set("MCP_TEST_VALUE", OsStr::new(expected_env_value));
     let rmcp_test_server_bin = CargoBuild::new()
-        .package("codex-rmcp-client")
+        .package("codexist-rmcp-client")
         .bin("test_stdio_server")
         .run()?
         .path()
         .to_string_lossy()
         .into_owned();
 
-    let fixture = test_codex()
+    let fixture = test_codexist()
         .with_config(move |config| {
             config.features.enable(Feature::RmcpClient);
             config.mcp_servers.insert(
@@ -587,7 +587,7 @@ async fn stdio_server_propagates_whitelisted_env_vars() -> anyhow::Result<()> {
     let session_model = fixture.session_configured.model.clone();
 
     fixture
-        .codex
+        .codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "call the rmcp echo tool".into(),
@@ -602,7 +602,7 @@ async fn stdio_server_propagates_whitelisted_env_vars() -> anyhow::Result<()> {
         })
         .await?;
 
-    let begin_event = wait_for_event(&fixture.codex, |ev| {
+    let begin_event = wait_for_event(&fixture.codexist, |ev| {
         matches!(ev, EventMsg::McpToolCallBegin(_))
     })
     .await;
@@ -613,7 +613,7 @@ async fn stdio_server_propagates_whitelisted_env_vars() -> anyhow::Result<()> {
     assert_eq!(begin.invocation.server, server_name);
     assert_eq!(begin.invocation.tool, "echo");
 
-    let end_event = wait_for_event(&fixture.codex, |ev| {
+    let end_event = wait_for_event(&fixture.codexist, |ev| {
         matches!(ev, EventMsg::McpToolCallEnd(_))
     })
     .await;
@@ -649,7 +649,7 @@ async fn stdio_server_propagates_whitelisted_env_vars() -> anyhow::Result<()> {
         .expect("env snapshot inserted");
     assert_eq!(env_value, expected_env_value);
 
-    wait_for_event(&fixture.codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&fixture.codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     server.verify().await;
 
@@ -691,7 +691,7 @@ async fn streamable_http_tool_call_round_trip() -> anyhow::Result<()> {
 
     let expected_env_value = "propagated-env-http";
     let rmcp_http_server_bin = CargoBuild::new()
-        .package("codex-rmcp-client")
+        .package("codexist-rmcp-client")
         .bin("test_streamable_http_server")
         .run()?
         .path()
@@ -713,7 +713,7 @@ async fn streamable_http_tool_call_round_trip() -> anyhow::Result<()> {
     wait_for_streamable_http_server(&mut http_server_child, &bind_addr, Duration::from_secs(5))
         .await?;
 
-    let fixture = test_codex()
+    let fixture = test_codexist()
         .with_config(move |config| {
             config.features.enable(Feature::RmcpClient);
             config.mcp_servers.insert(
@@ -738,7 +738,7 @@ async fn streamable_http_tool_call_round_trip() -> anyhow::Result<()> {
     let session_model = fixture.session_configured.model.clone();
 
     fixture
-        .codex
+        .codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "call the rmcp streamable http echo tool".into(),
@@ -753,7 +753,7 @@ async fn streamable_http_tool_call_round_trip() -> anyhow::Result<()> {
         })
         .await?;
 
-    let begin_event = wait_for_event(&fixture.codex, |ev| {
+    let begin_event = wait_for_event(&fixture.codexist, |ev| {
         matches!(ev, EventMsg::McpToolCallBegin(_))
     })
     .await;
@@ -764,7 +764,7 @@ async fn streamable_http_tool_call_round_trip() -> anyhow::Result<()> {
     assert_eq!(begin.invocation.server, server_name);
     assert_eq!(begin.invocation.tool, "echo");
 
-    let end_event = wait_for_event(&fixture.codex, |ev| {
+    let end_event = wait_for_event(&fixture.codexist, |ev| {
         matches!(ev, EventMsg::McpToolCallEnd(_))
     })
     .await;
@@ -800,7 +800,7 @@ async fn streamable_http_tool_call_round_trip() -> anyhow::Result<()> {
         .expect("env snapshot inserted");
     assert_eq!(env_value, expected_env_value);
 
-    wait_for_event(&fixture.codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&fixture.codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     server.verify().await;
 
@@ -821,9 +821,9 @@ async fn streamable_http_tool_call_round_trip() -> anyhow::Result<()> {
     Ok(())
 }
 
-/// This test writes to a fallback credentials file in CODEX_HOME.
-/// Ideally, we wouldn't need to serialize the test but it's much more cumbersome to wire CODEX_HOME through the code.
-#[serial(codex_home)]
+/// This test writes to a fallback credentials file in CODEXIST_HOME.
+/// Ideally, we wouldn't need to serialize the test but it's much more cumbersome to wire CODEXIST_HOME through the code.
+#[serial(codexist_home)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn streamable_http_with_oauth_round_trip() -> anyhow::Result<()> {
     skip_if_no_network!(Ok(()));
@@ -862,7 +862,7 @@ async fn streamable_http_with_oauth_round_trip() -> anyhow::Result<()> {
     let client_id = "test-client-id";
     let refresh_token = "initial-refresh-token";
     let rmcp_http_server_bin = CargoBuild::new()
-        .package("codex-rmcp-client")
+        .package("codexist-rmcp-client")
         .bin("test_streamable_http_server")
         .run()?
         .path()
@@ -886,7 +886,7 @@ async fn streamable_http_with_oauth_round_trip() -> anyhow::Result<()> {
         .await?;
 
     let temp_home = tempdir()?;
-    let _guard = EnvVarGuard::set("CODEX_HOME", temp_home.path().as_os_str());
+    let _guard = EnvVarGuard::set("CODEXIST_HOME", temp_home.path().as_os_str());
     write_fallback_oauth_tokens(
         temp_home.path(),
         server_name,
@@ -896,7 +896,7 @@ async fn streamable_http_with_oauth_round_trip() -> anyhow::Result<()> {
         refresh_token,
     )?;
 
-    let fixture = test_codex()
+    let fixture = test_codexist()
         .with_config(move |config| {
             config.features.enable(Feature::RmcpClient);
             config.mcp_servers.insert(
@@ -921,7 +921,7 @@ async fn streamable_http_with_oauth_round_trip() -> anyhow::Result<()> {
     let session_model = fixture.session_configured.model.clone();
 
     fixture
-        .codex
+        .codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "call the rmcp streamable http oauth echo tool".into(),
@@ -936,7 +936,7 @@ async fn streamable_http_with_oauth_round_trip() -> anyhow::Result<()> {
         })
         .await?;
 
-    let begin_event = wait_for_event(&fixture.codex, |ev| {
+    let begin_event = wait_for_event(&fixture.codexist, |ev| {
         matches!(ev, EventMsg::McpToolCallBegin(_))
     })
     .await;
@@ -947,7 +947,7 @@ async fn streamable_http_with_oauth_round_trip() -> anyhow::Result<()> {
     assert_eq!(begin.invocation.server, server_name);
     assert_eq!(begin.invocation.tool, "echo");
 
-    let end_event = wait_for_event(&fixture.codex, |ev| {
+    let end_event = wait_for_event(&fixture.codexist, |ev| {
         matches!(ev, EventMsg::McpToolCallEnd(_))
     })
     .await;
@@ -983,7 +983,7 @@ async fn streamable_http_with_oauth_round_trip() -> anyhow::Result<()> {
         .expect("env snapshot inserted");
     assert_eq!(env_value, expected_env_value);
 
-    wait_for_event(&fixture.codex, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&fixture.codexist, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
 
     server.verify().await;
 

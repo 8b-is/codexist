@@ -13,10 +13,10 @@ use crate::export_server_responses;
 use anyhow::Context;
 use anyhow::Result;
 use anyhow::anyhow;
-use codex_protocol::parse_command::ParsedCommand;
-use codex_protocol::protocol::EventMsg;
-use codex_protocol::protocol::FileChange;
-use codex_protocol::protocol::SandboxPolicy;
+use codexist_protocol::parse_command::ParsedCommand;
+use codexist_protocol::protocol::EventMsg;
+use codexist_protocol::protocol::FileChange;
+use codexist_protocol::protocol::SandboxPolicy;
 use schemars::JsonSchema;
 use schemars::schema_for;
 use serde::Serialize;
@@ -140,7 +140,7 @@ pub fn generate_json(out_dir: &Path) -> Result<()> {
 
     let bundle = build_schema_bundle(schemas)?;
     write_pretty_json(
-        out_dir.join("codex_app_server_protocol.schemas.json"),
+        out_dir.join("codexist_app_server_protocol.schemas.json"),
         &bundle,
     )?;
 
@@ -225,7 +225,7 @@ fn build_schema_bundle(schemas: Vec<GeneratedSchema>) -> Result<Value> {
     );
     root.insert(
         "title".to_string(),
-        Value::String("CodexAppServerProtocol".into()),
+        Value::String("CodexistAppServerProtocol".into()),
     );
     root.insert("type".to_string(), Value::String("object".into()));
     root.insert("definitions".to_string(), Value::Object(definitions));
@@ -721,7 +721,7 @@ mod tests {
     #[test]
     fn generated_ts_has_no_optional_nullable_fields() -> Result<()> {
         // Assert that there are no types of the form "?: T | null" in the generated TS files.
-        let output_dir = std::env::temp_dir().join(format!("codex_ts_types_{}", Uuid::now_v7()));
+        let output_dir = std::env::temp_dir().join(format!("codexist_ts_types_{}", Uuid::now_v7()));
         fs::create_dir(&output_dir)?;
 
         struct TempDirGuard(PathBuf);

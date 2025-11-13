@@ -1,4 +1,4 @@
-use crate::spawn::CODEX_SANDBOX_ENV_VAR;
+use crate::spawn::CODEXIST_SANDBOX_ENV_VAR;
 use http::Error as HttpError;
 use reqwest::IntoUrl;
 use reqwest::Method;
@@ -20,59 +20,59 @@ use std::sync::OnceLock;
 /// However, future users of this should use this with caution as a result.
 /// In addition, we want to be confident that this value is used for ALL clients and doing that requires a
 /// lot of wiring and it's easy to miss code paths by doing so.
-/// See https://github.com/openai/codex/pull/3388/files for an example of what that would look like.
+/// See https://github.com/openai/codexist/pull/3388/files for an example of what that would look like.
 /// Finally, we want to make sure this is set for ALL mcp clients without needing to know a special env var
 /// or having to set data that they already specified in the mcp initialize request somewhere else.
 ///
 /// A space is automatically added between the suffix and the rest of the User-Agent string.
 /// The full user agent string is returned from the mcp initialize response.
-/// Parenthesis will be added by Codex. This should only specify what goes inside of the parenthesis.
+/// Parenthesis will be added by Codexist. This should only specify what goes inside of the parenthesis.
 pub static USER_AGENT_SUFFIX: LazyLock<Mutex<Option<String>>> = LazyLock::new(|| Mutex::new(None));
-pub const DEFAULT_ORIGINATOR: &str = "codex_cli_rs";
-pub const CODEX_INTERNAL_ORIGINATOR_OVERRIDE_ENV_VAR: &str = "CODEX_INTERNAL_ORIGINATOR_OVERRIDE";
+pub const DEFAULT_ORIGINATOR: &str = "codexist_cli_rs";
+pub const CODEXIST_INTERNAL_ORIGINATOR_OVERRIDE_ENV_VAR: &str = "CODEXIST_INTERNAL_ORIGINATOR_OVERRIDE";
 
 #[derive(Clone, Debug)]
-pub struct CodexHttpClient {
+pub struct CodexistHttpClient {
     inner: reqwest::Client,
 }
 
-impl CodexHttpClient {
+impl CodexistHttpClient {
     fn new(inner: reqwest::Client) -> Self {
         Self { inner }
     }
 
-    pub fn get<U>(&self, url: U) -> CodexRequestBuilder
+    pub fn get<U>(&self, url: U) -> CodexistRequestBuilder
     where
         U: IntoUrl,
     {
         self.request(Method::GET, url)
     }
 
-    pub fn post<U>(&self, url: U) -> CodexRequestBuilder
+    pub fn post<U>(&self, url: U) -> CodexistRequestBuilder
     where
         U: IntoUrl,
     {
         self.request(Method::POST, url)
     }
 
-    pub fn request<U>(&self, method: Method, url: U) -> CodexRequestBuilder
+    pub fn request<U>(&self, method: Method, url: U) -> CodexistRequestBuilder
     where
         U: IntoUrl,
     {
         let url_str = url.as_str().to_string();
-        CodexRequestBuilder::new(self.inner.request(method.clone(), url), method, url_str)
+        CodexistRequestBuilder::new(self.inner.request(method.clone(), url), method, url_str)
     }
 }
 
 #[must_use = "requests are not sent unless `send` is awaited"]
 #[derive(Debug)]
-pub struct CodexRequestBuilder {
+pub struct CodexistRequestBuilder {
     builder: reqwest::RequestBuilder,
     method: Method,
     url: String,
 }
 
-impl CodexRequestBuilder {
+impl CodexistRequestBuilder {
     fn new(builder: reqwest::RequestBuilder, method: Method, url: String) -> Self {
         Self {
             builder,
@@ -168,7 +168,7 @@ pub enum SetOriginatorError {
 }
 
 fn get_originator_value(provided: Option<String>) -> Originator {
-    let value = std::env::var(CODEX_INTERNAL_ORIGINATOR_OVERRIDE_ENV_VAR)
+    let value = std::env::var(CODEXIST_INTERNAL_ORIGINATOR_OVERRIDE_ENV_VAR)
         .ok()
         .or(provided)
         .unwrap_or(DEFAULT_ORIGINATOR.to_string());
@@ -199,7 +199,7 @@ pub fn originator() -> &'static Originator {
     ORIGINATOR.get_or_init(|| get_originator_value(None))
 }
 
-pub fn get_codex_user_agent() -> String {
+pub fn get_codexist_user_agent() -> String {
     let build_version = env!("CARGO_PKG_VERSION");
     let os_info = os_info::get();
     let prefix = format!(
@@ -240,29 +240,29 @@ fn sanitize_user_agent(candidate: String, fallback: &str) -> String {
         .collect();
     if !sanitized.is_empty() && HeaderValue::from_str(sanitized.as_str()).is_ok() {
         tracing::warn!(
-            "Sanitized Codex user agent because provided suffix contained invalid header characters"
+            "Sanitized Codexist user agent because provided suffix contained invalid header characters"
         );
         sanitized
     } else if HeaderValue::from_str(fallback).is_ok() {
         tracing::warn!(
-            "Falling back to base Codex user agent because provided suffix could not be sanitized"
+            "Falling back to base Codexist user agent because provided suffix could not be sanitized"
         );
         fallback.to_string()
     } else {
         tracing::warn!(
-            "Falling back to default Codex originator because base user agent string is invalid"
+            "Falling back to default Codexist originator because base user agent string is invalid"
         );
         originator().value.clone()
     }
 }
 
 /// Create an HTTP client with default `originator` and `User-Agent` headers set.
-pub fn create_client() -> CodexHttpClient {
+pub fn create_client() -> CodexistHttpClient {
     use reqwest::header::HeaderMap;
 
     let mut headers = HeaderMap::new();
     headers.insert("originator", originator().header_value.clone());
-    let ua = get_codex_user_agent();
+    let ua = get_codexist_user_agent();
 
     let mut builder = reqwest::Client::builder()
         // Set UA via dedicated helper to avoid header validation pitfalls
@@ -273,11 +273,11 @@ pub fn create_client() -> CodexHttpClient {
     }
 
     let inner = builder.build().unwrap_or_else(|_| reqwest::Client::new());
-    CodexHttpClient::new(inner)
+    CodexistHttpClient::new(inner)
 }
 
 fn is_sandboxed() -> bool {
-    std::env::var(CODEX_SANDBOX_ENV_VAR).as_deref() == Ok("seatbelt")
+    std::env::var(CODEXIST_SANDBOX_ENV_VAR).as_deref() == Ok("seatbelt")
 }
 
 #[cfg(test)]
@@ -286,9 +286,9 @@ mod tests {
     use core_test_support::skip_if_no_network;
 
     #[test]
-    fn test_get_codex_user_agent() {
-        let user_agent = get_codex_user_agent();
-        assert!(user_agent.starts_with("codex_cli_rs/"));
+    fn test_get_codexist_user_agent() {
+        let user_agent = get_codexist_user_agent();
+        assert!(user_agent.starts_with("codexist_cli_rs/"));
     }
 
     #[tokio::test]
@@ -329,10 +329,10 @@ mod tests {
         let originator_header = headers
             .get("originator")
             .expect("originator header missing");
-        assert_eq!(originator_header.to_str().unwrap(), "codex_cli_rs");
+        assert_eq!(originator_header.to_str().unwrap(), "codexist_cli_rs");
 
-        // User-Agent matches the computed Codex UA for that originator
-        let expected_ua = get_codex_user_agent();
+        // User-Agent matches the computed Codexist UA for that originator
+        let expected_ua = get_codexist_user_agent();
         let ua_header = headers
             .get("user-agent")
             .expect("user-agent header missing");
@@ -341,23 +341,23 @@ mod tests {
 
     #[test]
     fn test_invalid_suffix_is_sanitized() {
-        let prefix = "codex_cli_rs/0.0.0";
+        let prefix = "codexist_cli_rs/0.0.0";
         let suffix = "bad\rsuffix";
 
         assert_eq!(
             sanitize_user_agent(format!("{prefix} ({suffix})"), prefix),
-            "codex_cli_rs/0.0.0 (bad_suffix)"
+            "codexist_cli_rs/0.0.0 (bad_suffix)"
         );
     }
 
     #[test]
     fn test_invalid_suffix_is_sanitized2() {
-        let prefix = "codex_cli_rs/0.0.0";
+        let prefix = "codexist_cli_rs/0.0.0";
         let suffix = "bad\0suffix";
 
         assert_eq!(
             sanitize_user_agent(format!("{prefix} ({suffix})"), prefix),
-            "codex_cli_rs/0.0.0 (bad_suffix)"
+            "codexist_cli_rs/0.0.0 (bad_suffix)"
         );
     }
 
@@ -365,9 +365,9 @@ mod tests {
     #[cfg(target_os = "macos")]
     fn test_macos() {
         use regex_lite::Regex;
-        let user_agent = get_codex_user_agent();
+        let user_agent = get_codexist_user_agent();
         let re = Regex::new(
-            r"^codex_cli_rs/\d+\.\d+\.\d+ \(Mac OS \d+\.\d+\.\d+; (x86_64|arm64)\) (\S+)$",
+            r"^codexist_cli_rs/\d+\.\d+\.\d+ \(Mac OS \d+\.\d+\.\d+; (x86_64|arm64)\) (\S+)$",
         )
         .unwrap();
         assert!(re.is_match(&user_agent));

@@ -3,15 +3,15 @@ use std::env;
 use std::path::Path;
 use std::path::PathBuf;
 
-use codex_core::parse_command;
-use codex_core::protocol::FileChange;
-use codex_core::protocol::ReviewDecision;
-use codex_core::spawn::CODEX_SANDBOX_NETWORK_DISABLED_ENV_VAR;
-use codex_mcp_server::CodexToolCallParam;
-use codex_mcp_server::ExecApprovalElicitRequestParams;
-use codex_mcp_server::ExecApprovalResponse;
-use codex_mcp_server::PatchApprovalElicitRequestParams;
-use codex_mcp_server::PatchApprovalResponse;
+use codexist_core::parse_command;
+use codexist_core::protocol::FileChange;
+use codexist_core::protocol::ReviewDecision;
+use codexist_core::spawn::CODEXIST_SANDBOX_NETWORK_DISABLED_ENV_VAR;
+use codexist_mcp_server::CodexistToolCallParam;
+use codexist_mcp_server::ExecApprovalElicitRequestParams;
+use codexist_mcp_server::ExecApprovalResponse;
+use codexist_mcp_server::PatchApprovalElicitRequestParams;
+use codexist_mcp_server::PatchApprovalResponse;
 use mcp_types::ElicitRequest;
 use mcp_types::ElicitRequestParamsRequestedSchema;
 use mcp_types::JSONRPC_VERSION;
@@ -40,9 +40,9 @@ const DEFAULT_READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs
 /// command, as expected.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn test_shell_command_approval_triggers_elicitation() {
-    if env::var(CODEX_SANDBOX_NETWORK_DISABLED_ENV_VAR).is_ok() {
+    if env::var(CODEXIST_SANDBOX_NETWORK_DISABLED_ENV_VAR).is_ok() {
         println!(
-            "Skipping test because it cannot execute when network is disabled in a Codex sandbox."
+            "Skipping test because it cannot execute when network is disabled in a Codexist sandbox."
         );
         return;
     }
@@ -87,11 +87,11 @@ async fn shell_command_approval_triggers_elicitation() -> anyhow::Result<()> {
     ])
     .await?;
 
-    // Send a "codex" tool request, which should hit the completions endpoint.
+    // Send a "codexist" tool request, which should hit the completions endpoint.
     // In turn, it should reply with a tool call, which the MCP should forward
     // as an elicitation.
-    let codex_request_id = mcp_process
-        .send_codex_tool_call(CodexToolCallParam {
+    let codexist_request_id = mcp_process
+        .send_codexist_tool_call(CodexistToolCallParam {
             prompt: "run `git init`".to_string(),
             ..Default::default()
         })
@@ -113,8 +113,8 @@ async fn shell_command_approval_triggers_elicitation() -> anyhow::Result<()> {
         elicitation_request_id.clone(),
         shell_command.clone(),
         workdir_for_shell_function_call.path(),
-        codex_request_id.to_string(),
-        params.codex_event_id.clone(),
+        codexist_request_id.to_string(),
+        params.codexist_event_id.clone(),
     )?;
     assert_eq!(expected_elicitation_request, elicitation_request);
 
@@ -138,16 +138,16 @@ async fn shell_command_approval_triggers_elicitation() -> anyhow::Result<()> {
     .expect("task_complete_notification timeout")
     .expect("task_complete_notification resp");
 
-    // Verify the original `codex` tool call completes and that the file was created.
-    let codex_response = timeout(
+    // Verify the original `codexist` tool call completes and that the file was created.
+    let codexist_response = timeout(
         DEFAULT_READ_TIMEOUT,
-        mcp_process.read_stream_until_response_message(RequestId::Integer(codex_request_id)),
+        mcp_process.read_stream_until_response_message(RequestId::Integer(codexist_request_id)),
     )
     .await??;
     assert_eq!(
         JSONRPCResponse {
             jsonrpc: JSONRPC_VERSION.into(),
-            id: RequestId::Integer(codex_request_id),
+            id: RequestId::Integer(codexist_request_id),
             result: json!({
                 "content": [
                     {
@@ -157,7 +157,7 @@ async fn shell_command_approval_triggers_elicitation() -> anyhow::Result<()> {
                 ]
             }),
         },
-        codex_response
+        codexist_response
     );
 
     assert!(created_file.is_file(), "created file should exist");
@@ -169,15 +169,15 @@ fn create_expected_elicitation_request(
     elicitation_request_id: RequestId,
     command: Vec<String>,
     workdir: &Path,
-    codex_mcp_tool_call_id: String,
-    codex_event_id: String,
+    codexist_mcp_tool_call_id: String,
+    codexist_event_id: String,
 ) -> anyhow::Result<JSONRPCRequest> {
     let expected_message = format!(
-        "Allow Codex to run `{}` in `{}`?",
+        "Allow Codexist to run `{}` in `{}`?",
         shlex::try_join(command.iter().map(std::convert::AsRef::as_ref))?,
         workdir.to_string_lossy()
     );
-    let codex_parsed_cmd = parse_command::parse_command(&command);
+    let codexist_parsed_cmd = parse_command::parse_command(&command);
     Ok(JSONRPCRequest {
         jsonrpc: JSONRPC_VERSION.into(),
         id: elicitation_request_id,
@@ -189,14 +189,14 @@ fn create_expected_elicitation_request(
                 properties: json!({}),
                 required: None,
             },
-            codex_elicitation: "exec-approval".to_string(),
-            codex_mcp_tool_call_id,
-            codex_event_id,
-            codex_command: command,
-            codex_cwd: workdir.to_path_buf(),
-            codex_call_id: "call1234".to_string(),
-            codex_parsed_cmd,
-            codex_risk: None,
+            codexist_elicitation: "exec-approval".to_string(),
+            codexist_mcp_tool_call_id,
+            codexist_event_id,
+            codexist_command: command,
+            codexist_cwd: workdir.to_path_buf(),
+            codexist_call_id: "call1234".to_string(),
+            codexist_parsed_cmd,
+            codexist_risk: None,
         })?),
     })
 }
@@ -205,9 +205,9 @@ fn create_expected_elicitation_request(
 /// sending the approval applies the patch, as expected.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn test_patch_approval_triggers_elicitation() {
-    if env::var(CODEX_SANDBOX_NETWORK_DISABLED_ENV_VAR).is_ok() {
+    if env::var(CODEXIST_SANDBOX_NETWORK_DISABLED_ENV_VAR).is_ok() {
         println!(
-            "Skipping test because it cannot execute when network is disabled in a Codex sandbox."
+            "Skipping test because it cannot execute when network is disabled in a Codexist sandbox."
         );
         return;
     }
@@ -237,9 +237,9 @@ async fn patch_approval_triggers_elicitation() -> anyhow::Result<()> {
     ])
     .await?;
 
-    // Send a "codex" tool request that will trigger the apply_patch command
-    let codex_request_id = mcp_process
-        .send_codex_tool_call(CodexToolCallParam {
+    // Send a "codexist" tool request that will trigger the apply_patch command
+    let codexist_request_id = mcp_process
+        .send_codexist_tool_call(CodexistToolCallParam {
             cwd: Some(cwd.path().to_string_lossy().to_string()),
             prompt: "please modify the test file".to_string(),
             ..Default::default()
@@ -267,7 +267,7 @@ async fn patch_approval_triggers_elicitation() -> anyhow::Result<()> {
         expected_changes,
         None, // No grant_root expected
         None, // No reason expected
-        codex_request_id.to_string(),
+        codexist_request_id.to_string(),
         "1".to_string(),
     )?;
     assert_eq!(expected_elicitation_request, elicitation_request);
@@ -282,16 +282,16 @@ async fn patch_approval_triggers_elicitation() -> anyhow::Result<()> {
         )
         .await?;
 
-    // Verify the original `codex` tool call completes
-    let codex_response = timeout(
+    // Verify the original `codexist` tool call completes
+    let codexist_response = timeout(
         DEFAULT_READ_TIMEOUT,
-        mcp_process.read_stream_until_response_message(RequestId::Integer(codex_request_id)),
+        mcp_process.read_stream_until_response_message(RequestId::Integer(codexist_request_id)),
     )
     .await??;
     assert_eq!(
         JSONRPCResponse {
             jsonrpc: JSONRPC_VERSION.into(),
-            id: RequestId::Integer(codex_request_id),
+            id: RequestId::Integer(codexist_request_id),
             result: json!({
                 "content": [
                     {
@@ -301,7 +301,7 @@ async fn patch_approval_triggers_elicitation() -> anyhow::Result<()> {
                 ]
             }),
         },
-        codex_response
+        codexist_response
     );
 
     let file_contents = std::fs::read_to_string(test_file.as_path())?;
@@ -311,17 +311,17 @@ async fn patch_approval_triggers_elicitation() -> anyhow::Result<()> {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn test_codex_tool_passes_base_instructions() {
+async fn test_codexist_tool_passes_base_instructions() {
     skip_if_no_network!();
 
     // Apparently `#[tokio::test]` must return `()`, so we create a helper
     // function that returns `Result` so we can use `?` in favor of `unwrap`.
-    if let Err(err) = codex_tool_passes_base_instructions().await {
+    if let Err(err) = codexist_tool_passes_base_instructions().await {
         panic!("failure: {err}");
     }
 }
 
-async fn codex_tool_passes_base_instructions() -> anyhow::Result<()> {
+async fn codexist_tool_passes_base_instructions() -> anyhow::Result<()> {
     #![expect(clippy::unwrap_used)]
 
     let server =
@@ -330,15 +330,15 @@ async fn codex_tool_passes_base_instructions() -> anyhow::Result<()> {
         )?])
         .await;
 
-    // Run `codex mcp` with a specific config.toml.
-    let codex_home = TempDir::new()?;
-    create_config_toml(codex_home.path(), &server.uri())?;
-    let mut mcp_process = McpProcess::new(codex_home.path()).await?;
+    // Run `codexist mcp` with a specific config.toml.
+    let codexist_home = TempDir::new()?;
+    create_config_toml(codexist_home.path(), &server.uri())?;
+    let mut mcp_process = McpProcess::new(codexist_home.path()).await?;
     timeout(DEFAULT_READ_TIMEOUT, mcp_process.initialize()).await??;
 
-    // Send a "codex" tool request, which should hit the completions endpoint.
-    let codex_request_id = mcp_process
-        .send_codex_tool_call(CodexToolCallParam {
+    // Send a "codexist" tool request, which should hit the completions endpoint.
+    let codexist_request_id = mcp_process
+        .send_codexist_tool_call(CodexistToolCallParam {
             prompt: "How are you?".to_string(),
             base_instructions: Some("You are a helpful assistant.".to_string()),
             developer_instructions: Some("Foreshadow upcoming tool calls.".to_string()),
@@ -346,15 +346,15 @@ async fn codex_tool_passes_base_instructions() -> anyhow::Result<()> {
         })
         .await?;
 
-    let codex_response = timeout(
+    let codexist_response = timeout(
         DEFAULT_READ_TIMEOUT,
-        mcp_process.read_stream_until_response_message(RequestId::Integer(codex_request_id)),
+        mcp_process.read_stream_until_response_message(RequestId::Integer(codexist_request_id)),
     )
     .await??;
     assert_eq!(
         JSONRPCResponse {
             jsonrpc: JSONRPC_VERSION.into(),
-            id: RequestId::Integer(codex_request_id),
+            id: RequestId::Integer(codexist_request_id),
             result: json!({
                 "content": [
                     {
@@ -364,7 +364,7 @@ async fn codex_tool_passes_base_instructions() -> anyhow::Result<()> {
                 ]
             }),
         },
-        codex_response
+        codexist_response
     );
 
     let requests = server.received_requests().await.unwrap();
@@ -398,14 +398,14 @@ fn create_expected_patch_approval_elicitation_request(
     changes: HashMap<PathBuf, FileChange>,
     grant_root: Option<PathBuf>,
     reason: Option<String>,
-    codex_mcp_tool_call_id: String,
-    codex_event_id: String,
+    codexist_mcp_tool_call_id: String,
+    codexist_event_id: String,
 ) -> anyhow::Result<JSONRPCRequest> {
     let mut message_lines = Vec::new();
     if let Some(r) = &reason {
         message_lines.push(r.clone());
     }
-    message_lines.push("Allow Codex to apply proposed code changes?".to_string());
+    message_lines.push("Allow Codexist to apply proposed code changes?".to_string());
 
     Ok(JSONRPCRequest {
         jsonrpc: JSONRPC_VERSION.into(),
@@ -418,13 +418,13 @@ fn create_expected_patch_approval_elicitation_request(
                 properties: json!({}),
                 required: None,
             },
-            codex_elicitation: "patch-approval".to_string(),
-            codex_mcp_tool_call_id,
-            codex_event_id,
-            codex_reason: reason,
-            codex_grant_root: grant_root,
-            codex_changes: changes,
-            codex_call_id: "call1234".to_string(),
+            codexist_elicitation: "patch-approval".to_string(),
+            codexist_mcp_tool_call_id,
+            codexist_event_id,
+            codexist_reason: reason,
+            codexist_grant_root: grant_root,
+            codexist_changes: changes,
+            codexist_call_id: "call1234".to_string(),
         })?),
     })
 }
@@ -443,22 +443,22 @@ pub struct McpHandle {
 
 async fn create_mcp_process(responses: Vec<String>) -> anyhow::Result<McpHandle> {
     let server = create_mock_chat_completions_server(responses).await;
-    let codex_home = TempDir::new()?;
-    create_config_toml(codex_home.path(), &server.uri())?;
-    let mut mcp_process = McpProcess::new(codex_home.path()).await?;
+    let codexist_home = TempDir::new()?;
+    create_config_toml(codexist_home.path(), &server.uri())?;
+    let mut mcp_process = McpProcess::new(codexist_home.path()).await?;
     timeout(DEFAULT_READ_TIMEOUT, mcp_process.initialize()).await??;
     Ok(McpHandle {
         process: mcp_process,
         server,
-        dir: codex_home,
+        dir: codexist_home,
     })
 }
 
-/// Create a Codex config that uses the mock server as the model provider.
+/// Create a Codexist config that uses the mock server as the model provider.
 /// It also uses `approval_policy = "untrusted"` so that we exercise the
 /// elicitation code path for shell commands.
-fn create_config_toml(codex_home: &Path, server_uri: &str) -> std::io::Result<()> {
-    let config_toml = codex_home.join("config.toml");
+fn create_config_toml(codexist_home: &Path, server_uri: &str) -> std::io::Result<()> {
+    let config_toml = codexist_home.join("config.toml");
     std::fs::write(
         config_toml,
         format!(

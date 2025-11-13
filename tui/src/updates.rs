@@ -5,14 +5,14 @@ use crate::update_action::UpdateAction;
 use chrono::DateTime;
 use chrono::Duration;
 use chrono::Utc;
-use codex_core::config::Config;
-use codex_core::default_client::create_client;
+use codexist_core::config::Config;
+use codexist_core::default_client::create_client;
 use serde::Deserialize;
 use serde::Serialize;
 use std::path::Path;
 use std::path::PathBuf;
 
-use crate::version::CODEX_CLI_VERSION;
+use crate::version::CODEXIST_CLI_VERSION;
 
 pub fn get_upgrade_version(config: &Config) -> Option<String> {
     let version_file = version_filepath(config);
@@ -33,7 +33,7 @@ pub fn get_upgrade_version(config: &Config) -> Option<String> {
     }
 
     info.and_then(|info| {
-        if is_newer(&info.latest_version, CODEX_CLI_VERSION).unwrap_or(false) {
+        if is_newer(&info.latest_version, CODEXIST_CLI_VERSION).unwrap_or(false) {
             Some(info.latest_version)
         } else {
             None
@@ -53,8 +53,8 @@ struct VersionInfo {
 const VERSION_FILENAME: &str = "version.json";
 // We use the latest version from the cask if installation is via homebrew - homebrew does not immediately pick up the latest release and can lag behind.
 const HOMEBREW_CASK_URL: &str =
-    "https://raw.githubusercontent.com/Homebrew/homebrew-cask/HEAD/Casks/c/codex.rb";
-const LATEST_RELEASE_URL: &str = "https://api.github.com/repos/openai/codex/releases/latest";
+    "https://raw.githubusercontent.com/Homebrew/homebrew-cask/HEAD/Casks/c/codexist.rb";
+const LATEST_RELEASE_URL: &str = "https://api.github.com/repos/openai/codexist/releases/latest";
 
 #[derive(Deserialize, Debug, Clone)]
 struct ReleaseInfo {
@@ -62,7 +62,7 @@ struct ReleaseInfo {
 }
 
 fn version_filepath(config: &Config) -> PathBuf {
-    config.codex_home.join(VERSION_FILENAME)
+    config.codexist_home.join(VERSION_FILENAME)
 }
 
 fn read_version_info(version_file: &Path) -> anyhow::Result<VersionInfo> {
@@ -184,7 +184,7 @@ mod tests {
     #[test]
     fn parses_version_from_cask_contents() {
         let cask = r#"
-            cask "codex" do
+            cask "codexist" do
               version "0.55.0"
             end
         "#;

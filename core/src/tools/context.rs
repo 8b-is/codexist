@@ -1,16 +1,16 @@
-use crate::codex::Session;
-use crate::codex::TurnContext;
+use crate::codexist::Session;
+use crate::codexist::TurnContext;
 use crate::tools::TELEMETRY_PREVIEW_MAX_BYTES;
 use crate::tools::TELEMETRY_PREVIEW_MAX_LINES;
 use crate::tools::TELEMETRY_PREVIEW_TRUNCATION_NOTICE;
 use crate::turn_diff_tracker::TurnDiffTracker;
-use codex_otel::otel_event_manager::OtelEventManager;
-use codex_protocol::models::FunctionCallOutputContentItem;
-use codex_protocol::models::FunctionCallOutputPayload;
-use codex_protocol::models::ResponseInputItem;
-use codex_protocol::models::ShellToolCallParams;
-use codex_protocol::protocol::FileChange;
-use codex_utils_string::take_bytes_at_char_boundary;
+use codexist_otel::otel_event_manager::OtelEventManager;
+use codexist_protocol::models::FunctionCallOutputContentItem;
+use codexist_protocol::models::FunctionCallOutputPayload;
+use codexist_protocol::models::ResponseInputItem;
+use codexist_protocol::models::ShellToolCallParams;
+use codexist_protocol::protocol::FileChange;
+use codexist_utils_string::take_bytes_at_char_boundary;
 use mcp_types::CallToolResult;
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -256,7 +256,7 @@ pub(crate) struct ExecCommandContext {
     pub(crate) tool_name: String,
     pub(crate) otel_event_manager: OtelEventManager,
     // TODO(abhisek-oai): Find a better way to track this.
-    // https://github.com/openai/codex/pull/2471/files#r2470352242
+    // https://github.com/openai/codexist/pull/2471/files#r2470352242
     pub(crate) is_user_shell_command: bool,
 }
 

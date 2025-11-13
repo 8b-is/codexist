@@ -2,7 +2,7 @@
 
 use anyhow::Context;
 use assert_cmd::prelude::*;
-use codex_core::CODEX_APPLY_PATCH_ARG1;
+use codexist_core::CODEXIST_APPLY_PATCH_ARG1;
 use core_test_support::responses::ev_apply_patch_custom_tool_call;
 use core_test_support::responses::ev_apply_patch_function_call;
 use core_test_support::responses::ev_completed;
@@ -13,8 +13,8 @@ use std::fs;
 use std::process::Command;
 use tempfile::tempdir;
 
-/// While we may add an `apply-patch` subcommand to the `codex` CLI multitool
-/// at some point, we must ensure that the smaller `codex-exec` CLI can still
+/// While we may add an `apply-patch` subcommand to the `codexist` CLI multitool
+/// at some point, we must ensure that the smaller `codexist-exec` CLI can still
 /// emulate the `apply_patch` CLI.
 #[test]
 fn test_standalone_exec_cli_can_use_apply_patch() -> anyhow::Result<()> {
@@ -23,9 +23,9 @@ fn test_standalone_exec_cli_can_use_apply_patch() -> anyhow::Result<()> {
     let absolute_path = tmp.path().join(relative_path);
     fs::write(&absolute_path, "original content\n")?;
 
-    Command::cargo_bin("codex-exec")
-        .context("should find binary for codex-exec")?
-        .arg(CODEX_APPLY_PATCH_ARG1)
+    Command::cargo_bin("codexist-exec")
+        .context("should find binary for codexist-exec")?
+        .arg(CODEXIST_APPLY_PATCH_ARG1)
         .arg(
             r#"*** Begin Patch
 *** Update File: source.txt
@@ -50,11 +50,11 @@ fn test_standalone_exec_cli_can_use_apply_patch() -> anyhow::Result<()> {
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn test_apply_patch_tool() -> anyhow::Result<()> {
     use core_test_support::skip_if_no_network;
-    use core_test_support::test_codex_exec::test_codex_exec;
+    use core_test_support::test_codexist_exec::test_codexist_exec;
 
     skip_if_no_network!(Ok(()));
 
-    let test = test_codex_exec();
+    let test = test_codexist_exec();
     let tmp_path = test.cwd_path().to_path_buf();
     let add_patch = r#"*** Begin Patch
 *** Add File: test.md
@@ -99,11 +99,11 @@ async fn test_apply_patch_tool() -> anyhow::Result<()> {
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn test_apply_patch_freeform_tool() -> anyhow::Result<()> {
     use core_test_support::skip_if_no_network;
-    use core_test_support::test_codex_exec::test_codex_exec;
+    use core_test_support::test_codexist_exec::test_codexist_exec;
 
     skip_if_no_network!(Ok(()));
 
-    let test = test_codex_exec();
+    let test = test_codexist_exec();
     let freeform_add_patch = r#"*** Begin Patch
 *** Add File: app.py
 +class BaseClass:

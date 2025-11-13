@@ -1,5 +1,5 @@
-use codex_protocol::custom_prompts::CustomPrompt;
-use codex_protocol::custom_prompts::PROMPTS_CMD_PREFIX;
+use codexist_protocol::custom_prompts::CustomPrompt;
+use codexist_protocol::custom_prompts::PROMPTS_CMD_PREFIX;
 use lazy_static::lazy_static;
 use regex_lite::Regex;
 use shlex::Shlex;

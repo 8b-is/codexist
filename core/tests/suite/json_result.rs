@@ -1,15 +1,15 @@
 #![cfg(not(target_os = "windows"))]
 
-use codex_core::protocol::AskForApproval;
-use codex_core::protocol::EventMsg;
-use codex_core::protocol::Op;
-use codex_core::protocol::SandboxPolicy;
-use codex_protocol::config_types::ReasoningSummary;
-use codex_protocol::user_input::UserInput;
+use codexist_core::protocol::AskForApproval;
+use codexist_core::protocol::EventMsg;
+use codexist_core::protocol::Op;
+use codexist_core::protocol::SandboxPolicy;
+use codexist_protocol::config_types::ReasoningSummary;
+use codexist_protocol::user_input::UserInput;
 use core_test_support::responses;
 use core_test_support::skip_if_no_network;
-use core_test_support::test_codex::TestCodex;
-use core_test_support::test_codex::test_codex;
+use core_test_support::test_codexist::TestCodexist;
+use core_test_support::test_codexist::test_codexist;
 use core_test_support::wait_for_event;
 use pretty_assertions::assert_eq;
 use responses::ev_assistant_message;
@@ -30,16 +30,16 @@ const SCHEMA: &str = r#"
 "#;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn codex_returns_json_result_for_gpt5() -> anyhow::Result<()> {
-    codex_returns_json_result("gpt-5".to_string()).await
+async fn codexist_returns_json_result_for_gpt5() -> anyhow::Result<()> {
+    codexist_returns_json_result("gpt-5".to_string()).await
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn codex_returns_json_result_for_gpt5_codex() -> anyhow::Result<()> {
-    codex_returns_json_result("gpt-5-codex".to_string()).await
+async fn codexist_returns_json_result_for_gpt5_codexist() -> anyhow::Result<()> {
+    codexist_returns_json_result("gpt-5-codexist".to_string()).await
 }
 
-async fn codex_returns_json_result(model: String) -> anyhow::Result<()> {
+async fn codexist_returns_json_result(model: String) -> anyhow::Result<()> {
     skip_if_no_network!(Ok(()));
 
     let server = start_mock_server().await;
@@ -62,17 +62,17 @@ async fn codex_returns_json_result(model: String) -> anyhow::Result<()> {
             return false;
         };
 
-        format.get("name") == Some(&serde_json::Value::String("codex_output_schema".into()))
+        format.get("name") == Some(&serde_json::Value::String("codexist_output_schema".into()))
             && format.get("type") == Some(&serde_json::Value::String("json_schema".into()))
             && format.get("strict") == Some(&serde_json::Value::Bool(true))
             && format.get("schema") == Some(&expected_schema)
     };
     responses::mount_sse_once_match(&server, match_json_text_param, sse1).await;
 
-    let TestCodex { codex, cwd, .. } = test_codex().build(&server).await?;
+    let TestCodexist { codexist, cwd, .. } = test_codexist().build(&server).await?;
 
     // 1) Normal user input – should hit server once.
-    codex
+    codexist
         .submit(Op::UserTurn {
             items: vec![UserInput::Text {
                 text: "hello world".into(),
@@ -87,7 +87,7 @@ async fn codex_returns_json_result(model: String) -> anyhow::Result<()> {
         })
         .await?;
 
-    let message = wait_for_event(&codex, |ev| matches!(ev, EventMsg::AgentMessage(_))).await;
+    let message = wait_for_event(&codexist, |ev| matches!(ev, EventMsg::AgentMessage(_))).await;
     if let EventMsg::AgentMessage(message) = message {
         let json: serde_json::Value = serde_json::from_str(&message.message)?;
         assert_eq!(

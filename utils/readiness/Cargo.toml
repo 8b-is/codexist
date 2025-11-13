@@ -1,5 +1,5 @@
 [package]
-name = "codex-utils-readiness"
+name = "codexist-utils-readiness"
 version.workspace = true
 edition.workspace = true
 

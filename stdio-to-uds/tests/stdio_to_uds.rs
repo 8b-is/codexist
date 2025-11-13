@@ -47,7 +47,7 @@ fn pipes_stdin_and_stdout_through_socket() -> anyhow::Result<()> {
         Ok(())
     });
 
-    Command::cargo_bin("codex-stdio-to-uds")?
+    Command::cargo_bin("codexist-stdio-to-uds")?
         .arg(&socket_path)
         .write_stdin("request")
         .assert()

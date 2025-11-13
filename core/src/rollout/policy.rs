@@ -1,6 +1,6 @@
 use crate::protocol::EventMsg;
 use crate::protocol::RolloutItem;
-use codex_protocol::models::ResponseItem;
+use codexist_protocol::models::ResponseItem;
 
 /// Whether a rollout `item` should be persisted in rollout files.
 #[inline]
@@ -8,7 +8,7 @@ pub(crate) fn is_persisted_response_item(item: &RolloutItem) -> bool {
     match item {
         RolloutItem::ResponseItem(item) => should_persist_response_item(item),
         RolloutItem::EventMsg(ev) => should_persist_event_msg(ev),
-        // Persist Codex executive markers so we can analyze flows (e.g., compaction, API turns).
+        // Persist Codexist executive markers so we can analyze flows (e.g., compaction, API turns).
         RolloutItem::Compacted(_) | RolloutItem::TurnContext(_) | RolloutItem::SessionMeta(_) => {
             true
         }
